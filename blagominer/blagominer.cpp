@@ -590,31 +590,40 @@ unsigned int calcScoop(std::shared_ptr<t_coin_info> coinInfo) {
 	return (((unsigned char)xcache[31]) + 256 * (unsigned char)xcache[30]) % 4096;
 }
 
+void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& queue, std::shared_ptr<t_coin_info> coin) {
+	bool inserted = false;
+	for (auto it = queue.begin(); it != queue.end(); ++it) {
+		if (coin->mining->priority < (*it)->mining->priority) {
+			Log("Adding %s to the queue before %s.", coinNames[coin->coin], coinNames[(*it)->coin]);
+			queue.insert(it, coin);
+			inserted = true;
+			break;
+		}
+		if (coin == (*it)) {
+			Log("Coin %s already in queue. No action needed", coinNames[coin->coin]);
+			inserted = true;
+			break;
+		}
+	}
+	if (!inserted) {
+		Log("Adding %s to the end of the queue.", coinNames[coin->coin]);
+		queue.push_back(coin);
+	}
+}
+
 bool hasSignatureChanged(const std::vector<std::shared_ptr<t_coin_info>>& coins,
-	std::shared_ptr<t_coin_info > coin,
 	std::vector<std::shared_ptr<t_coin_info>>& elems) {
 	bool ret = false;
 	for (auto& pt : coins) {
 		if (pt->mining->enable && (memcmp(pt->mining->signature, pt->mining->oldSignature, 32) != 0)) {
-			Log("Signature for %s changed", coinNames[pt->coin]);
-			bool inserted = false;
-			for (size_t i = 0; i < elems.size(); ++i) {
-				if (pt->coin == elems.at(i)->coin) {
-					Log("Replacing %s in the queue at position %zu", coinNames[pt->coin], i);
-					elems.at(i) = pt;
-					inserted = true;
-					break;
-				}
-				if (pt->mining->priority <= elems.at(i)->mining->priority) {
-					Log("Adding %s to the queue at position %zu", coinNames[pt->coin], i);
-					elems.insert(elems.begin() + i, coin);
-					inserted = true;
-					break;
-				}
-			}
-			if (!inserted) {
-				elems.push_back(pt);
-			}
+			Log("Signature for %s changed (new: %s, old: %s)", coinNames[pt->coin], pt->mining->signature, pt->mining->oldSignature);
+			// Setting interrupted to false in case the coin with changed signature has been
+			// scheduled for continuing.
+			pt->mining->interrupted = false;
+			// Also resetting directories flags for the same reason.
+			resetDirs(pt);
+			memmove(pt->mining->oldSignature, pt->mining->signature, 32);
+			insertIntoQueue(elems, pt);
 			ret = true;
 		}
 	}
@@ -624,9 +633,8 @@ bool hasSignatureChanged(const std::vector<std::shared_ptr<t_coin_info>>& coins,
 bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& coins,
 	std::shared_ptr<t_coin_info > coin,
 	std::vector<std::shared_ptr<t_coin_info>>& elems) {
-	if (hasSignatureChanged(coins, coin, elems)) {
-		Log("Changed signature.");
-		// Checking only the ifrst element, since it has already the highest priority (but lowest value).
+	if (hasSignatureChanged(coins, elems)) {
+		// Checking only the first element, since it has already the highest priority (but lowest value).
 		if (elems.front()->mining->priority <= coin->mining->priority) {
 			if (!done) {
 				Log("Interrupting current mining progress.");
@@ -635,22 +643,6 @@ bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& coin
 		}
 	}
 	return false;
-}
-
-void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& queue, std::shared_ptr<t_coin_info> coin) {
-	bool inserted = false;
-	for (auto it = queue.begin(); it != queue.end(); ++it) {
-		if (coin->mining->priority <= (*it)->mining->priority) {
-			Log("Adding %s to the queue.", coinNames[coin->coin]);
-			queue.insert(it + 1, coin);
-			inserted = true;
-			break;
-		}
-	}
-	if (!inserted) {
-		Log("Adding %s to the end of the queue.", coinNames[coin->coin]);
-		queue.push_back(coin);
-	}
 }
 
 unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool log, std::vector<t_files>& all_files) {
@@ -974,6 +966,9 @@ int main(int argc, char **argv) {
 	std::vector<std::shared_ptr<t_coin_info>> queue = coins;
 	std::shared_ptr<t_coin_info> miningCoin;
 
+	memmove(burst->mining->oldSignature, burst->mining->signature, 32);
+	memmove(bhd->mining->oldSignature, bhd->mining->signature, 32);
+
 	for (; !exit_flag && !coins.empty();)
 	{
 		worker.clear();
@@ -1051,7 +1046,7 @@ int main(int argc, char **argv) {
 		{
 			if (miningCoin->mining->dirs.at(i).done) {
 				// This directory has already been processed. Skipping.
-				Log("Skipping directory %s", miningCoin->mining->dirs.at(i).dir);
+				Log("Skipping directory %s", miningCoin->mining->dirs.at(i).dir.c_str());
 				continue;
 			}
 			worker_progress[i] = { i, 0, true };
@@ -1061,8 +1056,6 @@ int main(int argc, char **argv) {
 		
 		unsigned long long round_size = getPlotFilesSize(roundDirectories, false);
 		
-		memmove(burst->mining->oldSignature, burst->mining->signature, 32);
-		memmove(bhd->mining->oldSignature, bhd->mining->signature, 32);
 		unsigned long long old_baseTarget = miningCoin->mining->baseTarget;
 		unsigned long long old_height = miningCoin->mining->height;
 		clearProgress();
@@ -1120,11 +1113,11 @@ int main(int argc, char **argv) {
 					//Display total round time
 					QueryPerformanceCounter((LARGE_INTEGER*)&end_threads_time);
 					double thread_time = (double)(end_threads_time - start_threads_time) / pcFreq;
-					char tbuffer[9];
-					_strtime_s(tbuffer);
-					Log("Total round time: %s seconds", tbuffer);
+					Log("Total round time: %.1f seconds", thread_time);
 					if (use_debug)
 					{
+						char tbuffer[9];
+						_strtime_s(tbuffer);
 						bm_wattron(7);
 						bm_wprintw("%s Total round time: %.1f sec\n", tbuffer, thread_time, 0);
 						bm_wattroff(7);
