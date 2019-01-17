@@ -397,8 +397,10 @@ void procscoop_avx2_fast(std::shared_ptr<t_mining_info> miningInfo, unsigned lon
 
 		if ((*wertung / miningInfo->baseTarget) <= bests[acc].targetDeadline)
 		{
+			Log("[Check] %llu <= %llu", (*wertung / miningInfo->baseTarget), bests[acc].targetDeadline);
 			if (*wertung < bests[acc].best)
 			{
+				Log("[Check] %llu < %llu", *wertung, bests[acc].best);
 				Log("found deadline=%llu nonce=%llu for account: %llu file: %s", *wertung / miningInfo->baseTarget, nonce + v + posn, bests[acc].account_id, file_name.c_str());
 				EnterCriticalSection(&bestsLock);
 				bests[acc].best = *wertung;

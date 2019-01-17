@@ -507,6 +507,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 					unsigned long long dl = iter->best / coinInfo->mining->baseTarget;
 					_strtime_s(tbuffer);
 					if (coinInfo->network->network_quality < 100) coinInfo->network->network_quality++;
+					Log("[%20llu] sent DL: %15llu %5llud %02llu:%02llu:%02llu", iter->account_id, dl, (dl) / (24 * 60 * 60), (dl % (24 * 60 * 60)) / (60 * 60), (dl % (60 * 60)) / 60, dl % 60, 0);
 					bm_wattron(9);
 					bm_wprintw("%s [%20llu] sent DL: %15llu %5llud %02llu:%02llu:%02llu\n", tbuffer, iter->account_id, dl, (dl) / (24 * 60 * 60), (dl % (24 * 60 * 60)) / (60 * 60), (dl % (60 * 60)) / 60, dl % 60, 0);
 					bm_wattroff(9);
@@ -516,6 +517,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 					sessions.push_back({ ConnectSocket, dl, *iter });
 					LeaveCriticalSection(&sessionsLock);
 
+					Log("[%20llu] Setting bests targetDL: %10llu", iter->account_id, dl);
 					bests[Get_index_acc(coinInfo->mining, iter->account_id)].targetDeadline = dl;
 					EnterCriticalSection(&sharesLock);
 					iter = shares.erase(iter);
@@ -623,7 +625,11 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 										bests[Get_index_acc(coinInfo->mining, naccountId)].targetDeadline = ntargetDeadline;
 										LeaveCriticalSection(&bestsLock);
 										bm_wprintw("%s [%20llu] confirmed DL: %10llu %5llud %02u:%02u:%02u\n", tbuffer, naccountId, ndeadline, days, hours, min, sec, 0);
-										if (use_debug) bm_wprintw("%s [%20llu] set targetDL: %10llu\n", tbuffer, naccountId, ntargetDeadline, 0);
+										Log("[%20llu] confirmed DL: %10llu %5llud %02u:%02u:%02u", naccountId, ndeadline, days, hours, min, sec, 0);
+										Log("[%20llu] set targetDL: %10llu", naccountId, ntargetDeadline);
+										if (use_debug) {
+											bm_wprintw("%s [%20llu] set targetDL: %10llu\n", tbuffer, naccountId, ntargetDeadline, 0);
+										}
 									}
 									else bm_wprintw("%s [%20llu] confirmed DL: %10llu %5llud %02u:%02u:%02u\n", tbuffer, iter->body.account_id, ndeadline, days, hours, min, sec, 0);
 									bm_wattroff(10);
@@ -641,6 +647,10 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 								else {
 									if (answ.HasMember("errorDescription")) {
 										Log("Sender: Deadline %llu sent with error: %s", iter->deadline, docToString(answ).c_str());
+										if (iter->deadline <= coinInfo->mining->targetDeadlineInfo) {
+											Log("Deadline should have been accepted (%llu <= %llu). Retrying.", iter->deadline, coinInfo->mining->targetDeadlineInfo);
+											shares.push_back({ iter->body.file_name, iter->body.account_id, iter->body.best, iter->body.nonce });
+										}
 										bm_wattron(15);
 										bm_wprintw("[ERROR %i] %s\n", answ["errorCode"].GetInt(), answ["errorDescription"].GetString(), 0);
 										bm_wattroff(15);

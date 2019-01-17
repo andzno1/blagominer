@@ -42,7 +42,7 @@ void work_i(std::shared_ptr<t_mining_info> miningInfo, const size_t local_num)
 	//for (auto iter = files.begin(); iter != files.end(); ++iter)
 	for (auto iter = files.rbegin(); iter != files.rend(); ++iter)
 	{
-		Log("[%zu] Beginning main loop over files.", local_num);
+		//Log("[%zu] Beginning main loop over files.", local_num);
 		unsigned long long key, nonce, nonces, stagger, offset, tail;
 		bool p2, bfs;
 		QueryPerformanceCounter((LARGE_INTEGER*)&start_time_read);
@@ -307,12 +307,12 @@ void work_i(std::shared_ptr<t_mining_info> miningInfo, const size_t local_num)
 		}
 		Log("[%zu] Close file: %s [@ %llu ms]", local_num, iter->Name.c_str(), (long long unsigned)((double)(end_time_read - start_time_read) * 1000 / pcFreq));
 		CloseHandle(ifile);
-		Log("[%zu] Freeing caches.", local_num);
+		//Log("[%zu] Freeing caches.", local_num);
 		VirtualFree(cache, 0, MEM_RELEASE);
 		VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
 		if (p2 != POC2) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
 	}
-	Log("[%zu] All files processed.", local_num);
+	//Log("[%zu] All files processed.", local_num);
 	worker_progress[local_num].isAlive = false;
 	QueryPerformanceCounter((LARGE_INTEGER*)&end_work_time);
 
@@ -321,7 +321,6 @@ void work_i(std::shared_ptr<t_mining_info> miningInfo, const size_t local_num)
 	double thread_time = (double)(end_work_time - start_work_time) / pcFreq;
 	if (use_debug)
 	{
-		Log("\n[%zu] Logging to console.", local_num);
 		char tbuffer[9];
 		_strtime_s(tbuffer);
 		bm_wattron(7);
@@ -340,7 +339,7 @@ void work_i(std::shared_ptr<t_mining_info> miningInfo, const size_t local_num)
 		bm_wattroff(7);
 	}
 	miningInfo->dirs[local_num].done = true;
-	Log("\n[%zu] Returning.", local_num);
+	//Log("[%zu] Returning.", local_num);
 	return;
 }
 

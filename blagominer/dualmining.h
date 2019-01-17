@@ -21,7 +21,7 @@ struct t_mining_info {
 	size_t priority;
 	bool interrupted;						// Flag for interrupted block when dual mining.
 	unsigned long long baseTarget;			// base target of current block
-	unsigned long long targetDeadlineInfo;	// target deadline info from pool BURST
+	unsigned long long targetDeadlineInfo;	// target deadline info from pool
 	unsigned long long height;				// current block height
 	unsigned long long deadline;			// current deadline
 	unsigned long long my_target_deadline;

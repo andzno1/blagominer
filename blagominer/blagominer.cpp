@@ -633,7 +633,7 @@ bool hasSignatureChanged(const std::vector<std::shared_ptr<t_coin_info>>& coins,
 	bool ret = false;
 	for (auto& pt : coins) {
 		if (pt->mining->enable && (memcmp(pt->mining->signature, pt->mining->oldSignature, 32) != 0)) {
-			Log("Signature for %s changed (new: %s, old: %s)", coinNames[pt->coin], pt->mining->signature, pt->mining->oldSignature);
+			Log("Signature for %s changed.", coinNames[pt->coin]);
 			// Setting interrupted to false in case the coin with changed signature has been
 			// scheduled for continuing.
 			pt->mining->interrupted = false;
@@ -1044,11 +1044,14 @@ int main(int argc, char **argv) {
 		LeaveCriticalSection(&bestsLock);
 
 		Log("targetDeadlineInfo: %llu", miningCoin->mining->targetDeadlineInfo);
+		Log("my_target_deadline: %llu", miningCoin->mining->my_target_deadline);
 		if ((miningCoin->mining->targetDeadlineInfo > 0) && (miningCoin->mining->targetDeadlineInfo < miningCoin->mining->my_target_deadline)) {
-			Log("Update targetDeadline: %llu", miningCoin->mining->targetDeadlineInfo);
+			Log("Target deadline from pool is lower than deadline set in the configuration. Updating targetDeadline: %llu", miningCoin->mining->targetDeadlineInfo);
 		}
-		else miningCoin->mining->targetDeadlineInfo = miningCoin->mining->my_target_deadline;
-		Log("targetDeadlineInfo: %llu", miningCoin->mining->targetDeadlineInfo);
+		else {
+			miningCoin->mining->targetDeadlineInfo = miningCoin->mining->my_target_deadline;
+			Log("Using target deadline from configuration: %llu", miningCoin->mining->targetDeadlineInfo);
+		}
 
 
 		// Run Sender
@@ -1192,10 +1195,10 @@ int main(int argc, char **argv) {
 
 		stopThreads = 1;   // Tell all threads to stop
 
+		Log("Waiting for worker threads to shut down.");
 		for (auto it = worker.begin(); it != worker.end(); ++it)
 		{
 			if (it->second.joinable()) {
-				Log("Interrupt thread. ");
 				it->second.join();
 			}
 		}
