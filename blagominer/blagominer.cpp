@@ -1111,6 +1111,7 @@ int main(int argc, char **argv) {
 				*/
 				//Work Done! Cleanup / Prepare
 				if (!done) {
+					Log("Round done.");
 					Log("threads_runing: %i", threads_runing);
 					//Display total round time
 					QueryPerformanceCounter((LARGE_INTEGER*)&end_threads_time);
@@ -1149,7 +1150,6 @@ int main(int argc, char **argv) {
 						end_threads_time = curr_time;
 					}
 				}
-				Log("Round done.");
 				done = true;
 			}
 
