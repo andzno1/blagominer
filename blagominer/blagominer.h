@@ -29,6 +29,10 @@ extern CRITICAL_SECTION bestsLock;				// best lock
 extern CRITICAL_SECTION sharesLock;				// shares lock
 
 // global variables
+extern bool newBlock;
+extern char currentSignature[33];
+extern unsigned long long currentHeight;
+extern unsigned long long currentBaseTarget;
 
 // miner
 extern bool exit_flag;							// true if miner is to be exited

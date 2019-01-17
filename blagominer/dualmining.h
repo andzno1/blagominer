@@ -1,5 +1,9 @@
 #pragma once
 
+#include "stdafx.h"
+#include <mutex>
+#include <vector>
+
 enum Coins {
 	BURST,
 	BHD
@@ -15,6 +19,13 @@ struct t_directory_info {
 struct t_logging {
 	bool logAllGetMiningInfos;				// Prevent spamming the log file by only outputting
 											// GMI when there is a change in the GMI
+};
+
+struct t_locks {
+	std::mutex mHeight;
+	std::mutex mTargetDeadlineInfo;
+	std::mutex mSignature;
+	std::mutex mOldSignature;
 };
 
 struct t_mining_info {
@@ -53,9 +64,21 @@ struct t_coin_info {
 	Coins coin;
 	std::shared_ptr<t_mining_info> mining;
 	std::shared_ptr<t_network_info> network;
+	std::shared_ptr<t_locks> locks;
 };
 
 
 extern std::shared_ptr<t_coin_info> burst;
 extern std::shared_ptr<t_coin_info> bhd;
 extern t_logging loggingConfig;
+
+unsigned long long getHeight(std::shared_ptr<t_coin_info> coin);
+void setHeight(std::shared_ptr<t_coin_info> coin, const unsigned long long height);
+
+unsigned long long getTargetDeadlineInfo(std::shared_ptr<t_coin_info> coin);
+void setTargetDeadlineInfo(std::shared_ptr<t_coin_info> coin, const unsigned long long targetDeadlineInfo);
+char* getSignature(std::shared_ptr<t_coin_info> coin);
+void setSignature(std::shared_ptr<t_coin_info> coin, const char* signature);
+void updateOldSignature(std::shared_ptr<t_coin_info> coin);
+bool signaturesDiffer(std::shared_ptr<t_coin_info> coin);
+bool signaturesDiffer(std::shared_ptr<t_coin_info> coin, const char* sig);

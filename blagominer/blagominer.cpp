@@ -37,10 +37,17 @@ std::vector<std::string> paths_dir; // ïóòè
 
 sph_shabal_context  local_32;
 
+bool newBlock = false;
+char currentSignature[33];
+unsigned long long currentHeight = 0;
+unsigned long long currentBaseTarget = 0;
+unsigned long long currentTargetDeadlineInfo = 0;
+
 void init_mining_info() {
 
 	burst->mining = std::make_shared<t_mining_info>();
 	burst->coin = BURST;
+	burst->locks = std::make_shared<t_locks>();
 	burst->mining->miner_mode = 0;
 	burst->mining->priority = 0;
 	burst->mining->interrupted = false;
@@ -55,6 +62,7 @@ void init_mining_info() {
 
 	bhd->mining = std::make_shared<t_mining_info>();
 	bhd->coin = BHD;
+	bhd->locks = std::make_shared<t_locks>();
 	bhd->mining->miner_mode = 0;
 	bhd->mining->priority = 1;
 	bhd->mining->interrupted = false;
@@ -587,11 +595,18 @@ size_t GetFiles(const std::string &str, std::vector <t_files> *p_files)
 	return count;
 }
 
-unsigned int calcScoop(std::shared_ptr<t_coin_info> coinInfo) {
+unsigned int calcScoop() {
 	char scoopgen[40];
-	memmove(scoopgen, coinInfo->mining->signature, 32);
-	const char *mov = (char*)&coinInfo->mining->height;
-	scoopgen[32] = mov[7]; scoopgen[33] = mov[6]; scoopgen[34] = mov[5]; scoopgen[35] = mov[4]; scoopgen[36] = mov[3]; scoopgen[37] = mov[2]; scoopgen[38] = mov[1]; scoopgen[39] = mov[0];
+	memmove(scoopgen, currentSignature, 32);
+	const char *mov = (char*)&currentHeight;
+	scoopgen[32] = mov[7];
+	scoopgen[33] = mov[6];
+	scoopgen[34] = mov[5];
+	scoopgen[35] = mov[4];
+	scoopgen[36] = mov[3];
+	scoopgen[37] = mov[2];
+	scoopgen[38] = mov[1];
+	scoopgen[39] = mov[0];
 
 	sph_shabal256(&local_32, (const unsigned char*)(const unsigned char*)scoopgen, 40);
 	char xcache[32];
@@ -625,14 +640,14 @@ bool hasSignatureChanged(const std::vector<std::shared_ptr<t_coin_info>>& coins,
 	std::vector<std::shared_ptr<t_coin_info>>& elems) {
 	bool ret = false;
 	for (auto& pt : coins) {
-		if (pt->mining->enable && (memcmp(pt->mining->signature, pt->mining->oldSignature, 32) != 0)) {
+		if (pt->mining->enable && signaturesDiffer(pt)) {
 			Log("Signature for %s changed.", coinNames[pt->coin]);
 			// Setting interrupted to false in case the coin with changed signature has been
 			// scheduled for continuing.
 			pt->mining->interrupted = false;
 			// Also resetting directories flags for the same reason.
 			resetDirs(pt);
-			memmove(pt->mining->oldSignature, pt->mining->signature, 32);
+			updateOldSignature(pt);
 			insertIntoQueue(elems, pt);
 			ret = true;
 		}
@@ -653,6 +668,15 @@ bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& coin
 		}
 	}
 	return false;
+}
+
+void updateGlobals(std::shared_ptr<t_coin_info> coin) {
+	char* sig = getSignature(coin);
+	memmove(currentSignature, sig, 32);
+	delete[] sig;
+
+	currentHeight = coin->mining->height;
+	currentBaseTarget = coin->mining->baseTarget;
 }
 
 unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool log, std::vector<t_files>& all_files) {
@@ -839,11 +863,15 @@ int main(int argc, char **argv) {
 	bm_wattroff(11);
 	
 	// обнуляем сигнатуру
-	RtlSecureZeroMemory(burst->mining->oldSignature, 33);
-	RtlSecureZeroMemory(burst->mining->signature, 33);
-
-	RtlSecureZeroMemory(bhd->mining->oldSignature, 33);
-	RtlSecureZeroMemory(bhd->mining->signature, 33);
+	RtlSecureZeroMemory(currentSignature, 33);
+	if (burst->mining->enable) {
+		RtlSecureZeroMemory(burst->mining->oldSignature, 33);
+		RtlSecureZeroMemory(burst->mining->signature, 33);
+	}
+	if(bhd->mining->enable) {
+		RtlSecureZeroMemory(bhd->mining->oldSignature, 33);
+		RtlSecureZeroMemory(bhd->mining->signature, 33);
+	}
 
 	// Инфа по файлам
 	bm_wattron(15);
@@ -918,7 +946,7 @@ int main(int argc, char **argv) {
 	}	
 
 	Log("Update mining info");
-	while ((burst->mining->enable && burst->mining->height == 0) || (bhd->mining->enable && bhd->mining->height == 0))
+	while ((burst->mining->enable && getHeight(burst) == 0) || (bhd->mining->enable && getHeight(bhd) == 0))
 	{
 		std::this_thread::yield();
 		std::this_thread::sleep_for(std::chrono::milliseconds(2));
@@ -975,8 +1003,12 @@ int main(int argc, char **argv) {
 	std::vector<std::shared_ptr<t_coin_info>> queue = coins;
 	std::shared_ptr<t_coin_info> miningCoin;
 
-	memmove(burst->mining->oldSignature, burst->mining->signature, 32);
-	memmove(bhd->mining->oldSignature, bhd->mining->signature, 32);
+	if (burst->mining->enable) {
+		updateOldSignature(burst);
+	}
+	if (bhd->mining->enable) {
+		updateOldSignature(bhd);
+	}
 
 	for (; !exit_flag && !coins.empty();)
 	{
@@ -985,6 +1017,7 @@ int main(int argc, char **argv) {
 		stopThreads = 0;
 		done = false;
 		int oldThreadsRunning = -1;
+		double thread_time;
 
 		std::string out = "Coin queue: ";
 		for (auto& c : queue) {
@@ -996,20 +1029,22 @@ int main(int argc, char **argv) {
 		miningCoin = queue.front();
 		queue.erase(queue.begin());
 
-		miningCoin->mining->scoop = calcScoop(miningCoin);
-		miningCoin->mining->deadline = 0;
+		updateGlobals(miningCoin);
 
+		miningCoin->mining->scoop = calcScoop();
+		miningCoin->mining->deadline = 0;
+		
 		_strtime_s(tbuffer);
 		if (miningCoin->mining->interrupted) {
-			Log("------------------------    Continuing %s block: %llu", coinNames[miningCoin->coin], miningCoin->mining->height);
+			Log("------------------------    Continuing %s block: %llu", coinNames[miningCoin->coin], currentHeight);
 			bm_wattron(5);
-			bm_wprintw("\n%s Continuing %s block %llu, baseTarget %llu, netDiff %llu Tb, POC%i\n", tbuffer, coinNames[miningCoin->coin], miningCoin->mining->height, miningCoin->mining->baseTarget, 4398046511104 / 240 / miningCoin->mining->baseTarget, POC2 ? 2 : 1, 0);
+			bm_wprintw("\n%s Continuing %s block %llu, baseTarget %llu, netDiff %llu Tb, POC%i\n", tbuffer, coinNames[miningCoin->coin], currentHeight, currentBaseTarget, 4398046511104 / 240 / currentBaseTarget, POC2 ? 2 : 1, 0);
 			bm_wattron(5);
 		}
 		else {
-			Log("------------------------    New %s block: %llu", coinNames[miningCoin->coin], miningCoin->mining->height);
+			Log("------------------------    New %s block: %llu", coinNames[miningCoin->coin], currentHeight);
 			bm_wattron(25);
-			bm_wprintw("\n%s New %s block %llu, baseTarget %llu, netDiff %llu Tb, POC%i\n", tbuffer, coinNames[miningCoin->coin], miningCoin->mining->height, miningCoin->mining->baseTarget, 4398046511104 / 240 / miningCoin->mining->baseTarget, POC2 ? 2 : 1, 0);
+			bm_wprintw("\n%s New %s block %llu, baseTarget %llu, netDiff %llu Tb, POC%i\n", tbuffer, coinNames[miningCoin->coin], currentHeight, currentBaseTarget, 4398046511104 / 240 / currentBaseTarget, POC2 ? 2 : 1, 0);
 			bm_wattron(25);
 		}
 
@@ -1019,7 +1054,7 @@ int main(int argc, char **argv) {
 		{
 			unsigned long long sat_total_size = 0;
 			for (auto It = satellite_size.begin(); It != satellite_size.end(); ++It) sat_total_size += It->second;
-			bm_wprintw("*** Chance to find a block: %.5f%%  (%llu Gb)\n", ((double)((sat_total_size * 1024 + total_size / 1024 / 1024) * 100 * 60)*(double)miningCoin->mining->baseTarget) / 1152921504606846976, sat_total_size + total_size / 1024 / 1024 / 1024, 0);
+			bm_wprintw("*** Chance to find a block: %.5f%%  (%llu Gb)\n", ((double)((sat_total_size * 1024 + total_size / 1024 / 1024) * 100 * 60)*(double)currentBaseTarget) / 1152921504606846976, sat_total_size + total_size / 1024 / 1024 / 1024, 0);
 		}
 
 		EnterCriticalSection(&sessionsLock);
@@ -1035,19 +1070,20 @@ int main(int argc, char **argv) {
 		bests.clear();
 		LeaveCriticalSection(&bestsLock);
 
-		Log("targetDeadlineInfo: %llu", miningCoin->mining->targetDeadlineInfo);
-		Log("my_target_deadline: %llu", miningCoin->mining->my_target_deadline);
-		if ((miningCoin->mining->targetDeadlineInfo > 0) && (miningCoin->mining->targetDeadlineInfo < miningCoin->mining->my_target_deadline)) {
-			Log("Target deadline from pool is lower than deadline set in the configuration. Updating targetDeadline: %llu", miningCoin->mining->targetDeadlineInfo);
+		const unsigned long long tdi = getTargetDeadlineInfo(miningCoin);
+		Log("targetDeadlineInfo: %llu", tdi);
+		Log("my_target_deadline: %llu", tdi);
+		if ((tdi > 0) && (tdi < miningCoin->mining->my_target_deadline)) {
+			Log("Target deadline from pool is lower than deadline set in the configuration. Updating targetDeadline: %llu", tdi);
 		}
 		else {
-			miningCoin->mining->targetDeadlineInfo = miningCoin->mining->my_target_deadline;
-			Log("Using target deadline from configuration: %llu", miningCoin->mining->targetDeadlineInfo);
+			setTargetDeadlineInfo(miningCoin, miningCoin->mining->my_target_deadline);
+			Log("Using target deadline from configuration: %llu", miningCoin->mining->my_target_deadline);
 		}
 
 
 		// Run Sender
-		std::thread sender(send_i, miningCoin, miningCoin->mining->height, miningCoin->mining->baseTarget);
+		std::thread sender(send_i, miningCoin, currentHeight, currentBaseTarget);
 
 		// Run Threads
 		QueryPerformanceCounter((LARGE_INTEGER*)&start_threads_time);
@@ -1062,20 +1098,20 @@ int main(int argc, char **argv) {
 				continue;
 			}
 			worker_progress[i] = { i, 0, true };
-			worker[i] = std::thread(work_i, miningCoin->mining, i);
+			worker[i] = std::thread(work_i, miningCoin, i);
 			roundDirectories.push_back(miningCoin->mining->dirs.at(i).dir);
 		}
 		
 		unsigned long long round_size = getPlotFilesSize(roundDirectories, false);
 		
-		unsigned long long old_baseTarget = miningCoin->mining->baseTarget;
-		unsigned long long old_height = miningCoin->mining->height;
+		unsigned long long old_baseTarget = currentBaseTarget;
+		unsigned long long old_height = currentHeight;
 		clearProgress();
 
 		Log("Directories in this round: %zu", roundDirectories.size());
 
 		// Wait until signature changed or exit
-		while (!needToInterruptMining(coins, miningCoin, queue) && !exit_flag)
+		while ((!newBlock || !needToInterruptMining(coins, miningCoin, queue)) && !exit_flag)
 		{
 			switch (bm_wgetchMain())
 			{
@@ -1084,11 +1120,11 @@ int main(int argc, char **argv) {
 				break;
 			case 'r':
 				bm_wattron(15);
-				bm_wprintw("Recommended size for this block: %llu Gb\n", (4398046511104 / miningCoin->mining->baseTarget) * 1024 / miningCoin->mining->targetDeadlineInfo);
+				bm_wprintw("Recommended size for this block: %llu Gb\n", (4398046511104 / currentBaseTarget) * 1024 / currentTargetDeadlineInfo);
 				bm_wattroff(15);
 				break;
 			case 'c':
-				bm_wprintw("*** Chance to find a block: %.5f%%  (%llu Gb)\n", ((double)((total_size / 1024 / 1024) * 100 * 60)*(double)miningCoin->mining->baseTarget) / 1152921504606846976, total_size / 1024 / 1024 / 1024, 0);
+				bm_wprintw("*** Chance to find a block: %.5f%%  (%llu Gb)\n", ((double)((total_size / 1024 / 1024) * 100 * 60)*(double)currentBaseTarget) / 1152921504606846976, total_size / 1024 / 1024 / 1024, 0);
 				break;
 			}
 			boxProgress();
@@ -1124,9 +1160,8 @@ int main(int argc, char **argv) {
 					Log("Round done.");
 					//Display total round time
 					QueryPerformanceCounter((LARGE_INTEGER*)&end_threads_time);
-					double thread_time = (double)(end_threads_time - start_threads_time) / pcFreq;
+					thread_time = (double)(end_threads_time - start_threads_time) / pcFreq;
 					Log("Total round time: %.1f seconds", thread_time);
-					std::thread{ Csv_Submitted,  miningCoin->coin, old_height, old_baseTarget, thread_time, true, miningCoin->mining->deadline }.detach();
 					if (use_debug)
 					{
 						char tbuffer[9];
@@ -1196,11 +1231,6 @@ int main(int argc, char **argv) {
 			}
 		}
 
-		if (!done) {
-			double thread_time = (double)(end_threads_time - start_threads_time) / pcFreq;
-			std::thread{ Csv_Submitted,  miningCoin->coin, old_height, old_baseTarget, thread_time, false, miningCoin->mining->deadline }.detach();
-		}
-
 		//Check if mining has been interrupted and there is no new block.
 		for (auto& dir : miningCoin->mining->dirs) {
 			if (!dir.done) {
@@ -1240,6 +1270,7 @@ int main(int argc, char **argv) {
 
 		Log("Interrupt Sender. ");
 		if (sender.joinable()) sender.join();
+		std::thread{ Csv_Submitted,  miningCoin->coin, old_height, old_baseTarget, thread_time, true, miningCoin->mining->deadline }.detach();
 		
 		//prepare for next round if not yet done
 		if (!done) memcpy(&local_32, &global_32, sizeof(global_32));
@@ -1255,8 +1286,8 @@ int main(int argc, char **argv) {
 	if (burst->mining->enable && updaterBurst.joinable()) updaterBurst.join();
 	if (bhd->mining->enable && updaterBhd.joinable()) updaterBhd.join();
 	Log("Updater stopped");
-	if (burst->mining->enable && burst->network->enable_proxy) proxyBurst.join();
-	if (bhd->mining->enable && bhd->network->enable_proxy) proxyBhd.join();
+	if (burst->mining->enable && burst->network->enable_proxy && proxyBurst.joinable()) proxyBurst.join();
+	if (bhd->mining->enable && bhd->network->enable_proxy && proxyBhd.joinable()) proxyBhd.join();
 	worker.~map();
 	worker_progress.~map();
 	paths_dir.~vector();

@@ -281,6 +281,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 			char *find = strstr(buffer, "\r\n\r\n");
 			if (find != nullptr)
 			{
+				const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
 				if (strstr(buffer, "submitNonce") != nullptr)
 				{
 
@@ -322,14 +323,14 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 
 							_strtime_s(tbuffer);
 							bm_wattron(2);
-							bm_wprintw("%s [%20llu]\treceived DL: %11llu {%s}\n", tbuffer, get_accountId, get_deadline / coinInfo->mining->baseTarget, client_address_str, 0);
+							bm_wprintw("%s [%20llu]\treceived DL: %11llu {%s}\n", tbuffer, get_accountId, get_deadline / currentBaseTarget, client_address_str, 0);
 							bm_wattroff(2);
 							Log("Proxy: received DL %llu from %s", get_deadline, client_address_str);
 
 							//Подтверждаем
 							RtlSecureZeroMemory(buffer, buffer_size);
-							size_t acc = Get_index_acc(coinInfo->mining, get_accountId);
-							int bytes = sprintf_s(buffer, buffer_size, "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"result\": \"proxy\",\"accountId\": %llu,\"deadline\": %llu,\"targetDeadline\": %llu}", get_accountId, get_deadline / coinInfo->mining->baseTarget, bests[acc].targetDeadline);
+							size_t acc = Get_index_acc(get_accountId, targetDeadlineInfo);
+							int bytes = sprintf_s(buffer, buffer_size, "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"result\": \"proxy\",\"accountId\": %llu,\"deadline\": %llu,\"targetDeadline\": %llu}", get_accountId, get_deadline / currentBaseTarget, bests[acc].targetDeadline);
 							iResult = send(ClientSocket, buffer, bytes, 0);
 							if (iResult == SOCKET_ERROR)
 							{
@@ -357,7 +358,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 					if (strstr(buffer, "getMiningInfo") != nullptr)
 					{
 						RtlSecureZeroMemory(buffer, buffer_size);
-						int bytes = sprintf_s(buffer, buffer_size, "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"baseTarget\":\"%llu\",\"height\":\"%llu\",\"generationSignature\":\"%s\",\"targetDeadline\":%llu}", coinInfo->mining->baseTarget, coinInfo->mining->height, str_signature, coinInfo->mining->targetDeadlineInfo);
+						int bytes = sprintf_s(buffer, buffer_size, "HTTP/1.0 200 OK\r\nConnection: close\r\n\r\n{\"baseTarget\":\"%llu\",\"height\":\"%llu\",\"generationSignature\":\"%s\",\"targetDeadline\":%llu}", currentBaseTarget, currentHeight, str_signature, targetDeadlineInfo);
 						iResult = send(ClientSocket, buffer, bytes, 0);
 						if (iResult == SOCKET_ERROR)
 						{
@@ -420,17 +421,17 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo, const unsigned long long curr
 			return;
 		}
 
+		const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
 		for (auto iter = shares.begin(); iter != shares.end();)
 		{
-
 			//Гасим шару если она больше текущего targetDeadline, актуально для режима Proxy
-			if ((iter->best / currentBaseTarget) > bests[Get_index_acc(coinInfo->mining, iter->account_id)].targetDeadline)
+			if ((iter->best / currentBaseTarget) > bests[Get_index_acc(iter->account_id, targetDeadlineInfo)].targetDeadline)
 			{
 				if (use_debug)
 				{
 					_strtime_s(tbuffer);
 					bm_wattron(2);
-					bm_wprintw("%s [%20llu]\t%llu > %llu  discarded\n", tbuffer, iter->account_id, iter->best / currentBaseTarget, bests[Get_index_acc(coinInfo->mining, iter->account_id)].targetDeadline, 0);
+					bm_wprintw("%s [%20llu]\t%llu > %llu  discarded\n", tbuffer, iter->account_id, iter->best / currentBaseTarget, bests[Get_index_acc(iter->account_id, targetDeadlineInfo)].targetDeadline, 0);
 					bm_wattroff(2);
 				}
 				EnterCriticalSection(&sharesLock);
@@ -519,7 +520,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo, const unsigned long long curr
 					LeaveCriticalSection(&sessionsLock);
 
 					Log("[%20llu] Setting bests targetDL: %10llu", iter->account_id, dl);
-					bests[Get_index_acc(coinInfo->mining, iter->account_id)].targetDeadline = dl;
+					bests[Get_index_acc(iter->account_id, targetDeadlineInfo)].targetDeadline = dl;
 					EnterCriticalSection(&sharesLock);
 					iter = shares.erase(iter);
 					LeaveCriticalSection(&sharesLock);
@@ -623,7 +624,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo, const unsigned long long curr
 									if ((naccountId != 0) && (ntargetDeadline != 0))
 									{
 										EnterCriticalSection(&bestsLock);
-										bests[Get_index_acc(coinInfo->mining, naccountId)].targetDeadline = ntargetDeadline;
+										bests[Get_index_acc(naccountId, targetDeadlineInfo)].targetDeadline = ntargetDeadline;
 										LeaveCriticalSection(&bestsLock);
 										bm_wprintw("%s [%20llu] confirmed DL: %10llu %5llud %02u:%02u:%02u\n", tbuffer, naccountId, ndeadline, days, hours, min, sec, 0);
 										Log("[%20llu] confirmed DL: %10llu %5llud %02u:%02u:%02u", naccountId, ndeadline, days, hours, min, sec, 0);
@@ -654,8 +655,8 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo, const unsigned long long curr
 											std::thread{ Csv_Fail, coinInfo->coin, currentHeight, iter->body.file_name, currentBaseTarget, iter->body.nonce, iter->deadline,
 												0, answString }.detach();
 										}
-										if (iter->deadline <= coinInfo->mining->targetDeadlineInfo && iter->body.retryCount < maxSubmissionRetries) {
-											Log("Deadline should have been accepted (%llu <= %llu). Retry #%i.", iter->deadline, coinInfo->mining->targetDeadlineInfo, iter->body.retryCount + 1);
+										if (iter->deadline <= targetDeadlineInfo && iter->body.retryCount < maxSubmissionRetries) {
+											Log("Deadline should have been accepted (%llu <= %llu). Retry #%i.", iter->deadline, targetDeadlineInfo, iter->body.retryCount + 1);
 											shares.push_back({ iter->body.file_name, iter->body.account_id, iter->body.best, iter->body.nonce, iter->body.retryCount + 1 });
 										}
 										bm_wattron(15);
@@ -678,7 +679,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo, const unsigned long long curr
 							if (strstr(find, "Received share") != nullptr)
 							{
 								_strtime_s(tbuffer);
-								coinInfo->mining->deadline = bests[Get_index_acc(coinInfo->mining, iter->body.account_id)].DL; //может лучше iter->deadline ?
+								coinInfo->mining->deadline = bests[Get_index_acc(iter->body.account_id, targetDeadlineInfo)].DL; //может лучше iter->deadline ?
 																						   // if(deadline > iter->deadline) deadline = iter->deadline;
 								bm_wattron(10);
 								bm_wprintw("%s [%20llu] confirmed DL   %10llu\n", tbuffer, iter->body.account_id, iter->deadline, 0);
@@ -735,14 +736,16 @@ void updater_i(std::shared_ptr<t_coin_info> coinInfo)
 		exit(2);
 	}
 	for (; !exit_flag;) {
-		pollLocal(coinInfo);
+		newBlock = pollLocal(coinInfo);
+				
 		std::this_thread::yield();
 		std::this_thread::sleep_for(std::chrono::milliseconds(coinInfo->network->update_interval));
 	}
 }
 
 
-void pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
+bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
+	bool newBlock = false;
 	size_t const buffer_size = 1000;
 	char *buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
 	if (buffer == nullptr) ShowMemErrorExit();
@@ -820,38 +823,44 @@ void pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 									if (gmi.HasMember("baseTarget")) {
 										if (gmi["baseTarget"].IsString())	coinInfo->mining->baseTarget = _strtoui64(gmi["baseTarget"].GetString(), 0, 10);
 										else
-											if (gmi["baseTarget"].IsInt64()) coinInfo->mining->baseTarget = gmi["baseTarget"].GetInt64();
+											if (gmi["baseTarget"].IsInt64())coinInfo->mining->baseTarget = gmi["baseTarget"].GetInt64();
 									}
 
 									if (gmi.HasMember("height")) {
-										if (gmi["height"].IsString())	coinInfo->mining->height = _strtoui64(gmi["height"].GetString(), 0, 10);
+										if (gmi["height"].IsString())	setHeight(coinInfo, _strtoui64(gmi["height"].GetString(), 0, 10));
 										else
-											if (gmi["height"].IsInt64()) coinInfo->mining->height = gmi["height"].GetInt64();
+											if (gmi["height"].IsInt64()) setHeight(coinInfo, gmi["height"].GetInt64());
 									}
 
 									//POC2 determination
-									if (coinInfo->mining->height >= coinInfo->mining->POC2StartBlock) {
+									if (getHeight(coinInfo) >= coinInfo->mining->POC2StartBlock) {
 										POC2 = true;
 									}
 
 									if (gmi.HasMember("generationSignature")) {
 										strcpy_s(str_signature, gmi["generationSignature"].GetString());
-										if (loggingConfig.logAllGetMiningInfos && xstr2strr(coinInfo->mining->signature, 33, gmi["generationSignature"].GetString()) == 0)
-											Log("*! GMI: Node response: Error decoding generationsignature");
-										else if (!loggingConfig.logAllGetMiningInfos && xstr2strr(coinInfo->mining->signature, 33, gmi["generationSignature"].GetString()) == 0)
-											Log("*! GMI: Node response: Error decoding generationsignature: %s", Log_server(buffer));
+										char sig[33];
+										size_t sigLen = xstr2strr(sig, 33, gmi["generationSignature"].GetString());
+										bool sigDiffer = signaturesDiffer(coinInfo, sig);
 
-										if (!loggingConfig.logAllGetMiningInfos && memcmp(coinInfo->mining->signature, coinInfo->mining->oldSignature, 32) != 0) {
-											Log("* GMI: Received: %s", Log_server(buffer));
+										if (sigLen == 0)
+											Log("*! GMI: Node response: Error decoding generationsignature: %s", Log_server(buffer));
+										
+										if (sigDiffer) {
+											newBlock = true;
+											setSignature(coinInfo, sig);
+											if (!loggingConfig.logAllGetMiningInfos) {
+												Log("* GMI: Received: %s", Log_server(buffer));
+											}
 										}
 										else if (!loggingConfig.logAllGetMiningInfos) {
 											Log("* GMI: No new mining information.");
 										}
 									}
 									if (gmi.HasMember("targetDeadline")) {
-										if (gmi["targetDeadline"].IsString())	coinInfo->mining->targetDeadlineInfo = _strtoui64(gmi["targetDeadline"].GetString(), 0, 10);
+										if (gmi["targetDeadline"].IsString())	setTargetDeadlineInfo(coinInfo, _strtoui64(gmi["targetDeadline"].GetString(), 0, 10));
 										else
-											if (gmi["targetDeadline"].IsInt64()) coinInfo->mining->targetDeadlineInfo = gmi["targetDeadline"].GetInt64();
+											if (gmi["targetDeadline"].IsInt64()) setTargetDeadlineInfo(coinInfo, gmi["targetDeadline"].GetInt64());
 									}
 								}
 							}
@@ -864,6 +873,7 @@ void pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 		freeaddrinfo(result);
 	}
 	HeapFree(hHeap, 0, buffer);
+	return newBlock;
 }
 
 void ShowWinner(std::shared_ptr<t_coin_info> coinInfo, unsigned long long const num_block)
@@ -899,7 +909,9 @@ void ShowWinner(std::shared_ptr<t_coin_info> coinInfo, unsigned long long const 
 		{
 			timestamp1 = doc_block["timestamp"].GetUint64();
 		}
-		else Log("- error parsing JSON getBlocks");
+		else {
+			Log("- error parsing JSON getBlocks.\nRequest: %s\nResponse: %s", str_req, json);
+		}
 	}
 	HeapFree(hHeap, 0, str_req);
 	if (json != nullptr) HeapFree(hHeap, 0, json);
@@ -946,7 +958,10 @@ void ShowWinner(std::shared_ptr<t_coin_info> coinInfo, unsigned long long const 
 					bm_wattroff(11);
 				}
 			}
-			else Log("- error parsing JSON getBlocks");
+			else {
+				Log("- error parsing JSON getBlocks: %s", json);
+				Log("- error parsing JSON getBlocks.\nRequest: %s\nResponse: %s", str_req, json);
+			}
 		}
 	}
 	HeapFree(hHeap, 0, str_req);
