@@ -66,6 +66,9 @@
     <ClInclude Include="sph_types.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="dualmining.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">

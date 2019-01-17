@@ -3,7 +3,7 @@
 #undef  MOUSE_MOVED
 #include "curses.h" //include pdcurses
 
-short win_size_x = 80;
+short win_size_x = 90;
 short win_size_y = 60;
 WINDOW * win_main;
 WINDOW * win_progress;
@@ -55,8 +55,10 @@ void bm_init() {
 
 	init_pair(2, COLOR_GREEN, COLOR_BLACK);
 	init_pair(4, COLOR_RED, COLOR_BLACK);
+	init_pair(5, COLOR_BLACK, COLOR_WHITE);
 	init_pair(6, COLOR_CYAN, COLOR_BLACK);
 	init_pair(7, COLOR_WHITE, COLOR_BLACK);
+	init_pair(8, COLOR_BLACK, COLOR_YELLOW);
 	init_pair(9, 9, COLOR_BLACK);
 	init_pair(10, 10, COLOR_BLACK);
 	init_pair(11, 11, COLOR_BLACK);

@@ -14,12 +14,12 @@ mshabal512_context global_512;
 mshabal512_context_fast global_512_fast;
 
 //ALL CPUs
-void procscoop_sph(const unsigned long long nonce, const unsigned long long n, char const *const data, const size_t acc, const std::string &file_name) {
+void procscoop_sph(std::shared_ptr<t_mining_info> miningInfo, unsigned long long baseTarget, const unsigned long long nonce, const unsigned long long n, char const *const data, const size_t acc, const std::string &file_name) {
 	char const *cache;
 	char sig[32 + 128];
 	cache = data;
 	char res[32];
-	memcpy_s(sig, sizeof(sig), signature, sizeof(char) * 32);
+	memcpy_s(sig, sizeof(sig), miningInfo->signature, sizeof(char) * 32);
 
 	sph_shabal_context x;
 	for (unsigned long long v = 0; v < n; v++)
@@ -59,7 +59,7 @@ void procscoop_sph(const unsigned long long nonce, const unsigned long long n, c
 }
 
 //SSE fast
-void procscoop_sse_fast(unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
+void procscoop_sse_fast(std::shared_ptr<t_mining_info> miningInfo, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
 	char const *cache;
 	char sig0[32];
 	char end0[32];
@@ -70,7 +70,7 @@ void procscoop_sse_fast(unsigned long long const nonce, unsigned long long const
 	cache = data;
 	unsigned long long v;
 
-	memmove(sig0, signature, 32);
+	memmove(sig0, miningInfo->signature, 32);
 	end0[0] = -128;
 	memset(&end0[1], 0, 31);
 
@@ -138,15 +138,15 @@ void procscoop_sse_fast(unsigned long long const nonce, unsigned long long const
 			posn = 3;
 		}
 
-		if ((*wertung / baseTarget) <= bests[acc].targetDeadline)
+		if ((*wertung / miningInfo->baseTarget) <= bests[acc].targetDeadline)
 		{
 			if (*wertung < bests[acc].best)
 			{
-				Log("\nfound deadline=");	Log_llu(*wertung / baseTarget); Log(" nonce=");	Log_llu(nonce + v + posn); Log(" for account: "); Log_llu(bests[acc].account_id); Log(" file: "); Log((char*)file_name.c_str());
+				Log("\nfound deadline=");	Log_llu(*wertung / miningInfo->baseTarget); Log(" nonce=");	Log_llu(nonce + v + posn); Log(" for account: "); Log_llu(bests[acc].account_id); Log(" file: "); Log((char*)file_name.c_str());
 				EnterCriticalSection(&bestsLock);
 				bests[acc].best = *wertung;
 				bests[acc].nonce = nonce + v + posn;
-				bests[acc].DL = *wertung / baseTarget;
+				bests[acc].DL = *wertung / miningInfo->baseTarget;
 				LeaveCriticalSection(&bestsLock);
 				EnterCriticalSection(&sharesLock);
 				shares.push_back({ file_name, bests[acc].account_id, bests[acc].best, bests[acc].nonce });
@@ -165,7 +165,7 @@ void procscoop_sse_fast(unsigned long long const nonce, unsigned long long const
 }
 
 //AVX fast
-void procscoop_avx_fast(unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
+void procscoop_avx_fast(std::shared_ptr<t_mining_info> miningInfo, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
 	char const *cache;
 	char sig0[32];
 	char end0[32];
@@ -176,7 +176,7 @@ void procscoop_avx_fast(unsigned long long const nonce, unsigned long long const
 	cache = data;
 	unsigned long long v;
 
-	memmove(sig0, signature, 32);
+	memmove(sig0, miningInfo->signature, 32);
 	end0[0] = -128;
 	memset(&end0[1], 0, 31);
 
@@ -244,15 +244,15 @@ void procscoop_avx_fast(unsigned long long const nonce, unsigned long long const
 			posn = 3;
 		}
 
-		if ((*wertung / baseTarget) <= bests[acc].targetDeadline)
+		if ((*wertung / miningInfo->baseTarget) <= bests[acc].targetDeadline)
 		{
 			if (*wertung < bests[acc].best)
 			{
-				Log("\nfound deadline=");	Log_llu(*wertung / baseTarget); Log(" nonce=");	Log_llu(nonce + v + posn); Log(" for account: "); Log_llu(bests[acc].account_id); Log(" file: "); Log((char*)file_name.c_str());
+				Log("\nfound deadline=");	Log_llu(*wertung / miningInfo->baseTarget); Log(" nonce=");	Log_llu(nonce + v + posn); Log(" for account: "); Log_llu(bests[acc].account_id); Log(" file: "); Log((char*)file_name.c_str());
 				EnterCriticalSection(&bestsLock);
 				bests[acc].best = *wertung;
 				bests[acc].nonce = nonce + v + posn;
-				bests[acc].DL = *wertung / baseTarget;
+				bests[acc].DL = *wertung / miningInfo->baseTarget;
 				LeaveCriticalSection(&bestsLock);
 				EnterCriticalSection(&sharesLock);
 				shares.push_back({ file_name, bests[acc].account_id, bests[acc].best, bests[acc].nonce });
@@ -271,7 +271,7 @@ void procscoop_avx_fast(unsigned long long const nonce, unsigned long long const
 }
 
 //AVX2 fast
-void procscoop_avx2_fast(unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
+void procscoop_avx2_fast(std::shared_ptr<t_mining_info> miningInfo, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
 	char const *cache;
 	char sig0[32];
 	char end0[32];
@@ -286,7 +286,7 @@ void procscoop_avx2_fast(unsigned long long const nonce, unsigned long long cons
 	cache = data;
 	unsigned long long v;
 
-	memmove(sig0, signature, 32);
+	memmove(sig0, miningInfo->signature, 32);
 	end0[0] = -128;
 	memset(&end0[1], 0, 31);
 
@@ -395,15 +395,15 @@ void procscoop_avx2_fast(unsigned long long const nonce, unsigned long long cons
 			posn = 7;
 		}
 
-		if ((*wertung / baseTarget) <= bests[acc].targetDeadline)
+		if ((*wertung / miningInfo->baseTarget) <= bests[acc].targetDeadline)
 		{
 			if (*wertung < bests[acc].best)
 			{
-				Log("\nfound deadline=");	Log_llu(*wertung / baseTarget); Log(" nonce=");	Log_llu(nonce + v + posn); Log(" for account: "); Log_llu(bests[acc].account_id); Log(" file: "); Log((char*)file_name.c_str());
+				Log("\nfound deadline=");	Log_llu(*wertung / miningInfo->baseTarget); Log(" nonce=");	Log_llu(nonce + v + posn); Log(" for account: "); Log_llu(bests[acc].account_id); Log(" file: "); Log((char*)file_name.c_str());
 				EnterCriticalSection(&bestsLock);
 				bests[acc].best = *wertung;
 				bests[acc].nonce = nonce + v + posn;
-				bests[acc].DL = *wertung / baseTarget;
+				bests[acc].DL = *wertung / miningInfo->baseTarget;
 				LeaveCriticalSection(&bestsLock);
 				EnterCriticalSection(&sharesLock);
 				shares.push_back({ file_name, bests[acc].account_id, bests[acc].best, bests[acc].nonce });
@@ -422,7 +422,7 @@ void procscoop_avx2_fast(unsigned long long const nonce, unsigned long long cons
 }
 
 //AVX512 fast
-void procscoop_avx512_fast(unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
+void procscoop_avx512_fast(std::shared_ptr<t_mining_info> miningInfo, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
 	char const *cache;
 	char sig0[32];
 	char end0[32];
@@ -445,7 +445,7 @@ void procscoop_avx512_fast(unsigned long long const nonce, unsigned long long co
 	cache = data;
 	unsigned long long v;
 
-	memmove(sig0, signature, 32);
+	memmove(sig0, miningInfo->signature, 32);
 	end0[0] = -128;
 	memset(&end0[1], 0, 31);
 
@@ -636,15 +636,15 @@ void procscoop_avx512_fast(unsigned long long const nonce, unsigned long long co
 
 
 
-		if ((*wertung / baseTarget) <= bests[acc].targetDeadline)
+		if ((*wertung / miningInfo->baseTarget) <= bests[acc].targetDeadline)
 		{
 			if (*wertung < bests[acc].best)
 			{
-				Log("\nfound deadline=");	Log_llu(*wertung / baseTarget); Log(" nonce=");	Log_llu(nonce + v + posn); Log(" for account: "); Log_llu(bests[acc].account_id); Log(" file: "); Log((char*)file_name.c_str());
+				Log("\nfound deadline=");	Log_llu(*wertung / miningInfo->baseTarget); Log(" nonce=");	Log_llu(nonce + v + posn); Log(" for account: "); Log_llu(bests[acc].account_id); Log(" file: "); Log((char*)file_name.c_str());
 				EnterCriticalSection(&bestsLock);
 				bests[acc].best = *wertung;
 				bests[acc].nonce = nonce + v + posn;
-				bests[acc].DL = *wertung / baseTarget;
+				bests[acc].DL = *wertung / miningInfo->baseTarget;
 				LeaveCriticalSection(&bestsLock);
 				EnterCriticalSection(&sharesLock);
 				shares.push_back({ file_name, bests[acc].account_id, bests[acc].best, bests[acc].nonce });

@@ -6,7 +6,7 @@ size_t cache_size1 = 16384;			// Cache in nonces (1 nonce in scoop = 64 bytes) f
 size_t cache_size2 = 262144;		// Cache in nonces (1 nonce in scoop = 64 bytes) for on-the-fly POC conversion
 size_t readChunkSize = 16384;		// Size of HDD reads in nonces (1 nonce in scoop = 64 bytes)
 
-void work_i(const size_t local_num)
+void work_i(std::shared_ptr<t_mining_info> miningInfo, const size_t local_num)
 {
 
 	__int64 start_work_time, end_work_time;
@@ -23,7 +23,7 @@ void work_i(const size_t local_num)
 		SetThreadIdealProcessor(GetCurrentThread(), (DWORD)(local_num % std::thread::hardware_concurrency()));
 	}
 
-	std::string const path_loc_str = paths_dir[local_num];
+	std::string const path_loc_str = miningInfo->dirs[local_num].dir;
 	unsigned long long files_size_per_thread = 0;
 
 	Log("\nStart thread: ["); Log_llu(local_num); Log("]  ");	Log((char*)path_loc_str.c_str());
@@ -42,6 +42,7 @@ void work_i(const size_t local_num)
 	//for (auto iter = files.begin(); iter != files.end(); ++iter)
 	for (auto iter = files.rbegin(); iter != files.rend(); ++iter)
 	{
+		Log("\n["); Log_llu(local_num); Log("] Beginning main loop over files.");
 		unsigned long long key, nonce, nonces, stagger, offset, tail;
 		bool p2, bfs;
 		QueryPerformanceCounter((LARGE_INTEGER*)&start_time_read);
@@ -70,14 +71,15 @@ void work_i(const size_t local_num)
 			bm_wattroff(12);
 			if (nonces != stagger)
 				nonces = (((iter->Size) / (4096 * 64)) / stagger) * stagger; //обрезаем плот по размеру и стаггеру
-			else
-				if (scoop > (iter->Size) / (stagger * 64)) //если номер скупа попадает в поврежденный смерженный плот, то пропускаем
+			else {
+				if (miningInfo->scoop > (iter->Size) / (stagger * 64)) //если номер скупа попадает в поврежденный смерженный плот, то пропускаем
 				{
 					bm_wattron(12);
 					bm_wprintw("skipped\n", 0);
 					bm_wattroff(12);
 					continue;
 				}
+			}
 		}
 
 		//get sector information, set to 4096 for BFS
@@ -165,8 +167,7 @@ void work_i(const size_t local_num)
 		if (cache == nullptr) ShowMemErrorExit();
 		if (cache2 == nullptr) ShowMemErrorExit();
 
-
-		Log("\nRead file : ");	Log((char*)iter->Name.c_str());
+		Log("\n["); Log_llu(local_num); Log("] Read file : ");	Log((char*)iter->Name.c_str());
 
 		//wprintw(win_main, "%S \n", str2wstr(iter->Path + iter->Name).c_str());
 		HANDLE ifile = INVALID_HANDLE_VALUE;
@@ -199,7 +200,7 @@ void work_i(const size_t local_num)
 		bool flip = false;
 
 
-		size_t acc = Get_index_acc(key);
+		size_t acc = Get_index_acc(miningInfo, key);
 		for (unsigned long long n = 0; n < nonces; n += stagger)
 		{
 			cache_size_local = cache_size_local_backup;
@@ -207,8 +208,8 @@ void work_i(const size_t local_num)
 			bool err = false;
 			bool cont = false;
 
-			start = n * 4096 * 64 + scoop * stagger * 64 + offset * 64 * 64; //BFSstaggerstart + scoopstart + offset
-			MirrorStart = n * 4096 * 64 + (4095 - scoop) * stagger * 64 + offset * 64 * 64; //PoC2 Seek possition
+			start = n * 4096 * 64 + miningInfo->scoop * stagger * 64 + offset * 64 * 64; //BFSstaggerstart + scoopstart + offset
+			MirrorStart = n * 4096 * 64 + (4095 - miningInfo->scoop) * stagger * 64 + offset * 64 * 64; //PoC2 Seek possition
 			int count = 0;
 
 			//Initial Reading
@@ -238,7 +239,7 @@ void work_i(const size_t local_num)
 					break;
 				}
 
-				std::thread hash(th_hash, &(*iter), &sum_time_proc, local_num, bytes, cache_size_local, i - cache_size_local, nonce, n, cachep, acc);
+				std::thread hash(th_hash, miningInfo, &(*iter), &sum_time_proc, local_num, bytes, cache_size_local, i - cache_size_local, nonce, n, cachep, acc);
 
 				cont = false;
 				//Threadded Reading
@@ -260,7 +261,7 @@ void work_i(const size_t local_num)
 				if (stopThreads)
 				{
 					worker_progress[local_num].isAlive = false;
-					Log("\nReading file: ");	Log((char*)iter->Name.c_str()); Log(" interrupted");
+					Log("\n["); Log_llu(local_num); Log("] Reading file: ");	Log((char*)iter->Name.c_str()); Log(" interrupted");
 					CloseHandle(ifile);
 					files.clear();
 					VirtualFree(cache, 0, MEM_RELEASE); //Cleanup Thread 1
@@ -284,16 +285,15 @@ void work_i(const size_t local_num)
 			if (!err)
 			{
 				if (count % 2 == 0) {
-					th_hash(&(*iter), &sum_time_proc, local_num, bytes, cache_size_local, i - cache_size_local, nonce, n, cache, acc);
+					th_hash(miningInfo, &(*iter), &sum_time_proc, local_num, bytes, cache_size_local, i - cache_size_local, nonce, n, cache, acc);
 				}
 				else {
-					th_hash(&(*iter), &sum_time_proc, local_num, bytes, cache_size_local, i - cache_size_local, nonce, n, cache2, acc);
+					th_hash(miningInfo, &(*iter), &sum_time_proc, local_num, bytes, cache_size_local, i - cache_size_local, nonce, n, cache2, acc);
 				}
 			}
 
 		}
 		QueryPerformanceCounter((LARGE_INTEGER*)&end_time_read);
-		Log("\nClose file: ");	Log((char*)iter->Name.c_str()); Log(" [@ "); Log_llu((long long unsigned)((double)(end_time_read - start_time_read) * 1000 / pcFreq)); Log(" ms]");
 		//bfs seek optimisation
 		if (bfs && iter == files.rend()) {
 			//assuming physical hard disk mid at scoop 1587
@@ -305,11 +305,14 @@ void work_i(const size_t local_num)
 				bm_wattroff(12);
 			}
 		}
+		Log("\n["); Log_llu(local_num); Log("] Close file: ");	Log((char*)iter->Name.c_str()); Log(" [@ "); Log_llu((long long unsigned)((double)(end_time_read - start_time_read) * 1000 / pcFreq)); Log(" ms]");
 		CloseHandle(ifile);
+		Log("\n["); Log_llu(local_num); Log("] Freeing caches.");
 		VirtualFree(cache, 0, MEM_RELEASE);
 		VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
 		if (p2 != POC2) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
 	}
+	Log("\n["); Log_llu(local_num); Log("] All files processed.");
 	worker_progress[local_num].isAlive = false;
 	QueryPerformanceCounter((LARGE_INTEGER*)&end_work_time);
 
@@ -318,6 +321,7 @@ void work_i(const size_t local_num)
 	double thread_time = (double)(end_work_time - start_work_time) / pcFreq;
 	if (use_debug)
 	{
+		Log("\n["); Log_llu(local_num); Log("] Logging to console.");
 		char tbuffer[9];
 		_strtime_s(tbuffer);
 		bm_wattron(7);
@@ -335,6 +339,8 @@ void work_i(const size_t local_num)
 		}
 		bm_wattroff(7);
 	}
+	miningInfo->dirs[local_num].done = true;
+	Log("\n["); Log_llu(local_num); Log("] Returning.");
 	return;
 }
 
@@ -443,22 +449,22 @@ readend:
 	}
 }
 
-void th_hash(t_files const * const iter, double * const sum_time_proc, const size_t &local_num, unsigned long long const bytes, size_t const cache_size_local, unsigned long long const i, unsigned long long const nonce, unsigned long long const n, char const * const cache, size_t const acc) {
+void th_hash(std::shared_ptr<t_mining_info> miningInfo, t_files const * const iter, double * const sum_time_proc, const size_t &local_num, unsigned long long const bytes, size_t const cache_size_local, unsigned long long const i, unsigned long long const nonce, unsigned long long const n, char const * const cache, size_t const acc) {
 	LARGE_INTEGER li;
 	LARGE_INTEGER start_time_proc;
 	QueryPerformanceCounter(&start_time_proc);
 
 #ifdef __AVX512F__
-	procscoop_avx512_fast(n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block AVX2
+	procscoop_avx512_fast(miningInfo, n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block AVX2
 #else
 #ifdef __AVX2__
-	procscoop_avx2_fast(n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block AVX2
+	procscoop_avx2_fast(miningInfo, n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block AVX2
 #else
 	#ifdef __AVX__
-		procscoop_avx_fast(n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block AVX
+		procscoop_avx_fast(miningInfo, n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block AVX
 	#else
-			procscoop_sse_fast(n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block SSE
-		//	procscoop_sph(n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block SPH, please uncomment one of the two when compiling    
+			procscoop_sse_fast(miningInfo, n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block SSE
+		//	procscoop_sph(miningInfo, n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block SPH, please uncomment one of the two when compiling    
 	#endif
 #endif
 #endif

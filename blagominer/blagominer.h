@@ -3,6 +3,7 @@
 #include "bfs.h"
 #include "network.h"
 #include "shabal.h"
+#include "dualmining.h"
 
 // blago version
 #ifdef __AVX512F__
@@ -39,24 +40,12 @@ extern unsigned long long total_size;			// sum of all local plot file sizes
 extern std::vector<std::string> paths_dir;      // plot paths
 
 //miner config items
-extern size_t miner_mode;						// miner mode. 0=solo, 1=pool
 extern bool use_debug;							// output debug information if true
 
-// round info
-extern char signature[33];						// signature of current block
-extern unsigned long long baseTarget;			// base target of current block
-extern unsigned long long targetDeadlineInfo;   // target deadline info from pool 
-extern unsigned long long height;				// current block height
-extern unsigned long long deadline;				// current deadline
-extern unsigned int scoop;						// currenty scoop
-
 // PoC2
-extern unsigned long long POC2StartBlock;		// block where PoC2 was activated (block 502000 main net, block 71666 on test net)
 extern bool POC2;								// true if PoC2 is activated
 
-
 // structures
-
 
 struct t_shares {
 	std::string file_name;

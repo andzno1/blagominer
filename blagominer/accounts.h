@@ -1,3 +1,5 @@
 #pragma once
 #include "blagominer.h"
-size_t Get_index_acc(unsigned long long const key);
+#include "dualmining.h"
+
+size_t Get_index_acc(std::shared_ptr<t_mining_info> miningInfo, unsigned long long const key);
