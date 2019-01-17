@@ -650,8 +650,10 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo, const unsigned long long curr
 									if (answ.HasMember("errorDescription")) {
 										const char* answString = docToString(answ).c_str();
 										Log("Sender: Deadline %llu sent with error: %s", iter->deadline, answString);
-										std::thread{ Csv_Fail, coinInfo->coin, currentHeight, iter->body.file_name, currentBaseTarget, iter->body.nonce, iter->deadline,
-											0, answString }.detach();
+										if (iter->body.retryCount < 1) {
+											std::thread{ Csv_Fail, coinInfo->coin, currentHeight, iter->body.file_name, currentBaseTarget, iter->body.nonce, iter->deadline,
+												0, answString }.detach();
+										}
 										if (iter->deadline <= coinInfo->mining->targetDeadlineInfo && iter->body.retryCount < maxSubmissionRetries) {
 											Log("Deadline should have been accepted (%llu <= %llu). Retry #%i.", iter->deadline, coinInfo->mining->targetDeadlineInfo, iter->body.retryCount + 1);
 											shares.push_back({ iter->body.file_name, iter->body.account_id, iter->body.best, iter->body.nonce, iter->body.retryCount + 1 });

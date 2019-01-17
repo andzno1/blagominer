@@ -1126,7 +1126,7 @@ int main(int argc, char **argv) {
 					QueryPerformanceCounter((LARGE_INTEGER*)&end_threads_time);
 					double thread_time = (double)(end_threads_time - start_threads_time) / pcFreq;
 					Log("Total round time: %.1f seconds", thread_time);
-					std::thread{ Csv_Submitted,  miningCoin->coin, old_height, old_baseTarget, thread_time, miningCoin->mining->deadline }.detach();
+					std::thread{ Csv_Submitted,  miningCoin->coin, old_height, old_baseTarget, thread_time, true, miningCoin->mining->deadline }.detach();
 					if (use_debug)
 					{
 						char tbuffer[9];
@@ -1194,6 +1194,11 @@ int main(int argc, char **argv) {
 			if (it->second.joinable()) {
 				it->second.join();
 			}
+		}
+
+		if (!done) {
+			double thread_time = (double)(end_threads_time - start_threads_time) / pcFreq;
+			std::thread{ Csv_Submitted,  miningCoin->coin, old_height, old_baseTarget, thread_time, false, miningCoin->mining->deadline }.detach();
 		}
 
 		//Check if mining has been interrupted and there is no new block.
