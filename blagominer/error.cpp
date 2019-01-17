@@ -3,7 +3,7 @@
 
 void ShowMemErrorExit(void)
 {
-	Log("\n!!! Error allocating memory");
+	Log("!!! Error allocating memory");
 	bm_wattron(12);
 	bm_wprintw("\nError allocating memory\n", 0);
 	bm_wattroff(12);

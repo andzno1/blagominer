@@ -36,7 +36,7 @@ void procscoop_sph(std::shared_ptr<t_mining_info> miningInfo, unsigned long long
 		{
 			if (*wertung < bests[acc].best)
 			{
-				Log("\nfound deadline=");	Log_llu(*wertung / baseTarget); Log(" nonce=");	Log_llu(nonce + v); Log(" for account: "); Log_llu(bests[acc].account_id); Log(" file: "); Log((char*)file_name.c_str());
+				Log("found deadline=%llu nonce=%llu for account: %llu file: %s", *wertung / baseTarget, nonce + v, bests[acc].account_id, file_name.c_str());
 				EnterCriticalSection(&bestsLock);
 				bests[acc].best = *wertung;
 				bests[acc].nonce = nonce + v;
@@ -142,7 +142,7 @@ void procscoop_sse_fast(std::shared_ptr<t_mining_info> miningInfo, unsigned long
 		{
 			if (*wertung < bests[acc].best)
 			{
-				Log("\nfound deadline=");	Log_llu(*wertung / miningInfo->baseTarget); Log(" nonce=");	Log_llu(nonce + v + posn); Log(" for account: "); Log_llu(bests[acc].account_id); Log(" file: "); Log((char*)file_name.c_str());
+				Log("found deadline=%llu nonce=%llu for account: %llu file: %s", *wertung / miningInfo->baseTarget, nonce + v + posn, bests[acc].account_id, file_name.c_str());
 				EnterCriticalSection(&bestsLock);
 				bests[acc].best = *wertung;
 				bests[acc].nonce = nonce + v + posn;
@@ -248,7 +248,7 @@ void procscoop_avx_fast(std::shared_ptr<t_mining_info> miningInfo, unsigned long
 		{
 			if (*wertung < bests[acc].best)
 			{
-				Log("\nfound deadline=");	Log_llu(*wertung / miningInfo->baseTarget); Log(" nonce=");	Log_llu(nonce + v + posn); Log(" for account: "); Log_llu(bests[acc].account_id); Log(" file: "); Log((char*)file_name.c_str());
+				Log("found deadline=%llu nonce=%llu for account: %llu file: %s", *wertung / miningInfo->baseTarget, nonce + v + posn, bests[acc].account_id, file_name.c_str());
 				EnterCriticalSection(&bestsLock);
 				bests[acc].best = *wertung;
 				bests[acc].nonce = nonce + v + posn;
@@ -399,7 +399,7 @@ void procscoop_avx2_fast(std::shared_ptr<t_mining_info> miningInfo, unsigned lon
 		{
 			if (*wertung < bests[acc].best)
 			{
-				Log("\nfound deadline=");	Log_llu(*wertung / miningInfo->baseTarget); Log(" nonce=");	Log_llu(nonce + v + posn); Log(" for account: "); Log_llu(bests[acc].account_id); Log(" file: "); Log((char*)file_name.c_str());
+				Log("found deadline=%llu nonce=%llu for account: %llu file: %s", *wertung / miningInfo->baseTarget, nonce + v + posn, bests[acc].account_id, file_name.c_str());
 				EnterCriticalSection(&bestsLock);
 				bests[acc].best = *wertung;
 				bests[acc].nonce = nonce + v + posn;
@@ -640,7 +640,7 @@ void procscoop_avx512_fast(std::shared_ptr<t_mining_info> miningInfo, unsigned l
 		{
 			if (*wertung < bests[acc].best)
 			{
-				Log("\nfound deadline=");	Log_llu(*wertung / miningInfo->baseTarget); Log(" nonce=");	Log_llu(nonce + v + posn); Log(" for account: "); Log_llu(bests[acc].account_id); Log(" file: "); Log((char*)file_name.c_str());
+				Log("found deadline=%llu nonce=%llu for account: %llu file: %s", *wertung / miningInfo->baseTarget, nonce + v + posn, bests[acc].account_id, file_name.c_str());
 				EnterCriticalSection(&bestsLock);
 				bests[acc].best = *wertung;
 				bests[acc].nonce = nonce + v + posn;

@@ -26,7 +26,7 @@ void work_i(std::shared_ptr<t_mining_info> miningInfo, const size_t local_num)
 	std::string const path_loc_str = miningInfo->dirs[local_num].dir;
 	unsigned long long files_size_per_thread = 0;
 
-	Log("\nStart thread: ["); Log_llu(local_num); Log("]  ");	Log((char*)path_loc_str.c_str());
+	Log("Start thread: [%zu] %s", local_num, path_loc_str.c_str());
 
 	std::vector<t_files> files;
 	GetFiles(path_loc_str, &files);
@@ -42,7 +42,7 @@ void work_i(std::shared_ptr<t_mining_info> miningInfo, const size_t local_num)
 	//for (auto iter = files.begin(); iter != files.end(); ++iter)
 	for (auto iter = files.rbegin(); iter != files.rend(); ++iter)
 	{
-		Log("\n["); Log_llu(local_num); Log("] Beginning main loop over files.");
+		Log("[%zu] Beginning main loop over files.", local_num);
 		unsigned long long key, nonce, nonces, stagger, offset, tail;
 		bool p2, bfs;
 		QueryPerformanceCounter((LARGE_INTEGER*)&start_time_read);
@@ -167,7 +167,7 @@ void work_i(std::shared_ptr<t_mining_info> miningInfo, const size_t local_num)
 		if (cache == nullptr) ShowMemErrorExit();
 		if (cache2 == nullptr) ShowMemErrorExit();
 
-		Log("\n["); Log_llu(local_num); Log("] Read file : ");	Log((char*)iter->Name.c_str());
+		Log("[%zu] Read file : %s", local_num, iter->Name.c_str());
 
 		//wprintw(win_main, "%S \n", str2wstr(iter->Path + iter->Name).c_str());
 		HANDLE ifile = INVALID_HANDLE_VALUE;
@@ -261,7 +261,7 @@ void work_i(std::shared_ptr<t_mining_info> miningInfo, const size_t local_num)
 				if (stopThreads)
 				{
 					worker_progress[local_num].isAlive = false;
-					Log("\n["); Log_llu(local_num); Log("] Reading file: ");	Log((char*)iter->Name.c_str()); Log(" interrupted");
+					Log("[%zu] Reading file: %s interrupted", local_num, iter->Name.c_str());
 					CloseHandle(ifile);
 					files.clear();
 					VirtualFree(cache, 0, MEM_RELEASE); //Cleanup Thread 1
@@ -305,14 +305,14 @@ void work_i(std::shared_ptr<t_mining_info> miningInfo, const size_t local_num)
 				bm_wattroff(12);
 			}
 		}
-		Log("\n["); Log_llu(local_num); Log("] Close file: ");	Log((char*)iter->Name.c_str()); Log(" [@ "); Log_llu((long long unsigned)((double)(end_time_read - start_time_read) * 1000 / pcFreq)); Log(" ms]");
+		Log("[%zu] Close file: %s [@ %llu ms]", local_num, iter->Name.c_str(), (long long unsigned)((double)(end_time_read - start_time_read) * 1000 / pcFreq));
 		CloseHandle(ifile);
-		Log("\n["); Log_llu(local_num); Log("] Freeing caches.");
+		Log("[%zu] Freeing caches.", local_num);
 		VirtualFree(cache, 0, MEM_RELEASE);
 		VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
 		if (p2 != POC2) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
 	}
-	Log("\n["); Log_llu(local_num); Log("] All files processed.");
+	Log("[%zu] All files processed.", local_num);
 	worker_progress[local_num].isAlive = false;
 	QueryPerformanceCounter((LARGE_INTEGER*)&end_work_time);
 
@@ -321,7 +321,7 @@ void work_i(std::shared_ptr<t_mining_info> miningInfo, const size_t local_num)
 	double thread_time = (double)(end_work_time - start_work_time) / pcFreq;
 	if (use_debug)
 	{
-		Log("\n["); Log_llu(local_num); Log("] Logging to console.");
+		Log("\n[%zu] Logging to console.", local_num);
 		char tbuffer[9];
 		_strtime_s(tbuffer);
 		bm_wattron(7);
@@ -340,7 +340,7 @@ void work_i(std::shared_ptr<t_mining_info> miningInfo, const size_t local_num)
 		bm_wattroff(7);
 	}
 	miningInfo->dirs[local_num].done = true;
-	Log("\n["); Log_llu(local_num); Log("] Returning.");
+	Log("\n[%zu] Returning.", local_num);
 	return;
 }
 

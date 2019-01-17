@@ -68,7 +68,7 @@ char* GetJSON(std::shared_ptr<t_coin_info> coinInfo, char const *const req) {
 		bm_wattron(12);
 		bm_wprintw("WINNER: Getaddrinfo failed with error: %d\n", iResult, 0);
 		bm_wattroff(12);
-		Log("\nWinner: getaddrinfo error");
+		Log("Winner: getaddrinfo error");
 	}
 	else
 	{
@@ -78,7 +78,7 @@ char* GetJSON(std::shared_ptr<t_coin_info> coinInfo, char const *const req) {
 			bm_wattron(12);
 			bm_wprintw("WINNER: Socket function failed with error: %ld\n", WSAGetLastError(), 0);
 			bm_wattroff(12);
-			Log("\nWinner: Socket error: "); Log_u(WSAGetLastError());
+			Log("Winner: Socket error: %i", WSAGetLastError());
 		}
 		else
 		{
@@ -89,7 +89,7 @@ char* GetJSON(std::shared_ptr<t_coin_info> coinInfo, char const *const req) {
 				bm_wattron(12);
 				bm_wprintw("WINNER: Connect function failed with error: %ld\n", WSAGetLastError(), 0);
 				bm_wattroff(12);
-				Log("\nWinner: Connect server error "); Log_u(WSAGetLastError());
+				Log("Winner: Connect server error %i", WSAGetLastError());
 			}
 			else
 			{
@@ -99,7 +99,7 @@ char* GetJSON(std::shared_ptr<t_coin_info> coinInfo, char const *const req) {
 					bm_wattron(12);
 					bm_wprintw("WINNER: Send request failed: %ld\n", WSAGetLastError(), 0);
 					bm_wattroff(12);
-					Log("\nWinner: Error sending request: "); Log_u(WSAGetLastError());
+					Log("Winner: Error sending request: %i", WSAGetLastError());
 				}
 				else
 				{
@@ -109,14 +109,13 @@ char* GetJSON(std::shared_ptr<t_coin_info> coinInfo, char const *const req) {
 					while ((iReceived_size = recv(WalletSocket, buffer + msg_len, BUF_SIZE - 1, 0)) > 0)
 					{
 						msg_len = msg_len + iReceived_size;
-						Log("\nrealloc: ");
 						tmp_buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, msg_len + BUF_SIZE);
 						if (tmp_buffer == nullptr) ShowMemErrorExit();
 						memcpy(tmp_buffer, buffer, msg_len);
 						HeapFree(hHeap, 0, buffer);
 						buffer = tmp_buffer;
 						buffer[msg_len + 1] = 0;
-						Log_llu(msg_len);
+						Log("realloc: %llu", msg_len);
 					}
 
 					if (iReceived_size < 0)
@@ -124,7 +123,7 @@ char* GetJSON(std::shared_ptr<t_coin_info> coinInfo, char const *const req) {
 						bm_wattron(12);
 						bm_wprintw("WINNER: Get info failed: %ld\n", WSAGetLastError(), 0);
 						bm_wattroff(12);
-						Log("\nWinner: Error response: "); Log_u(WSAGetLastError());
+						Log("Winner: Error response: %i", WSAGetLastError());
 					}
 					else
 					{
@@ -162,7 +161,7 @@ void hostname_to_ip(char const *const  in_addr, char* out_addr)
 
 	dwRetval = getaddrinfo(in_addr, NULL, &hints, &result);
 	if (dwRetval != 0) {
-		Log("\n getaddrinfo failed with error: "); Log_llu(dwRetval);
+		Log(" getaddrinfo failed with error: %llu", dwRetval);
 		WSACleanup();
 		exit(-1);
 	}
@@ -175,7 +174,7 @@ void hostname_to_ip(char const *const  in_addr, char* out_addr)
 			inet_ntop(hints.ai_family, &(sockaddr_ipv4->sin_addr), str, INET_ADDRSTRLEN);
 			//strcpy(out_addr, inet_ntoa(sockaddr_ipv4->sin_addr));
 			strcpy_s(out_addr, 50, str);
-			Log("\nAddress: "); Log(in_addr); Log(" defined as: "); Log(out_addr);
+			Log("Address: %s defied as %s", in_addr, out_addr);
 		}
 	}
 	freeaddrinfo(result);
@@ -230,7 +229,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 	iResult = ioctlsocket(ServerSocket, FIONBIO, (unsigned long*)&l);
 	if (iResult == SOCKET_ERROR)
 	{
-		Log("\nProxy: ! Error ioctlsocket's: "); Log_u(WSAGetLastError());
+		Log("Proxy: ! Error ioctlsocket's: %i", WSAGetLastError());
 		bm_wattron(12);
 		bm_wprintw("PROXY: ioctlsocket failed: %ld\n", WSAGetLastError(), 0);
 		bm_wattroff(12);
@@ -243,7 +242,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 		bm_wattroff(12);
 		closesocket(ServerSocket);
 	}
-	Log("\nProxy thread started");
+	Log("Proxy thread started");
 
 	for (; !exit_flag;)
 	{
@@ -258,7 +257,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 		{
 			if (WSAGetLastError() != WSAEWOULDBLOCK)
 			{
-				Log("\nProxy:! Error Proxy's accept: "); Log_u(WSAGetLastError());
+				Log("Proxy:! Error Proxy's accept: %i", WSAGetLastError());
 				bm_wattron(12);
 				bm_wprintw("PROXY: can't accept. Error: %ld\n", WSAGetLastError(), 0);
 				bm_wattroff(12);
@@ -273,7 +272,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 				strcat_s(buffer, buffer_size, tmp_buffer);
 			} while (iResult > 0);
 
-			Log("\nProxy get info: ");  Log_server(buffer);
+			Log("Proxy get info: %s", buffer);
 			unsigned long long get_accountId = 0;
 			unsigned long long get_nonce = 0;
 			unsigned long long get_deadline = 0;
@@ -325,7 +324,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 							bm_wattron(2);
 							bm_wprintw("%s [%20llu]\treceived DL: %11llu {%s}\n", tbuffer, get_accountId, get_deadline / coinInfo->mining->baseTarget, client_address_str, 0);
 							bm_wattroff(2);
-							Log("Proxy: received DL "); Log_llu(get_deadline); Log(" from "); Log(client_address_str);
+							Log("Proxy: received DL %llu from %s", get_deadline, client_address_str);
 
 							//Подтверждаем
 							RtlSecureZeroMemory(buffer, buffer_size);
@@ -334,7 +333,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 							iResult = send(ClientSocket, buffer, bytes, 0);
 							if (iResult == SOCKET_ERROR)
 							{
-								Log("\nProxy: ! Error sending to client: "); Log_u(WSAGetLastError());
+								Log("Proxy: ! Error sending to client: %i", WSAGetLastError());
 								bm_wattron(12);
 								bm_wprintw("PROXY: failed sending to client: %ld\n", WSAGetLastError(), 0);
 								bm_wattroff(12);
@@ -348,7 +347,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 									bm_wprintw("%s [%20llu]\tsent confirmation to %s\n", tbuffer, get_accountId, client_address_str, 0);
 									bm_wattroff(9);
 								}
-								Log("\nProxy: sent confirmation to "); Log(client_address_str);
+								Log("Proxy: sent confirmation to %s", client_address_str);
 							}
 						}
 					}
@@ -362,14 +361,14 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 						iResult = send(ClientSocket, buffer, bytes, 0);
 						if (iResult == SOCKET_ERROR)
 						{
-							Log("\nProxy: ! Error sending to client: "); Log_u(WSAGetLastError());
+							Log("Proxy: ! Error sending to client: %i", WSAGetLastError());
 							bm_wattron(12);
 							bm_wprintw("PROXY: failed sending to client: %ld\n", WSAGetLastError(), 0);
 							bm_wattroff(12);
 						}
 						else
 						{
-							Log("\nProxy: sent update to "); Log(client_address_str);
+							Log("Proxy: sent update to %s", client_address_str);
 						}
 					}
 					else
@@ -399,7 +398,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 
 void send_i(std::shared_ptr<t_coin_info> coinInfo)
 {
-	Log("\nSender: started thread");
+	Log("Sender: started thread");
 	SOCKET ConnectSocket;
 
 	int iResult = 0;
@@ -467,7 +466,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 			if (iResult == SOCKET_ERROR)
 			{
 				if (coinInfo->network->network_quality > 0) coinInfo->network->network_quality--;
-				Log("\nSender:! Error Sender's connect: "); Log_u(WSAGetLastError());
+				Log("\nSender:! Error Sender's connect: %i", WSAGetLastError());
 				bm_wattron(12);
 				_strtime_s(tbuffer);
 				bm_wprintw("%s SENDER: can't connect. Error: %ld\n", tbuffer, WSAGetLastError(), 0);
@@ -497,7 +496,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 				if (iResult == SOCKET_ERROR)
 				{
 					if (coinInfo->network->network_quality > 0) coinInfo->network->network_quality--;
-					Log("\nSender: ! Error deadline's sending: "); Log_u(WSAGetLastError());
+					Log("Sender: ! Error deadline's sending: %i", WSAGetLastError());
 					bm_wattron(12);
 					bm_wprintw("SENDER: send failed: %ld\n", WSAGetLastError(), 0);
 					bm_wattroff(12);
@@ -537,7 +536,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 				if (iResult == SOCKET_ERROR)
 				{
 					if (coinInfo->network->network_quality > 0) coinInfo->network->network_quality--;
-					Log("\nSender: ! Error ioctlsocket's: "); Log_u(WSAGetLastError());
+					Log("\nSender: ! Error ioctlsocket's: %i", WSAGetLastError());
 					bm_wattron(12);
 					bm_wprintw("SENDER: ioctlsocket failed: %ld\n", WSAGetLastError(), 0);
 					bm_wattroff(12);
@@ -559,7 +558,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 						//wattron(6);
 						//wprintw("%s [%20llu] not confirmed DL %10llu\n", tbuffer, iter->body.account_id, iter->deadline, 0);
 						//wattroff(6);
-						Log("\nSender: ! Error getting confirmation for DL: "); Log_llu(iter->deadline);  Log("  code: "); Log_u(WSAGetLastError());
+						Log("Sender: ! Error getting confirmation for DL: %llu  code: %i", iter->deadline, WSAGetLastError());
 						iter = sessions.erase(iter);
 						shares.push_back({ iter->body.file_name, iter->body.account_id, iter->body.best, iter->body.nonce });
 					}
@@ -571,7 +570,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 					//получили пустую строку, переотправляем дедлайн
 					if (buffer[0] == '\0')
 					{
-						Log("\nSender: zero-length message for DL: "); Log_llu(iter->deadline);
+						Log("Sender: zero-length message for DL: %llu", iter->deadline);
 						shares.push_back({ iter->body.file_name, iter->body.account_id, iter->body.best, iter->body.nonce });
 					}
 					else //получили ответ пула
@@ -599,7 +598,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 									if (answ["deadline"].IsString())	ndeadline = _strtoui64(answ["deadline"].GetString(), 0, 10);
 									else
 										if (answ["deadline"].IsInt64()) ndeadline = answ["deadline"].GetInt64();
-									Log("\nSender: confirmed deadline: "); Log_llu(ndeadline);
+									Log("Sender: confirmed deadline: %llu", ndeadline);
 
 									if (answ.HasMember("targetDeadline")) {
 										if (answ["targetDeadline"].IsString())	ntargetDeadline = _strtoui64(answ["targetDeadline"].GetString(), 0, 10);
@@ -633,7 +632,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 									if (ndeadline != iter->deadline)
 									{
 										//TODO: Log nonces and deadlines.
-										Log("\nCalculated and confirmed deadlines don't match. Fast block or corrupted file?");
+										Log("Calculated and confirmed deadlines don't match. Fast block or corrupted file?");
 										bm_wattron(6);
 										bm_wprintw("----Fast block or corrupted file?----\nSent deadline:\t%llu\nServer's deadline:\t%llu \n----\n", iter->deadline, ndeadline, 0); //shares[i].file_name.c_str());
 										bm_wattroff(6);
@@ -641,7 +640,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 								}
 								else {
 									if (answ.HasMember("errorDescription")) {
-										Log("\nSender: Deadline "); Log_u(iter->deadline); Log(" sent with error: "); Log(docToString(answ).c_str());
+										Log("Sender: Deadline %llu sent with error: %s", iter->deadline, docToString(answ).c_str());
 										bm_wattron(15);
 										bm_wprintw("[ERROR %u] %s\n", answ["errorCode"].GetInt(), answ["errorDescription"].GetString(), 0);
 										bm_wattroff(15);
@@ -685,7 +684,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 									std::string error_str(msg, msg_len);
 									bm_wprintw("Server error: %d %s\n", status, error_str.c_str());
 									bm_wattroff(6);
-									Log("\nSender: server error for DL: "); Log_llu(iter->deadline);
+									Log("Sender: server error for DL: %llu", iter->deadline);
 									shares.push_back({ iter->body.file_name, iter->body.account_id, iter->body.best, iter->body.nonce });
 								}
 								else //получили непонятно что
@@ -698,7 +697,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 						}
 					}
 					iResult = closesocket(ConnectSocket);
-					Log("\nSender: Close socket. Code = "); Log_u(WSAGetLastError());
+					Log("Sender: Close socket. Code = %i", WSAGetLastError());
 					iter = sessions.erase(iter);
 				}
 				if (iter != sessions.end()) ++iter;
@@ -715,7 +714,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 void updater_i(std::shared_ptr<t_coin_info> coinInfo)
 {
 	if (coinInfo->network->updateraddr.length() <= 3) {
-		Log("\nGMI: ERROR in UpdaterAddr");
+		Log("GMI: ERROR in UpdaterAddr");
 		exit(2);
 	}
 	for (; !exit_flag;) {
@@ -744,23 +743,23 @@ void pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 	iResult = getaddrinfo(coinInfo->network->updateraddr.c_str(), coinInfo->network->updaterport.c_str(), &hints, &result);
 	if (iResult != 0) {
 		if (coinInfo->network->network_quality > 0) coinInfo->network->network_quality--;
-		Log("\n*! GMI: getaddrinfo failed with error: "); Log_u(WSAGetLastError());
+		Log("*! GMI: getaddrinfo failed with error: %i", WSAGetLastError());
 	}
 	else {
 		UpdaterSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 		if (UpdaterSocket == INVALID_SOCKET)
 		{
 			if (coinInfo->network->network_quality > 0) coinInfo->network->network_quality--;
-			Log("\n*! GMI: socket function failed with error: "); Log_u(WSAGetLastError());
+			Log("*! GMI: socket function failed with error: %i", WSAGetLastError());
 		}
 		else {
 			const unsigned t = 1000;
 			setsockopt(UpdaterSocket, SOL_SOCKET, SO_RCVTIMEO, (char *)&t, sizeof(unsigned));
-			//Log("\n*Connecting to server: "); Log(updateraddr); Log(":"); Log(updaterport);
+			//Log("*Connecting to server: %s:%s", updateraddr.c_str(), updaterport.c_str());
 			iResult = connect(UpdaterSocket, result->ai_addr, (int)result->ai_addrlen);
 			if (iResult == SOCKET_ERROR) {
 				if (coinInfo->network->network_quality > 0) coinInfo->network->network_quality--;
-				Log("\n*! GMI: connect function failed with error: "); Log_u(WSAGetLastError());
+				Log("*! GMI: connect function failed with error: %i", WSAGetLastError());
 			}
 			else {
 				int bytes = sprintf_s(buffer, buffer_size, "POST /burst?requestType=getMiningInfo HTTP/1.0\r\nHost: %s:%s\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str());
@@ -768,7 +767,7 @@ void pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 				if (iResult == SOCKET_ERROR)
 				{
 					if (coinInfo->network->network_quality > 0) coinInfo->network->network_quality--;
-					Log("\n*! GMI: send request failed: "); Log_u(WSAGetLastError());
+					Log("*! GMI: send request failed: %i", WSAGetLastError());
 				}
 				else {
 					RtlSecureZeroMemory(buffer, buffer_size);
@@ -781,18 +780,18 @@ void pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 					if (iResult == SOCKET_ERROR)
 					{
 						if (coinInfo->network->network_quality > 0) coinInfo->network->network_quality--;
-						Log("\n*! GMI: get mining info failed:: "); Log_u(WSAGetLastError());
+						Log("*! GMI: get mining info failed:: %u", WSAGetLastError());
 					}
 					else {
 						if (coinInfo->network->network_quality < 100) coinInfo->network->network_quality++;
-						Log("\n* GMI: Received: "); Log_server(buffer);
+						Log("* GMI: Received: %s", Log_server(buffer));
 
 						// locate HTTP header
 						char *find = strstr(buffer, "\r\n\r\n");
-						if (find == nullptr)	Log("\n*! GMI: error message from pool");
+						if (find == nullptr)	Log("*! GMI: error message from pool");
 						else {
 							rapidjson::Document gmi;
-							if (gmi.Parse<0>(find).HasParseError()) Log("\n*! GMI: error parsing JSON message from pool");
+							if (gmi.Parse<0>(find).HasParseError()) Log("*! GMI: error parsing JSON message from pool");
 							else {
 								if (gmi.IsObject())
 								{
@@ -815,7 +814,7 @@ void pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 
 									if (gmi.HasMember("generationSignature")) {
 										strcpy_s(str_signature, gmi["generationSignature"].GetString());
-										if (xstr2strr(coinInfo->mining->signature, 33, gmi["generationSignature"].GetString()) == 0)	Log("\n*! GMI: Node response: Error decoding generationsignature\n");
+										if (xstr2strr(coinInfo->mining->signature, 33, gmi["generationSignature"].GetString()) == 0)	Log("*! GMI: Node response: Error decoding generationsignature");
 									}
 									if (gmi.HasMember("targetDeadline")) {
 										if (gmi["targetDeadline"].IsString())	coinInfo->mining->targetDeadlineInfo = _strtoui64(gmi["targetDeadline"].GetString(), 0, 10);
@@ -858,9 +857,9 @@ void ShowWinner(std::shared_ptr<t_coin_info> coinInfo, unsigned long long const 
 
 	sprintf_s(str_req, HeapSize(hHeap, 0, str_req), "POST /burst?requestType=getBlock&height=%llu HTTP/1.0\r\nConnection: close\r\n\r\n", num_block - 1);
 	json = GetJSON(coinInfo, str_req);
-	//Log("\n getBlocks: ");
+	//Log(" getBlocks: ");
 
-	if (json == nullptr)	Log("\n-! error in message from pool (getBlocks)\n");
+	if (json == nullptr)	Log("-! error in message from pool (getBlocks)");
 	else
 	{
 		rapidjson::Document doc_block;
@@ -868,7 +867,7 @@ void ShowWinner(std::shared_ptr<t_coin_info> coinInfo, unsigned long long const 
 		{
 			timestamp1 = doc_block["timestamp"].GetUint64();
 		}
-		else Log("\n- error parsing JSON getBlocks");
+		else Log("- error parsing JSON getBlocks");
 	}
 	HeapFree(hHeap, 0, str_req);
 	if (json != nullptr) HeapFree(hHeap, 0, json);
@@ -885,9 +884,9 @@ void ShowWinner(std::shared_ptr<t_coin_info> coinInfo, unsigned long long const 
 		//delay
 		Sleep(1000);
 		json = GetJSON(coinInfo, str_req);
-		//Log("\n getBlocks: ");
+		//Log(" getBlocks: ");
 
-		if (json == nullptr)	Log("\n-! error in message from pool (getBlocks)\n");
+		if (json == nullptr)	Log("-! error in message from pool (getBlocks)");
 		else
 		{
 			rapidjson::Document doc_block;
@@ -915,7 +914,7 @@ void ShowWinner(std::shared_ptr<t_coin_info> coinInfo, unsigned long long const 
 					bm_wattroff(11);
 				}
 			}
-			else Log("\n- error parsing JSON getBlocks");
+			else Log("- error parsing JSON getBlocks");
 		}
 	}
 	HeapFree(hHeap, 0, str_req);
@@ -931,9 +930,9 @@ void ShowWinner(std::shared_ptr<t_coin_info> coinInfo, unsigned long long const 
 			if (str_req == nullptr) ShowMemErrorExit();
 			sprintf_s(str_req, HeapSize(hHeap, 0, str_req), "POST /burst?requestType=getAccount&account=%s HTTP/1.0\r\nConnection: close\r\n\r\n", generator);
 			json = GetJSON(coinInfo, str_req);
-			//Log("\n getAccount: ");
+			//Log(" getAccount: ");
 
-			if (json == nullptr)	Log("\n- error in message from pool (getAccount)\n");
+			if (json == nullptr)	Log("- error in message from pool (getAccount)");
 			else
 			{
 				rapidjson::Document doc_acc;
@@ -946,7 +945,7 @@ void ShowWinner(std::shared_ptr<t_coin_info> coinInfo, unsigned long long const 
 						strcpy_s(name, HeapSize(hHeap, 0, name), doc_acc["name"].GetString());
 					}
 				}
-				else Log("\n- error parsing JSON getAccount");
+				else Log("- error parsing JSON getAccount");
 			}
 			HeapFree(hHeap, 0, str_req);
 			if (json != nullptr) HeapFree(hHeap, 0, json);
@@ -957,9 +956,9 @@ void ShowWinner(std::shared_ptr<t_coin_info> coinInfo, unsigned long long const 
 			sprintf_s(str_req, HeapSize(hHeap, 0, str_req), "POST /burst?requestType=getRewardRecipient&account=%s HTTP/1.0\r\nConnection: close\r\n\r\n", generator);
 			json = GetJSON(coinInfo, str_req);
 			HeapFree(hHeap, 0, str_req);
-			//Log("\n getRewardRecipient: ");
+			//Log(" getRewardRecipient: ");
 
-			if (json == nullptr)	Log("\n- error in message from pool (getRewardRecipient)\n");
+			if (json == nullptr)	Log("- error in message from pool (getRewardRecipient)");
 			else
 			{
 				rapidjson::Document doc_reward;
@@ -972,7 +971,7 @@ void ShowWinner(std::shared_ptr<t_coin_info> coinInfo, unsigned long long const 
 						strcpy_s(rewardRecipient, HeapSize(hHeap, 0, rewardRecipient), doc_reward["rewardRecipient"].GetString());
 					}
 				}
-				else Log("\n-! error parsing JSON getRewardRecipient");
+				else Log("-! error parsing JSON getRewardRecipient");
 			}
 
 			if (json != nullptr) HeapFree(hHeap, 0, json);
@@ -987,11 +986,11 @@ void ShowWinner(std::shared_ptr<t_coin_info> coinInfo, unsigned long long const 
 					if (str_req == nullptr) ShowMemErrorExit();
 					sprintf_s(str_req, HeapSize(hHeap, 0, str_req), "POST /burst?requestType=getAccount&account=%s HTTP/1.0\r\nConnection: close\r\n\r\n", rewardRecipient);
 					json = GetJSON(coinInfo, str_req);
-					//Log("\n getAccount: ");
+					//Log(" getAccount: ");
 
 					if (json == nullptr)
 					{
-						Log("\n- error in message from pool (pool getAccount)\n");
+						Log("- error in message from pool (pool getAccount)");
 					}
 					else
 					{
@@ -1008,7 +1007,7 @@ void ShowWinner(std::shared_ptr<t_coin_info> coinInfo, unsigned long long const 
 								strcpy_s(pool_name, HeapSize(hHeap, 0, pool_name), doc_pool["name"].GetString());
 							}
 						}
-						else Log("\n- error parsing JSON pool getAccount");
+						else Log("- error parsing JSON pool getAccount");
 					}
 					HeapFree(hHeap, 0, str_req);
 					HeapFree(hHeap, 0, json);

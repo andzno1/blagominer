@@ -1,7 +1,29 @@
 ﻿#include "stdafx.h"
 #include "logger.h"
-FILE * fp_Log = nullptr;
+FILE * fh_Log = nullptr;
 bool use_log = true;
+
+std::mutex m;
+std::list<std::string> loggingQueue;
+std::thread writer;
+bool interruptWriter = false;
+
+void _writer()
+{
+	while (!interruptWriter || !loggingQueue.empty()) {
+		if (!loggingQueue.empty()) {
+			std::string str;
+			{
+				std::lock_guard<std::mutex> lockGuard(m);
+				str = loggingQueue.front();
+				loggingQueue.pop_front();
+			}
+			GetLocalTime(&cur_time);
+			fprintf_s(fh_Log, "%02d:%02d:%02d %s\n", cur_time.wHour, cur_time.wMinute, cur_time.wSecond, str.c_str());
+			fflush(fh_Log);
+		}
+	}
+}
 
 void Log_init(void)
 {
@@ -19,33 +41,37 @@ void Log_init(void)
 		GetLocalTime(&cur_time);
 		ss << "Logs\\" << cur_time.wYear << "-" << cur_time.wMonth << "-" << cur_time.wDay << "_" << cur_time.wHour << "_" << cur_time.wMinute << "_" << cur_time.wSecond << ".log";
 		std::string filename = ss.str();
-		if ((fp_Log = _fsopen(filename.c_str(), "wt", _SH_DENYNO)) == NULL)
+		if ((fh_Log = _fsopen(filename.c_str(), "wt", _SH_DENYNO)) == NULL)
 		{
 			bm_wattron(12);
 			bm_wprintw("LOG: file openinig error\n", 0);
 			bm_wattroff(12);
 			use_log = false;
 		}
-		Log(version);
-	}
-}
-
-void Log(char const *const strLog)
-{
-	if (use_log)
-	{
-		// если строка содержит интер, то добавить время  
-		if (strLog[0] == '\n')
-		{
-			GetLocalTime(&cur_time);
-			fprintf_s(fp_Log, "\n%02d:%02d:%02d %s", cur_time.wHour, cur_time.wMinute, cur_time.wSecond, strLog + 1);
+		else {
+			writer = std::thread(_writer);
+			Log(version);
+			atexit(Log_end);
 		}
-		else fprintf_s(fp_Log, "%s", strLog);
-		fflush(fp_Log);
 	}
 }
 
-void Log_server(char const *const strLog)
+void Log_end(void)
+{
+	if (writer.joinable())
+	{
+		interruptWriter = true;
+		writer.join();
+	}
+	if (fh_Log != nullptr)
+	{
+		fflush(fh_Log);
+		fclose(fh_Log);
+		fh_Log = nullptr;
+	}
+}
+
+const char* Log_server(char const *const strLog)
 {
 	size_t len_str = strlen(strLog);
 	if ((len_str> 0) && use_log)
@@ -77,27 +103,7 @@ void Log_server(char const *const strLog)
 					}
 					else Msg_log[j] = strLog[i];
 		}
-
-		fprintf_s(fp_Log, "%s", Msg_log);
-		fflush(fp_Log);
-		HeapFree(hHeap, 0, Msg_log);
+		return Msg_log;
 	}
-}
-
-void Log_llu(unsigned long long const llu_num)
-{
-	if (use_log)
-	{
-		fprintf_s(fp_Log, "%llu", llu_num);
-		fflush(fp_Log);
-	}
-}
-
-void Log_u(size_t const u_num)
-{
-	if (use_log)
-	{
-		fprintf_s(fp_Log, "%u", (unsigned)u_num);
-		fflush(fp_Log);
-	}
+	return "";
 }
