@@ -139,7 +139,7 @@ int load_config(char const *const filename)
 		Log_u((size_t)hddWakeUpTimer);
 
 		Log("\nbfsTOCOffset: ");
-		if (document.HasMember("bfsTOCOffset") && (document["bfsTOCOffset"].IsUint())) send_interval = document["bfsTOCOffset"].GetUint();
+		if (document.HasMember("bfsTOCOffset") && (document["bfsTOCOffset"].IsUint())) bfsTOCOffset = document["bfsTOCOffset"].GetUint();
 		Log_u((size_t)bfsTOCOffset);
 
 		Log("\nSendInterval: ");
