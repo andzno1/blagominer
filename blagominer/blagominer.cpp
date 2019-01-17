@@ -3,7 +3,7 @@
 #include "blagominer.h"
 
 // Initialize static member data
-std::vector<std::thread> worker;	        // worker threads
+std::map<size_t, std::thread> worker;	        // worker threads
 const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
 
 std::shared_ptr<t_coin_info> burst = std::make_shared<t_coin_info>();
@@ -34,7 +34,7 @@ HANDLE hHeap;
  CRITICAL_SECTION sessionsLock;
  CRITICAL_SECTION bestsLock;
  CRITICAL_SECTION sharesLock;
-std::vector<t_worker_progress> worker_progress;
+std::map<size_t, t_worker_progress> worker_progress;
 std::vector<t_shares> shares;
 std::vector<t_best> bests;
 std::vector<t_session> sessions;
@@ -978,6 +978,7 @@ int main(int argc, char **argv) {
 		worker_progress.clear();
 		stopThreads = 0;
 		done = false;
+		int oldThreadsRunning = -1;
 
 		std::string out = "Coin queue: ";
 		for (auto& c : queue) {
@@ -1044,17 +1045,16 @@ int main(int argc, char **argv) {
 		double threads_speed = 0;
 
 		std::vector<std::string> roundDirectories;
-		size_t threadCount = 0;
-		for (auto directory : miningCoin->mining->dirs)
+		for (size_t i = 0; i < miningCoin->mining->dirs.size(); i++)
 		{
-			if (directory.done) {
+			if (miningCoin->mining->dirs.at(i).done) {
 				// This directory has already been processed. Skipping.
+				Log("Skipping directory %s", miningCoin->mining->dirs.at(i).dir);
 				continue;
 			}
-			worker_progress.push_back({ threadCount, 0, true });
-			worker.push_back(std::thread(work_i, miningCoin->mining, threadCount));
-			roundDirectories.push_back(directory.dir);
-			++threadCount;
+			worker_progress[i] = { i, 0, true };
+			worker[i] = std::thread(work_i, miningCoin->mining, i);
+			roundDirectories.push_back(miningCoin->mining->dirs.at(i).dir);
 		}
 		
 		unsigned long long round_size = getPlotFilesSize(roundDirectories, false);
@@ -1087,16 +1087,19 @@ int main(int argc, char **argv) {
 			boxProgress();
 			bytesRead = 0;
 
-			int threads_runing = 0;
+			int threads_running = 0;
 			for (auto it = worker_progress.begin(); it != worker_progress.end(); ++it)
 			{
-				bytesRead += it->Reads_bytes;
-				threads_runing += it->isAlive;
+				bytesRead += it->second.Reads_bytes;
+				threads_running += it->second.isAlive;
 			}
-			
-			if (threads_runing)
-			{
-				Log("threads_runing: %i", threads_runing);
+			if (threads_running != oldThreadsRunning) {
+				Log("threads_running: %i", threads_running);
+			}
+			oldThreadsRunning = threads_running;
+
+			if (threads_running)
+			{	
 				QueryPerformanceCounter((LARGE_INTEGER*)&end_threads_time);
 				threads_speed = (double)(bytesRead / (1024 * 1024)) / ((double)(end_threads_time - start_threads_time) / pcFreq);
 			}
@@ -1112,7 +1115,6 @@ int main(int argc, char **argv) {
 				//Work Done! Cleanup / Prepare
 				if (!done) {
 					Log("Round done.");
-					Log("threads_runing: %i", threads_runing);
 					//Display total round time
 					QueryPerformanceCounter((LARGE_INTEGER*)&end_threads_time);
 					double thread_time = (double)(end_threads_time - start_threads_time) / pcFreq;
@@ -1180,15 +1182,16 @@ int main(int argc, char **argv) {
 
 		for (auto it = worker.begin(); it != worker.end(); ++it)
 		{
-			if (it->joinable()) {
+			if (it->second.joinable()) {
 				Log("Interrupt thread. ");
-				it->join();
+				it->second.join();
 			}
 		}
 
 		//Check if mining has been interrupted and there is no new block.
 		for (auto& dir : miningCoin->mining->dirs) {
 			if (!dir.done) {
+				Log("This directory has not been completed: %s", dir.dir.c_str());
 				bool newBlock = false;
 				for (auto& coin : queue) {
 					if (coin->coin == miningCoin->coin) {
@@ -1243,8 +1246,8 @@ int main(int argc, char **argv) {
 	Log("Updater stopped");
 	if (burst->mining->enable && burst->network->enable_proxy) proxyBurst.join();
 	if (bhd->mining->enable && bhd->network->enable_proxy) proxyBhd.join();
-	worker.~vector();
-	worker_progress.~vector();
+	worker.~map();
+	worker_progress.~map();
 	paths_dir.~vector();
 	bests.~vector();
 	shares.~vector();

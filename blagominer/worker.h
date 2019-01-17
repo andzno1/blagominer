@@ -14,7 +14,7 @@ struct t_worker_progress {
 	bool isAlive;
 };
 
-extern std::vector<t_worker_progress> worker_progress;
+extern std::map<size_t, t_worker_progress> worker_progress;
 
 // function headers
 void work_i(std::shared_ptr<t_mining_info> miningInfo, const size_t local_num);
