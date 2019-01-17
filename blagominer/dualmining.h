@@ -10,6 +10,11 @@ struct t_directory_info {
 	bool done;
 };
 
+struct t_logging {
+	bool logAllGetMiningInfos;				// Prevent spamming the log file by only outputting
+											// GMI when there is a change in the GMI
+};
+
 struct t_mining_info {
 	bool enable;
 	size_t miner_mode;						// miner mode. 0=solo, 1=pool
@@ -51,3 +56,4 @@ struct t_coin_info {
 
 extern std::shared_ptr<t_coin_info> burst;
 extern std::shared_ptr<t_coin_info> bhd;
+extern t_logging loggingConfig;

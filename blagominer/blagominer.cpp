@@ -8,6 +8,7 @@ const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
 
 std::shared_ptr<t_coin_info> burst = std::make_shared<t_coin_info>();
 std::shared_ptr<t_coin_info> bhd = std::make_shared<t_coin_info>();
+t_logging loggingConfig = {};
 
 std::vector<std::shared_ptr<t_coin_info>> coins;
 
@@ -72,6 +73,10 @@ void init_mining_info() {
 	bhd->mining->show_winner = false;
 	bhd->mining->my_target_deadline = MAXDWORD; // 4294967295;
 	burst->mining->POC2StartBlock = 0;
+}
+
+void init_logging_config() {
+	loggingConfig.logAllGetMiningInfos = false;
 }
 
 void resetDirs(std::shared_ptr<t_coin_info> coinInfo) {
@@ -308,6 +313,18 @@ int load_config(char const *const filename)
 				Log("POC2StartBlock: %llu", bhd->mining->POC2StartBlock);
 			}
 		}
+
+		if (document.HasMember("Logging") && document["Logging"].IsObject())
+		{
+			Log("### Loading configuration for Logging ###");
+
+			const Value& logging = document["Logging"];
+
+			if (logging.HasMember("logAllGetMiningInfos") && (document["logAllGetMiningInfos"].IsBool()))	loggingConfig.logAllGetMiningInfos = logging["logAllGetMiningInfos"].GetBool();
+			Log("logAllGetMiningInfos: %d", loggingConfig.logAllGetMiningInfos);
+		}
+				
+		Log("### Loading general configuration ###");
 
 		if (document.HasMember("CacheSize") && (document["CacheSize"].IsUint64())) {
 			cache_size1 = document["CacheSize"].GetUint64();

@@ -784,14 +784,19 @@ void pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 					}
 					else {
 						if (coinInfo->network->network_quality < 100) coinInfo->network->network_quality++;
-						Log("* GMI: Received: %s", Log_server(buffer));
+						if (loggingConfig.logAllGetMiningInfos) {
+							Log("* GMI: Received: %s", Log_server(buffer));
+						}
 
 						// locate HTTP header
 						char *find = strstr(buffer, "\r\n\r\n");
 						if (find == nullptr)	Log("*! GMI: error message from pool");
 						else {
 							rapidjson::Document gmi;
-							if (gmi.Parse<0>(find).HasParseError()) Log("*! GMI: error parsing JSON message from pool");
+							if (loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(find).HasParseError())
+								Log("*! GMI: error parsing JSON message from pool");
+							else if (!loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(find).HasParseError())
+								Log("*! GMI: error parsing JSON message from pool: %s", Log_server(buffer));
 							else {
 								if (gmi.IsObject())
 								{
@@ -814,7 +819,17 @@ void pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 
 									if (gmi.HasMember("generationSignature")) {
 										strcpy_s(str_signature, gmi["generationSignature"].GetString());
-										if (xstr2strr(coinInfo->mining->signature, 33, gmi["generationSignature"].GetString()) == 0)	Log("*! GMI: Node response: Error decoding generationsignature");
+										if (loggingConfig.logAllGetMiningInfos && xstr2strr(coinInfo->mining->signature, 33, gmi["generationSignature"].GetString()) == 0)
+											Log("*! GMI: Node response: Error decoding generationsignature");
+										else if (!loggingConfig.logAllGetMiningInfos && xstr2strr(coinInfo->mining->signature, 33, gmi["generationSignature"].GetString()) == 0)
+											Log("*! GMI: Node response: Error decoding generationsignature: %s", Log_server(buffer));
+
+										if (!loggingConfig.logAllGetMiningInfos && memcmp(coinInfo->mining->signature, coinInfo->mining->oldSignature, 32) != 0) {
+											Log("* GMI: Received: %s", Log_server(buffer));
+										}
+										else if (!loggingConfig.logAllGetMiningInfos) {
+											Log("* GMI: No new mining information.");
+										}
 									}
 									if (gmi.HasMember("targetDeadline")) {
 										if (gmi["targetDeadline"].IsString())	coinInfo->mining->targetDeadlineInfo = _strtoui64(gmi["targetDeadline"].GetString(), 0, 10);
