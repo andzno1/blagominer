@@ -22,6 +22,7 @@ extern std::map <u_long, unsigned long long> satellite_size; // Структура с объе
 
 extern char str_signature[65];
 
+const int maxSubmissionRetries = 3;
 
 extern std::thread showWinnerBurst;
 

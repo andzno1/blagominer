@@ -50,6 +50,7 @@ struct t_shares {
 	unsigned long long account_id;// = 0;
 	unsigned long long best;// = 0;
 	unsigned long long nonce;// = 0;
+	int retryCount;
 };
 
 extern std::vector<t_shares> shares;
