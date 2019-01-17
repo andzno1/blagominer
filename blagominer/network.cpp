@@ -642,7 +642,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 									if (answ.HasMember("errorDescription")) {
 										Log("Sender: Deadline %llu sent with error: %s", iter->deadline, docToString(answ).c_str());
 										bm_wattron(15);
-										bm_wprintw("[ERROR %u] %s\n", answ["errorCode"].GetInt(), answ["errorDescription"].GetString(), 0);
+										bm_wprintw("[ERROR %i] %s\n", answ["errorCode"].GetInt(), answ["errorDescription"].GetString(), 0);
 										bm_wattroff(15);
 										bm_wattron(12);
 										if (answ["errorCode"].GetInt() == 1004) bm_wprintw("You need change reward assignment and wait 4 blocks (~16 minutes)\n"); //error 1004
@@ -780,7 +780,7 @@ void pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 					if (iResult == SOCKET_ERROR)
 					{
 						if (coinInfo->network->network_quality > 0) coinInfo->network->network_quality--;
-						Log("*! GMI: get mining info failed:: %u", WSAGetLastError());
+						Log("*! GMI: get mining info failed:: %i", WSAGetLastError());
 					}
 					else {
 						if (coinInfo->network->network_quality < 100) coinInfo->network->network_quality++;

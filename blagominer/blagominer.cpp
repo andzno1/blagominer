@@ -74,9 +74,9 @@ void init_mining_info() {
 	burst->mining->POC2StartBlock = 0;
 }
 
-void resetDirs(std::shared_ptr<t_mining_info> miningInfo) {
-	Log("Resetting directories.");
-	for (auto& directory : miningInfo->dirs) {
+void resetDirs(std::shared_ptr<t_coin_info> coinInfo) {
+	Log("Resetting directories for %s.", coinNames[coinInfo->coin]);
+	for (auto& directory : coinInfo->mining->dirs) {
 		directory.done = false;
 	}
 }
@@ -628,7 +628,9 @@ bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& coin
 		Log("Changed signature.");
 		// Checking only the ifrst element, since it has already the highest priority (but lowest value).
 		if (elems.front()->mining->priority <= coin->mining->priority) {
-			Log("Interrupting current mining progress.");
+			if (!done) {
+				Log("Interrupting current mining progress.");
+			}
 			return true;
 		}
 	}
@@ -1031,7 +1033,7 @@ int main(int argc, char **argv) {
 
 		Log("targetDeadlineInfo: %llu", miningCoin->mining->targetDeadlineInfo);
 		if ((miningCoin->mining->targetDeadlineInfo > 0) && (miningCoin->mining->targetDeadlineInfo < miningCoin->mining->my_target_deadline)) {
-			Log("Update targetDeadline: %u", miningCoin->mining->targetDeadlineInfo);
+			Log("Update targetDeadline: %llu", miningCoin->mining->targetDeadlineInfo);
 		}
 		else miningCoin->mining->targetDeadlineInfo = miningCoin->mining->my_target_deadline;
 		Log("targetDeadlineInfo: %llu", miningCoin->mining->targetDeadlineInfo);
@@ -1216,7 +1218,7 @@ int main(int argc, char **argv) {
 			}
 		}
 		if (!miningCoin->mining->interrupted) {
-			resetDirs(miningCoin->mining);
+			resetDirs(miningCoin);
 		}
 		else {
 			_strtime_s(tbuffer);
