@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "InstructionSet.h"
 #include "bfs.h"
 #include "network.h"
@@ -27,8 +27,6 @@ extern HANDLE hHeap;							//heap
 extern CRITICAL_SECTION sessionsLock;			// session lock
 extern CRITICAL_SECTION bestsLock;				// best lock
 extern CRITICAL_SECTION sharesLock;				// shares lock
-
-extern SYSTEMTIME cur_time;						// current time
 
 // global variables
 

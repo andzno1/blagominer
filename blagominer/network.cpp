@@ -396,7 +396,8 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 	HeapFree(hHeap, 0, tmp_buffer);
 }
 
-void send_i(std::shared_ptr<t_coin_info> coinInfo)
+void send_i(std::shared_ptr<t_coin_info> coinInfo, const unsigned long long currentHeight,
+	const unsigned long long currentBaseTarget)
 {
 	Log("Sender: started thread");
 	SOCKET ConnectSocket;
@@ -423,13 +424,13 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 		{
 
 			//Гасим шару если она больше текущего targetDeadline, актуально для режима Proxy
-			if ((iter->best / coinInfo->mining->baseTarget) > bests[Get_index_acc(coinInfo->mining, iter->account_id)].targetDeadline)
+			if ((iter->best / currentBaseTarget) > bests[Get_index_acc(coinInfo->mining, iter->account_id)].targetDeadline)
 			{
 				if (use_debug)
 				{
 					_strtime_s(tbuffer);
 					bm_wattron(2);
-					bm_wprintw("%s [%20llu]\t%llu > %llu  discarded\n", tbuffer, iter->account_id, iter->best / coinInfo->mining->baseTarget, bests[Get_index_acc(coinInfo->mining, iter->account_id)].targetDeadline, 0);
+					bm_wprintw("%s [%20llu]\t%llu > %llu  discarded\n", tbuffer, iter->account_id, iter->best / currentBaseTarget, bests[Get_index_acc(coinInfo->mining, iter->account_id)].targetDeadline, 0);
 					bm_wattroff(2);
 				}
 				EnterCriticalSection(&sharesLock);
@@ -504,7 +505,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 				}
 				else
 				{
-					unsigned long long dl = iter->best / coinInfo->mining->baseTarget;
+					unsigned long long dl = iter->best / currentBaseTarget;
 					_strtime_s(tbuffer);
 					if (coinInfo->network->network_quality < 100) coinInfo->network->network_quality++;
 					Log("[%20llu] sent DL: %15llu %5llud %02llu:%02llu:%02llu", iter->account_id, dl, (dl) / (24 * 60 * 60), (dl % (24 * 60 * 60)) / (60 * 60), (dl % (60 * 60)) / 60, dl % 60, 0);
@@ -637,8 +638,9 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 
 									if (ndeadline != iter->deadline)
 									{
-										//TODO: Log nonces and deadlines.
 										Log("Calculated and confirmed deadlines don't match. Fast block or corrupted file?");
+										std::thread{ Csv_Fail, coinInfo->coin, currentHeight, iter->body.file_name, currentBaseTarget, iter->body.nonce, iter->deadline,
+											ndeadline, docToString(answ).c_str() }.detach();
 										bm_wattron(6);
 										bm_wprintw("----Fast block or corrupted file?----\nSent deadline:\t%llu\nServer's deadline:\t%llu \n----\n", iter->deadline, ndeadline, 0); //shares[i].file_name.c_str());
 										bm_wattroff(6);
@@ -646,7 +648,10 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 								}
 								else {
 									if (answ.HasMember("errorDescription")) {
-										Log("Sender: Deadline %llu sent with error: %s", iter->deadline, docToString(answ).c_str());
+										const char* answString = docToString(answ).c_str();
+										Log("Sender: Deadline %llu sent with error: %s", iter->deadline, answString);
+										std::thread{ Csv_Fail, coinInfo->coin, currentHeight, iter->body.file_name, currentBaseTarget, iter->body.nonce, iter->deadline,
+											-1, answString }.detach();
 										if (iter->deadline <= coinInfo->mining->targetDeadlineInfo) {
 											Log("Deadline should have been accepted (%llu <= %llu). Retrying.", iter->deadline, coinInfo->mining->targetDeadlineInfo);
 											shares.push_back({ iter->body.file_name, iter->body.account_id, iter->body.best, iter->body.nonce });

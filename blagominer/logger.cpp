@@ -1,9 +1,18 @@
 ﻿#include "stdafx.h"
 #include "logger.h"
-FILE * fh_Log = nullptr;
+FILE * fp_Log = nullptr;
+const std::string csvFailBurst = "fail-" + std::string(coinNames[BURST]) + ".csv";
+const std::string csvFailBhd = "fail-" + std::string(coinNames[BHD]) + ".csv";
+const std::string csvSubmittedBurst = "stat-" + std::string(coinNames[BURST]) + ".csv";
+const std::string csvSubmittedBhd = "stat-" + std::string(coinNames[BHD]) + ".csv";
+
 bool use_log = true;
 
-std::mutex m;
+std::mutex mLog;
+std::mutex mCsvFailBurst;
+std::mutex mCsvFailBhd;
+std::mutex mCsvSubmittedBurst;
+std::mutex mCsvSubmittedBhd;
 std::list<std::string> loggingQueue;
 std::thread writer;
 bool interruptWriter = false;
@@ -14,15 +23,172 @@ void _writer()
 		if (!loggingQueue.empty()) {
 			std::string str;
 			{
-				std::lock_guard<std::mutex> lockGuard(m);
+				std::lock_guard<std::mutex> lockGuard(mLog);
 				str = loggingQueue.front();
 				loggingQueue.pop_front();
 			}
+			SYSTEMTIME cur_time;
 			GetLocalTime(&cur_time);
-			fprintf_s(fh_Log, "%02d:%02d:%02d %s\n", cur_time.wHour, cur_time.wMinute, cur_time.wSecond, str.c_str());
-			fflush(fh_Log);
+			fprintf_s(fp_Log, "%02d:%02d:%02d %s\n", cur_time.wHour, cur_time.wMinute, cur_time.wSecond, str.c_str());
+			fflush(fp_Log);
 		}
 	}
+}
+
+bool existsFile(const std::string& name) {
+	struct stat buffer;
+	return (stat(name.c_str(), &buffer) == 0);
+}
+
+void Csv_Init()
+{
+	const char* headersFail = "Timestamp;Height;File;baseTarget;Nonce;Deadline sent;Deadline confirmed;Response\n";
+	const char* headersSubmitted = "Timestamp;Height;baseTarget;Round time;Deadline\n";
+	if (burst->mining->enable && !existsFile(csvFailBurst))
+	{
+		std::lock_guard<std::mutex> lockGuard(mCsvFailBurst);
+		Log("Writing headers to %s", csvFailBurst.c_str());
+		FILE * pFile;
+		fopen_s(&pFile, csvFailBurst.c_str(), "a+t");
+		if (pFile != nullptr)
+		{
+			fprintf(pFile, headersFail);
+			fclose(pFile);
+		}
+		else
+		{
+			Log("Failed to open %s", csvFailBurst.c_str());
+		}
+	}
+	if (burst->mining->enable && !existsFile(csvSubmittedBurst))
+	{
+		std::lock_guard<std::mutex> lockGuard(mCsvSubmittedBurst);
+		Log("Writing headers to %s", csvSubmittedBurst.c_str());
+		FILE * pFile;
+		fopen_s(&pFile, csvSubmittedBurst.c_str(), "a+t");
+		if (pFile != nullptr)
+		{
+			fprintf(pFile, headersSubmitted);
+			fclose(pFile);
+		}
+		else
+		{
+			Log("Failed to open %s", csvSubmittedBurst.c_str());
+		}
+	}
+
+	if (bhd->mining->enable && !existsFile(csvFailBhd))
+	{
+		std::lock_guard<std::mutex> lockGuard(mCsvFailBhd);
+		Log("Writing headers to %s", csvFailBhd.c_str());
+		FILE * pFile;
+		fopen_s(&pFile, csvFailBhd.c_str(), "a+t");
+		if (pFile != nullptr)
+		{
+			fprintf(pFile, headersFail);
+			fclose(pFile);
+		}
+		else
+		{
+			Log("Failed to open %s", csvFailBhd.c_str());
+		}
+	}
+	if (bhd->mining->enable && !existsFile(csvSubmittedBhd))
+	{
+		std::lock_guard<std::mutex> lockGuard(mCsvSubmittedBhd);
+		Log("Writing headers to %s", csvSubmittedBhd.c_str());
+		FILE * pFile;
+		fopen_s(&pFile, csvSubmittedBhd.c_str(), "a+t");
+		if (pFile != nullptr)
+		{
+			fprintf(pFile, headersSubmitted);
+			fclose(pFile);
+		}
+		else
+		{
+			Log("Failed to open %s", csvSubmittedBhd.c_str());
+		}
+	}
+}
+
+void Csv_Fail(Coins coin, const unsigned long long height, const std::string& file, const unsigned long long baseTarget,
+	const unsigned long long nonce, const unsigned long long deadlineSent, const unsigned long long deadlineConfirmed,
+	const std::string& response)
+{
+	std::time_t rawtime = std::time(nullptr);
+	FILE * pFile;
+	if (coin == BURST && burst->mining->enable)
+	{	
+		std::lock_guard<std::mutex> lockGuard(mCsvFailBurst);
+		fopen_s(&pFile, csvFailBurst.c_str(), "a+t");
+		if (pFile != nullptr)
+		{
+			fprintf(pFile, "%llu;%llu;%s;%llu;%llu;%llu;%llu;%s\n", (unsigned long long)rawtime, height, file.c_str(), baseTarget, nonce, deadlineSent, deadlineConfirmed, response.c_str());
+			fclose(pFile);
+			return;
+		}
+		else
+		{
+			Log("Failed to open %s", csvFailBurst.c_str());
+			return;
+		}
+	}
+	else if (coin == BHD && bhd->mining->enable)
+	{
+		std::lock_guard<std::mutex> lockGuard(mCsvFailBhd);
+		fopen_s(&pFile, csvFailBhd.c_str(), "a+t");
+		if (pFile != nullptr)
+		{
+			fprintf(pFile, "%llu;%llu;%s;%llu;%llu;%llu;%llu;%s\n", (unsigned long long)rawtime, height, file.c_str(), baseTarget, nonce, deadlineSent, deadlineConfirmed, response.c_str());
+			fclose(pFile);
+			return;
+		}
+		else
+		{
+			Log("Failed to open %s", csvFailBhd.c_str());
+			return;
+		}
+	}
+	
+}
+
+void Csv_Submitted(Coins coin, const unsigned long long height, const unsigned long long baseTarget, const double roundTime, const unsigned long long deadline)
+{
+	std::time_t rawtime = std::time(nullptr);
+	FILE * pFile;
+	if (coin == BURST && burst->mining->enable)
+	{
+		std::lock_guard<std::mutex> lockGuard(mCsvSubmittedBurst);
+		fopen_s(&pFile, csvSubmittedBurst.c_str(), "a+t");
+		if (pFile != nullptr)
+		{
+			fprintf(pFile, "%llu;%llu;%llu;%.1f;%llu\n", (unsigned long long)rawtime, height, baseTarget, roundTime, deadline);
+			fclose(pFile);
+			return;
+		}
+		else
+		{
+			Log("Failed to open %s", csvSubmittedBurst.c_str());
+			return;
+		}
+	}
+	else if (coin == BHD && bhd->mining->enable)
+	{
+		std::lock_guard<std::mutex> lockGuard(mCsvSubmittedBhd);
+		fopen_s(&pFile, csvSubmittedBhd.c_str(), "a+t");
+		if (pFile != nullptr)
+		{
+			fprintf(pFile, "%llu;%llu;%llu;%.1f;%llu\n", (unsigned long long)rawtime, height, baseTarget, roundTime, deadline);
+			fclose(pFile);
+			return;
+		}
+		else
+		{
+			Log("Failed to open %s", csvSubmittedBhd.c_str());
+			return;
+		}
+	}
+
 }
 
 void Log_init(void)
@@ -38,10 +204,12 @@ void Log_init(void)
 			use_log = false;
 			return;
 		}
+		SYSTEMTIME cur_time;
+		GetLocalTime(&cur_time);
 		GetLocalTime(&cur_time);
 		ss << "Logs\\" << cur_time.wYear << "-" << cur_time.wMonth << "-" << cur_time.wDay << "_" << cur_time.wHour << "_" << cur_time.wMinute << "_" << cur_time.wSecond << ".log";
 		std::string filename = ss.str();
-		if ((fh_Log = _fsopen(filename.c_str(), "wt", _SH_DENYNO)) == NULL)
+		if ((fp_Log = _fsopen(filename.c_str(), "wt", _SH_DENYNO)) == NULL)
 		{
 			bm_wattron(12);
 			bm_wprintw("LOG: file openinig error\n", 0);
@@ -63,11 +231,11 @@ void Log_end(void)
 		interruptWriter = true;
 		writer.join();
 	}
-	if (fh_Log != nullptr)
+	if (fp_Log != nullptr)
 	{
-		fflush(fh_Log);
-		fclose(fh_Log);
-		fh_Log = nullptr;
+		fflush(fp_Log);
+		fclose(fp_Log);
+		fp_Log = nullptr;
 	}
 }
 

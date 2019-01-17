@@ -667,6 +667,7 @@
   <ItemGroup>
     <ClCompile Include="accounts.cpp" />
     <ClCompile Include="blagominer.cpp" />
+    <ClCompile Include="dualmining.cpp" />
     <ClCompile Include="logger.cpp" />
     <ClCompile Include="mshabal_256.c" />
     <ClCompile Include="mshabal_128.c" />

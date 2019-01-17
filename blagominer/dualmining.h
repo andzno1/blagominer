@@ -5,6 +5,8 @@ enum Coins {
 	BHD
 };
 
+extern char *coinNames[];
+
 struct t_directory_info {
 	std::string dir;
 	bool done;

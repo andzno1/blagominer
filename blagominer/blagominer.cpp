@@ -12,12 +12,6 @@ t_logging loggingConfig = {};
 
 std::vector<std::shared_ptr<t_coin_info>> coins;
 
-char *coinNames[] =
-{
-	(char *) "Burstcoin",
-	(char *) "Bitcoin HD"
-};
-
 bool exit_flag = false;
 char *p_minerPath = nullptr;
 char *pass = nullptr;
@@ -41,7 +35,6 @@ std::vector<t_best> bests;
 std::vector<t_session> sessions;
 std::vector<std::string> paths_dir; // ïóòè
 
-SYSTEMTIME cur_time;
 sph_shabal_context  local_32;
 
 void init_mining_info() {
@@ -320,7 +313,7 @@ int load_config(char const *const filename)
 
 			const Value& logging = document["Logging"];
 
-			if (logging.HasMember("logAllGetMiningInfos") && (document["logAllGetMiningInfos"].IsBool()))	loggingConfig.logAllGetMiningInfos = logging["logAllGetMiningInfos"].GetBool();
+			if (logging.HasMember("logAllGetMiningInfos") && (logging["logAllGetMiningInfos"].IsBool()))	loggingConfig.logAllGetMiningInfos = logging["logAllGetMiningInfos"].GetBool();
 			Log("logAllGetMiningInfos: %d", loggingConfig.logAllGetMiningInfos);
 		}
 				
@@ -686,17 +679,6 @@ unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool 
 	return getPlotFilesSize(directories, log, dump);
 }
 
-void logStats(std::shared_ptr<t_coin_info> coin, unsigned long long height, unsigned long long baseTarget) {
-	FILE * pFileStat;
-	std::string statFile = "stat-" + std::string(coinNames[coin->coin]) + ".csv";
-	fopen_s(&pFileStat, statFile.c_str(), "a+t");
-	if (pFileStat != nullptr)
-	{
-		fprintf(pFileStat, "%llu;%llu;%llu\n", height, baseTarget, coin->mining->deadline);
-		fclose(pFileStat);
-	}
-}
-
 int main(int argc, char **argv) {
 	//init
 
@@ -760,6 +742,8 @@ int main(int argc, char **argv) {
 	//load config
 	load_config(conf_filename);
 	HeapFree(hHeap, 0, conf_filename);
+
+	Csv_Init();
 
 	Log("Miner path: %s", p_minerPath);
 
@@ -920,10 +904,18 @@ int main(int argc, char **argv) {
 	}
 
 	// Run updater;
-	std::thread updaterBurst(updater_i, burst);
-	Log("BURST updater thread started");
-	std::thread updaterBhd(updater_i, bhd);
-	Log("BHD updater thread started");
+	std::thread updaterBurst;
+	if (burst->mining->enable)
+	{
+		updaterBurst = std::thread(updater_i, burst);
+		Log("BURST updater thread started");
+	}
+	std::thread updaterBhd;
+	if (bhd->mining->enable)
+	{
+		updaterBhd = std::thread(updater_i, bhd);
+		Log("BHD updater thread started");
+	}	
 
 	Log("Update mining info");
 	while ((burst->mining->enable && burst->mining->height == 0) || (bhd->mining->enable && bhd->mining->height == 0))
@@ -1055,7 +1047,7 @@ int main(int argc, char **argv) {
 
 
 		// Run Sender
-		std::thread sender(send_i, miningCoin);
+		std::thread sender(send_i, miningCoin, miningCoin->mining->height, miningCoin->mining->baseTarget);
 
 		// Run Threads
 		QueryPerformanceCounter((LARGE_INTEGER*)&start_threads_time);
@@ -1134,6 +1126,7 @@ int main(int argc, char **argv) {
 					QueryPerformanceCounter((LARGE_INTEGER*)&end_threads_time);
 					double thread_time = (double)(end_threads_time - start_threads_time) / pcFreq;
 					Log("Total round time: %.1f seconds", thread_time);
+					std::thread{ Csv_Submitted,  miningCoin->coin, old_height, old_baseTarget, thread_time, miningCoin->mining->deadline }.detach();
 					if (use_debug)
 					{
 						char tbuffer[9];
@@ -1242,8 +1235,6 @@ int main(int argc, char **argv) {
 
 		Log("Interrupt Sender. ");
 		if (sender.joinable()) sender.join();
-
-		std::thread{ logStats, miningCoin, old_height, old_baseTarget }.detach();
 		
 		//prepare for next round if not yet done
 		if (!done) memcpy(&local_32, &global_32, sizeof(global_32));
