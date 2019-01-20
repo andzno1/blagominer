@@ -31,6 +31,7 @@ extern CRITICAL_SECTION sharesLock;				// shares lock
 // global variables
 extern bool newBlock;
 extern char currentSignature[33];
+extern Coins currentCoin;
 extern unsigned long long currentHeight;
 extern unsigned long long currentBaseTarget;
 

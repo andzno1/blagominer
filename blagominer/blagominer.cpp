@@ -39,6 +39,7 @@ sph_shabal_context  local_32;
 
 bool newBlock = false;
 char currentSignature[33];
+Coins currentCoin;
 unsigned long long currentHeight = 0;
 unsigned long long currentBaseTarget = 0;
 unsigned long long currentTargetDeadlineInfo = 0;
@@ -623,7 +624,7 @@ unsigned int calcScoop() {
 	return (((unsigned char)xcache[31]) + 256 * (unsigned char)xcache[30]) % 4096;
 }
 
-void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& queue, std::shared_ptr<t_coin_info> coin) {
+void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& queue, std::shared_ptr<t_coin_info> coin, bool onScreenmessage = false) {
 	bool inserted = false;
 	for (auto it = queue.begin(); it != queue.end(); ++it) {
 		if (coin->mining->priority < (*it)->mining->priority) {
@@ -639,6 +640,13 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& queue, std::shar
 		}
 	}
 	if (!inserted) {
+		if (onScreenmessage) {
+			char tbuffer[9];
+			_strtime_s(tbuffer);
+			bm_wattron(5);
+			bm_wprintw("\n%s Adding %s block %llu to the end of the queue.\n", tbuffer, coinNames[coin->coin], coin->mining->height, 0);
+			bm_wattron(5);
+		}
 		Log("Adding %s to the end of the queue.", coinNames[coin->coin]);
 		queue.push_back(coin);
 	}
@@ -656,7 +664,7 @@ bool hasSignatureChanged(const std::vector<std::shared_ptr<t_coin_info>>& coins,
 			// Also resetting directories flags for the same reason.
 			resetDirs(pt);
 			updateOldSignature(pt);
-			insertIntoQueue(elems, pt);
+			insertIntoQueue(elems, pt, !done && pt->coin != currentCoin);
 			ret = true;
 		}
 	}
@@ -683,6 +691,7 @@ void updateGlobals(std::shared_ptr<t_coin_info> coin) {
 	memmove(currentSignature, sig, 32);
 	delete[] sig;
 
+	currentCoin = coin->coin;
 	currentHeight = coin->mining->height;
 	currentBaseTarget = coin->mining->baseTarget;
 }
