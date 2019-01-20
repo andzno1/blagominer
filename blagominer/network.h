@@ -3,6 +3,7 @@
 #include "error.h"
 #include "accounts.h"
 #include "common.h"
+#include "filemonitor.h"
 
 
 #define RAPIDJSON_NO_SIZETYPEDEFINE

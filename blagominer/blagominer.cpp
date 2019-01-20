@@ -348,6 +348,9 @@ int load_config(char const *const filename)
 		if (document.HasMember("UseHDDWakeUp") && (document["UseHDDWakeUp"].IsBool())) use_wakeup = document["UseHDDWakeUp"].GetBool();
 		Log("UseHDDWakeUp: %d", use_wakeup);
 
+		if (document.HasMember("ShowCorruptedPlotFiles") && (document["ShowCorruptedPlotFiles"].IsBool())) showCorruptedPlotFiles = document["ShowCorruptedPlotFiles"].GetBool();
+		Log("ShowCorruptedPlotFiles: %d", showCorruptedPlotFiles);
+
 		if (document.HasMember("hddWakeUpTimer") && (document["hddWakeUpTimer"].IsUint())) hddWakeUpTimer = document["hddWakeUpTimer"].GetUint();
 		Log("hddWakeUpTimer: %u", hddWakeUpTimer);
 
@@ -361,6 +364,7 @@ int load_config(char const *const filename)
 		Log("UseBoost: %d", use_boost);
 
 		if (document.HasMember("WinSizeX") && (document["WinSizeX"].IsUint())) win_size_x = (short)document["WinSizeX"].GetUint();
+		if (win_size_x < 90) win_size_x = 90;
 		Log("WinSizeX: %hi", win_size_x);
 
 		if (document.HasMember("WinSizeY") && (document["WinSizeY"].IsUint())) win_size_y = (short)document["WinSizeY"].GetUint();
@@ -1247,7 +1251,8 @@ int main(int argc, char **argv) {
 					bm_wprintwP("%3llu%% %6llu GB (%.2f MB/s). Deadline =%10llu   Connection: %3u%%", (bytesRead * 4096 * 100 / round_size), (bytesRead / (256 * 1024)), threads_speed, miningCoin->mining->deadline, miningCoin->network->network_quality, 0);
 			}
 			bm_wattroffP(14);
-
+			
+			printFileStats();
 			refreshMain();
 			refreshProgress();
 

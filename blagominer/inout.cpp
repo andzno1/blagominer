@@ -5,15 +5,18 @@
 
 short win_size_x = 90;
 short win_size_y = 60;
+const short progress_lines = 3;
+const short corrupted_lines = 2;
 WINDOW * win_main;
 WINDOW * win_progress;
+WINDOW * win_corrupted;
 
 //Turn on color attribute
 int bm_wattron(int color) {
 	return wattron(win_main, COLOR_PAIR(color));
 }
 
-//Turn on color attribute
+//Turn off color attribute
 int bm_wattroff(int color) {
 	return wattroff(win_main, COLOR_PAIR(color));
 }
@@ -31,9 +34,19 @@ int bm_wattronP(int color) {
 	return wattron(win_progress, COLOR_PAIR(color));
 }
 
-//Turn on color attribute
+//Turn off color attribute
 int bm_wattroffP(int color) {
 	return wattroff(win_progress, COLOR_PAIR(color));
+}
+
+//Turn on color attribute
+int bm_wattronC(int color) {
+	return wattron(win_corrupted, COLOR_PAIR(color));
+}
+
+//Turn off color attribute
+int bm_wattroffC(int color) {
+	return wattroff(win_corrupted, COLOR_PAIR(color));
 }
 
 //print
@@ -41,6 +54,13 @@ int bm_wprintwP(const char * output,...) {
 	va_list args;
 	va_start(args, output);
 	return vw_printw(win_progress, output, args);
+	va_end(args);
+}
+
+int bm_wprintwC(const char * output, ...) {
+	va_list args;
+	va_start(args, output);
+	return vw_printw(win_corrupted, output, args);
 	va_end(args);
 }
 
@@ -53,6 +73,7 @@ void bm_init() {
 	curs_set(0);	// убрать курсор
 	start_color();	// будет всё цветное 			
 
+	//int init_pair(short pair, short foreground, short background);
 	init_pair(2, COLOR_GREEN, COLOR_BLACK);
 	init_pair(4, COLOR_RED, COLOR_BLACK);
 	init_pair(5, COLOR_BLACK, COLOR_WHITE);
@@ -71,8 +92,10 @@ void bm_init() {
 	scrollok(win_main, true);
 	keypad(win_main, true);
 	nodelay(win_main, true);
-	win_progress = newwin(3, COLS, LINES - 3, 0);
+	win_progress = newwin(progress_lines, COLS, LINES - progress_lines, 0);
 	leaveok(win_progress, true);
+	win_corrupted = newwin(corrupted_lines, COLS, 0, 0);
+	leaveok(win_corrupted, true);
 }
 
 void refreshMain(){
@@ -81,8 +104,21 @@ wrefresh(win_main);
 void refreshProgress(){
 wrefresh(win_progress);
 }
+void resizeWindows(int lineCount) {
+	if (lineCount > -1) {
+		wresize(win_main, LINES - 3 - corrupted_lines - lineCount, COLS);
+		mvwin(win_main, corrupted_lines + lineCount, 0);
+		wresize(win_corrupted, corrupted_lines + lineCount, COLS);
+	}
+}
+void refreshCorrupted() {
+	wrefresh(win_corrupted);
+}
 void clearProgress(){
 wclear(win_progress);
+}
+void clearCorrupted() {
+	wclear(win_corrupted);
 }
 
 int bm_wgetchMain() {
@@ -91,6 +127,14 @@ int bm_wgetchMain() {
 void boxProgress(){
 box(win_progress, 0, 0);
 }
+void boxCorrupted() {
+	wattron(win_corrupted, COLOR_PAIR(4));
+	box(win_corrupted, 0, 0);
+	wattroff(win_corrupted, COLOR_PAIR(4));
+}
 void bm_wmoveP() {
 	wmove(win_progress, 1, 1);
+};
+int bm_wmoveC(int line, int column) {
+	return wmove(win_corrupted, line, column);
 };

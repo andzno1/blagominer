@@ -4,6 +4,7 @@
 #include "network.h"
 #include "shabal.h"
 #include "common.h"
+#include "filemonitor.h"
 
 // blago version
 #ifdef __AVX512F__

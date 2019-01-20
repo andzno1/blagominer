@@ -69,6 +69,9 @@
     <ClInclude Include="common.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="filemonitor.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -117,6 +120,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="common.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="filemonitor.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

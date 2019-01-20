@@ -642,6 +642,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo, const unsigned long long curr
 										Log("Calculated and confirmed deadlines don't match. Fast block or corrupted file?");
 										std::thread{ Csv_Fail, coinInfo->coin, currentHeight, iter->body.file_name, currentBaseTarget, 4398046511104 / 240 / currentBaseTarget, iter->body.nonce, iter->deadline,
 											ndeadline, docToString(answ).c_str() }.detach();
+										std::thread{ increaseConflictingDeadline, iter->body.file_name }.detach();
 										bm_wattron(6);
 										bm_wprintw("----Fast block or corrupted file?----\nSent deadline:\t%llu\nServer's deadline:\t%llu \n----\n", iter->deadline, ndeadline, 0); //shares[i].file_name.c_str());
 										bm_wattroff(6);
@@ -654,6 +655,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo, const unsigned long long curr
 										if (iter->body.retryCount < 1) {
 											std::thread{ Csv_Fail, coinInfo->coin, currentHeight, iter->body.file_name, currentBaseTarget, 4398046511104 / 240 / currentBaseTarget, iter->body.nonce, iter->deadline,
 												0, answString }.detach();
+											std::thread{ increaseConflictingDeadline, iter->body.file_name }.detach();
 										}
 										if (iter->deadline <= targetDeadlineInfo && iter->body.retryCount < maxSubmissionRetries) {
 											Log("Deadline should have been accepted (%llu <= %llu). Retry #%i.", iter->deadline, targetDeadlineInfo, iter->body.retryCount + 1);
@@ -681,6 +683,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo, const unsigned long long curr
 								_strtime_s(tbuffer);
 								coinInfo->mining->deadline = bests[Get_index_acc(iter->body.account_id, targetDeadlineInfo)].DL; //может лучше iter->deadline ?
 																						   // if(deadline > iter->deadline) deadline = iter->deadline;
+								std::thread{ increaseMatchingDeadline, iter->body.file_name }.detach();
 								bm_wattron(10);
 								bm_wprintw("%s [%20llu] confirmed DL   %10llu\n", tbuffer, iter->body.account_id, iter->deadline, 0);
 								bm_wattroff(10);
