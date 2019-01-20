@@ -1,6 +1,6 @@
 #pragma once
 #include "blagominer.h"
-#include "dualmining.h"
+#include "common.h"
 
 extern bool use_boost;							// use optimisations if true
 extern size_t cache_size1;						// Cache in nonces (1 nonce in scoop = 64 bytes) for native POC

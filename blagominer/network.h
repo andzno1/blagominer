@@ -2,7 +2,7 @@
 #include "logger.h"
 #include "error.h"
 #include "accounts.h"
-#include "dualmining.h"
+#include "common.h"
 
 
 #define RAPIDJSON_NO_SIZETYPEDEFINE

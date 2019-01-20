@@ -3,7 +3,7 @@
 #include "bfs.h"
 #include "network.h"
 #include "shabal.h"
-#include "dualmining.h"
+#include "common.h"
 
 // blago version
 #ifdef __AVX512F__

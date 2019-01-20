@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "accounts.h"
-#include "dualmining.h"
+#include "common.h"
 
 size_t Get_index_acc(unsigned long long const key, unsigned long long const targetDeadlineInfo)
 {

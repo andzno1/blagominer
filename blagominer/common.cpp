@@ -1,4 +1,4 @@
-#include "dualmining.h"
+#include "common.h"
 
 char *coinNames[] =
 {

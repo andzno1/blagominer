@@ -66,7 +66,7 @@
     <ClInclude Include="sph_types.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="dualmining.h">
+    <ClInclude Include="common.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
@@ -116,7 +116,7 @@
     <ClCompile Include="mshabal_512.c">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="dualmining.cpp">
+    <ClCompile Include="common.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

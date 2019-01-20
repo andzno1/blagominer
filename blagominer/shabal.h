@@ -3,7 +3,7 @@
 #include "blagominer.h"
 #include "sph_shabal.h"
 #include "mshabal.h"
-#include "dualmining.h"
+#include "common.h"
 
 
 //gobal shabal contexts, just created once

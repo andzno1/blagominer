@@ -2,7 +2,7 @@
 #include "blagominer.h"
 #include "inout.h"
 #include "error.h"
-#include "dualmining.h"
+#include "common.h"
 #include <mutex>
 #include <list>
 #include <ctime>
