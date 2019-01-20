@@ -59,6 +59,7 @@ void init_mining_info() {
 	burst->mining->show_winner = false;
 	burst->mining->my_target_deadline = MAXDWORD; // 4294967295;
 	burst->mining->POC2StartBlock = 502000;
+	burst->mining->dirs = std::vector<std::shared_ptr<t_directory_info>>();
 
 	bhd->mining = std::make_shared<t_mining_info>();
 	bhd->coin = BHD;
@@ -73,7 +74,8 @@ void init_mining_info() {
 	bhd->mining->enable = false;
 	bhd->mining->show_winner = false;
 	bhd->mining->my_target_deadline = MAXDWORD; // 4294967295;
-	burst->mining->POC2StartBlock = 0;
+	bhd->mining->POC2StartBlock = 0;
+	bhd->mining->dirs = std::vector<std::shared_ptr<t_directory_info>>();
 }
 
 void init_logging_config() {
@@ -83,7 +85,10 @@ void init_logging_config() {
 void resetDirs(std::shared_ptr<t_coin_info> coinInfo) {
 	Log("Resetting directories for %s.", coinNames[coinInfo->coin]);
 	for (auto& directory : coinInfo->mining->dirs) {
-		directory.done = false;
+		directory->done = false;
+		for (auto& file : directory->files) {
+			file.done = false;
+		}
 	}
 }
 
@@ -149,8 +154,8 @@ int load_config(char const *const filename)
 			if (burst->mining->enable) {
 				coins.push_back(burst);
 				burst->mining->dirs = {};
-				for (auto directory : paths_dir) {
-					burst->mining->dirs.push_back({ directory, false });
+				for (auto &directory : paths_dir) {
+					burst->mining->dirs.push_back(std::make_shared<t_directory_info>(directory, false, std::vector<t_files>()));
 				}
 
 				if (settingsBurst.HasMember("Priority") && (settingsBurst["Priority"].IsUint())) {
@@ -237,7 +242,7 @@ int load_config(char const *const filename)
 			if (bhd->mining->enable) {
 				bhd->mining->dirs = {};
 				for (auto directory : paths_dir) {
-					bhd->mining->dirs.push_back({ directory, false });
+					bhd->mining->dirs.push_back(std::make_shared<t_directory_info>(directory, false, std::vector<t_files>()));
 				}
 
 				if (settingsBhd.HasMember("Priority") && (settingsBhd["Priority"].IsUint())) {
@@ -523,6 +528,7 @@ size_t GetFiles(const std::string &str, std::vector <t_files> *p_files)
 				//finished plotfile
 				case 1:
 					p_files->push_back({
+						false,
 						*path.begin(),
 						"FILE_"+std::to_string(i),
 						(unsigned long long)bfsTOC.plotFiles[i].nonces * 4096 *64,
@@ -561,6 +567,7 @@ size_t GetFiles(const std::string &str, std::vector <t_files> *p_files)
 								{
 									bool p2 = false;
 									p_files->push_back({
+										false,
 										*iter,
 										FindFileData.cFileName,
 										(((static_cast<ULONGLONG>(FindFileData.nFileSizeHigh) << (sizeof(FindFileData.nFileSizeLow) * 8)) | FindFileData.nFileSizeLow)),
@@ -577,6 +584,7 @@ size_t GetFiles(const std::string &str, std::vector <t_files> *p_files)
 							{
 								bool p2 = true;
 								p_files->push_back({
+									false,
 									*iter,
 									FindFileData.cFileName,
 									(((static_cast<ULONGLONG>(FindFileData.nFileSizeHigh) << (sizeof(FindFileData.nFileSizeLow) * 8)) | FindFileData.nFileSizeLow)),
@@ -701,6 +709,16 @@ unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool 
 unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool log) {
 	std::vector<t_files> dump;
 	return getPlotFilesSize(directories, log, dump);
+}
+
+unsigned long long getPlotFilesSize(std::vector<std::shared_ptr<t_directory_info>> dirs) {
+	unsigned long long size = 0;
+	for (auto &dir : dirs) {
+		for (auto &f : dir->files) {
+			size += f.Size;
+		}
+	}
+	return size;
 }
 
 int main(int argc, char **argv) {
@@ -1047,9 +1065,7 @@ int main(int argc, char **argv) {
 			bm_wprintw("\n%s New %s block %llu, baseTarget %llu, netDiff %llu Tb, POC%i\n", tbuffer, coinNames[miningCoin->coin], currentHeight, currentBaseTarget, 4398046511104 / 240 / currentBaseTarget, POC2 ? 2 : 1, 0);
 			bm_wattron(25);
 		}
-
-		miningCoin->mining->interrupted = false;
-		
+				
 		if (miningCoin->mining->miner_mode == 0)
 		{
 			unsigned long long sat_total_size = 0;
@@ -1092,23 +1108,32 @@ int main(int argc, char **argv) {
 		std::vector<std::string> roundDirectories;
 		for (size_t i = 0; i < miningCoin->mining->dirs.size(); i++)
 		{
-			if (miningCoin->mining->dirs.at(i).done) {
+			if (miningCoin->mining->dirs.at(i)->done) {
 				// This directory has already been processed. Skipping.
-				Log("Skipping directory %s", miningCoin->mining->dirs.at(i).dir.c_str());
+				Log("Skipping directory %s", miningCoin->mining->dirs.at(i)->dir.c_str());
 				continue;
 			}
 			worker_progress[i] = { i, 0, true };
-			worker[i] = std::thread(work_i, miningCoin, i);
-			roundDirectories.push_back(miningCoin->mining->dirs.at(i).dir);
+			worker[i] = std::thread(work_i, miningCoin, miningCoin->mining->dirs.at(i), i);
+			roundDirectories.push_back(miningCoin->mining->dirs.at(i)->dir);
 		}
 		
-		unsigned long long round_size = getPlotFilesSize(roundDirectories, false);
+		unsigned long long round_size = 0;
+		
+		if (miningCoin->mining->interrupted) {
+			round_size = getPlotFilesSize(miningCoin->mining->dirs);
+		}
+		else {
+			round_size = getPlotFilesSize(roundDirectories, false);
+		}		
 		
 		unsigned long long old_baseTarget = currentBaseTarget;
 		unsigned long long old_height = currentHeight;
 		clearProgress();
 
+		miningCoin->mining->interrupted = false;
 		Log("Directories in this round: %zu", roundDirectories.size());
+		Log("Round size: %llu GB", round_size / 1024 / 1024 / 1024);
 
 		// Wait until signature changed or exit
 		while ((!newBlock || !needToInterruptMining(coins, miningCoin, queue)) && !exit_flag)
@@ -1233,8 +1258,8 @@ int main(int argc, char **argv) {
 
 		//Check if mining has been interrupted and there is no new block.
 		for (auto& dir : miningCoin->mining->dirs) {
-			if (!dir.done) {
-				Log("This directory has not been completed: %s", dir.dir.c_str());
+			if (!dir->done) {
+				Log("This directory has not been completed: %s", dir->dir.c_str());
 				bool newBlock = false;
 				for (auto& coin : queue) {
 					if (coin->coin == miningCoin->coin) {

@@ -77,18 +77,6 @@ struct t_session {
 
 extern std::vector<t_session> sessions;
 
-struct t_files {
-	std::string Path;
-	std::string Name;
-	unsigned long long Size;
-	unsigned long long Key;
-	unsigned long long StartNonce;
-	unsigned long long Nonces;
-	unsigned long long Stagger;
-	unsigned long long Offset;
-	bool P2;
-	bool BFS;
-};
 #include "worker.h"
 
 //headers

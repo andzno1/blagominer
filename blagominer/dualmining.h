@@ -11,9 +11,25 @@ enum Coins {
 
 extern char *coinNames[];
 
+struct t_files {
+	bool done;
+	std::string Path;
+	std::string Name;
+	unsigned long long Size;
+	unsigned long long Key;
+	unsigned long long StartNonce;
+	unsigned long long Nonces;
+	unsigned long long Stagger;
+	unsigned long long Offset;
+	bool P2;
+	bool BFS;
+};
+
 struct t_directory_info {
+	t_directory_info(std::string dir, bool done, std::vector<t_files> files) : dir(dir), done(done), files(files) {}
 	std::string dir;
 	bool done;
+	std::vector<t_files> files;
 };
 
 struct t_logging {
@@ -43,7 +59,7 @@ struct t_mining_info {
 	bool show_winner;
 	char signature[33];						// signature of current block
 	char oldSignature[33];					// signature of last block
-	std::vector<t_directory_info> dirs;
+	std::vector<std::shared_ptr<t_directory_info>> dirs;
 };
 
 struct t_network_info {

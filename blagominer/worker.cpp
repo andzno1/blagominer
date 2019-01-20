@@ -6,7 +6,7 @@ size_t cache_size1 = 16384;			// Cache in nonces (1 nonce in scoop = 64 bytes) f
 size_t cache_size2 = 262144;		// Cache in nonces (1 nonce in scoop = 64 bytes) for on-the-fly POC conversion
 size_t readChunkSize = 16384;		// Size of HDD reads in nonces (1 nonce in scoop = 64 bytes)
 
-void work_i(std::shared_ptr<t_coin_info> coinInfo, const size_t local_num)
+void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_info> directory, const size_t local_num)
 {
 
 	__int64 start_work_time, end_work_time;
@@ -23,13 +23,15 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, const size_t local_num)
 		SetThreadIdealProcessor(GetCurrentThread(), (DWORD)(local_num % std::thread::hardware_concurrency()));
 	}
 
-	std::string const path_loc_str = coinInfo->mining->dirs[local_num].dir;
+	std::string const path_loc_str = directory->dir;
+
 	unsigned long long files_size_per_thread = 0;
 
 	Log("Start thread: [%zu] %s", local_num, path_loc_str.c_str());
 
-	std::vector<t_files> files;
-	GetFiles(path_loc_str, &files);
+	if (directory->files.empty()) {
+		GetFiles(path_loc_str, &directory->files);
+	}
 
 	size_t cache_size_local;
 	DWORD sectorsPerCluster;
@@ -41,8 +43,12 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, const size_t local_num)
 	const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
 
 	//for (auto iter = files.begin(); iter != files.end(); ++iter)
-	for (auto iter = files.rbegin(); iter != files.rend(); ++iter)
+	for (auto iter = directory->files.rbegin(); iter != directory->files.rend(); ++iter)
 	{
+		if (iter->done) {
+			Log("Skipping file %s, since it has already been processed in the interrupted run.", iter->Name.c_str());
+			continue;
+		}
 		//Log("[%zu] Beginning main loop over files.", local_num);
 		unsigned long long key, nonce, nonces, stagger, offset, tail;
 		bool p2, bfs;
@@ -266,7 +272,6 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, const size_t local_num)
 					worker_progress[local_num].isAlive = false;
 					Log("[%zu] Reading file: %s interrupted", local_num, iter->Name.c_str());
 					CloseHandle(ifile);
-					files.clear();
 					VirtualFree(cache, 0, MEM_RELEASE); //Cleanup Thread 1
 					VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
 					if (p2 != POC2) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
@@ -298,7 +303,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, const size_t local_num)
 		}
 		QueryPerformanceCounter((LARGE_INTEGER*)&end_time_read);
 		//bfs seek optimisation
-		if (bfs && iter == files.rend()) {
+		if (bfs && iter == directory->files.rend()) {
 			//assuming physical hard disk mid at scoop 1587
 			start = 0 * 4096 * 64 + 1587 * stagger * 64 + 6 * 64 * 64;
 			if (!SetFilePointerEx(ifile, liDistanceToMove, nullptr, FILE_BEGIN))
@@ -309,6 +314,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, const size_t local_num)
 			}
 		}
 		Log("[%zu] Close file: %s [@ %llu ms]", local_num, iter->Name.c_str(), (long long unsigned)((double)(end_time_read - start_time_read) * 1000 / pcFreq));
+		iter->done = true;
 		CloseHandle(ifile);
 		//Log("[%zu] Freeing caches.", local_num);
 		VirtualFree(cache, 0, MEM_RELEASE);
@@ -341,7 +347,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, const size_t local_num)
 		}
 		bm_wattroff(7);
 	}
-	coinInfo->mining->dirs[local_num].done = true;
+	directory->done = true;
 	//Log("[%zu] Returning.", local_num);
 	return;
 }
