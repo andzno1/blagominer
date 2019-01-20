@@ -1295,7 +1295,7 @@ int main(int argc, char **argv) {
 
 		Log("Interrupt Sender. ");
 		if (sender.joinable()) sender.join();
-		std::thread{ Csv_Submitted,  miningCoin->coin, old_height, old_baseTarget, thread_time, true, miningCoin->mining->deadline }.detach();
+		std::thread{ Csv_Submitted,  miningCoin->coin, old_height, old_baseTarget, 4398046511104 / 240 / old_baseTarget, thread_time, true, miningCoin->mining->deadline }.detach();
 		
 		//prepare for next round if not yet done
 		if (!done) memcpy(&local_32, &global_32, sizeof(global_32));

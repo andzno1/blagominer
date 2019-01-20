@@ -42,8 +42,8 @@ bool existsFile(const std::string& name) {
 
 void Csv_Init()
 {
-	const char* headersFail = "Timestamp;Height;File;baseTarget;Nonce;Deadline sent;Deadline confirmed;Response\n";
-	const char* headersSubmitted = "Timestamp;Height;baseTarget;Round time;Completed round; Deadline\n";
+	const char* headersFail = "Timestamp;Height;File;baseTarget;Network difficulty;Nonce;Deadline sent;Deadline confirmed;Response\n";
+	const char* headersSubmitted = "Timestamp;Height;baseTarget;Network difficulty;Round time;Completed round; Deadline\n";
 	if (burst->mining->enable && !existsFile(csvFailBurst))
 	{
 		std::lock_guard<std::mutex> lockGuard(mCsvFailBurst);
@@ -112,8 +112,8 @@ void Csv_Init()
 }
 
 void Csv_Fail(Coins coin, const unsigned long long height, const std::string& file, const unsigned long long baseTarget,
-	const unsigned long long nonce, const unsigned long long deadlineSent, const unsigned long long deadlineConfirmed,
-	const std::string& response)
+	const unsigned long long netDiff, const unsigned long long nonce, const unsigned long long deadlineSent,
+	const unsigned long long deadlineConfirmed, const std::string& response)
 {
 	std::time_t rawtime = std::time(nullptr);
 	FILE * pFile;
@@ -123,7 +123,8 @@ void Csv_Fail(Coins coin, const unsigned long long height, const std::string& fi
 		fopen_s(&pFile, csvFailBurst.c_str(), "a+t");
 		if (pFile != nullptr)
 		{
-			fprintf(pFile, "%llu;%llu;%s;%llu;%llu;%llu;%llu;%s\n", (unsigned long long)rawtime, height, file.c_str(), baseTarget, nonce, deadlineSent, deadlineConfirmed, response.c_str());
+			fprintf(pFile, "%llu;%llu;%s;%llu;%llu;%llu;%llu;%llu;%s\n", (unsigned long long)rawtime, height, file.c_str(), baseTarget, netDiff,
+				nonce, deadlineSent, deadlineConfirmed, response.c_str());
 			fclose(pFile);
 			return;
 		}
@@ -139,7 +140,8 @@ void Csv_Fail(Coins coin, const unsigned long long height, const std::string& fi
 		fopen_s(&pFile, csvFailBhd.c_str(), "a+t");
 		if (pFile != nullptr)
 		{
-			fprintf(pFile, "%llu;%llu;%s;%llu;%llu;%llu;%llu;%s\n", (unsigned long long)rawtime, height, file.c_str(), baseTarget, nonce, deadlineSent, deadlineConfirmed, response.c_str());
+			fprintf(pFile, "%llu;%llu;%s;%llu;%llu;%llu;%llu;%llu;%s\n", (unsigned long long)rawtime, height, file.c_str(), baseTarget, netDiff,
+				nonce, deadlineSent, deadlineConfirmed, response.c_str());
 			fclose(pFile);
 			return;
 		}
@@ -152,8 +154,8 @@ void Csv_Fail(Coins coin, const unsigned long long height, const std::string& fi
 	
 }
 
-void Csv_Submitted(Coins coin, const unsigned long long height, const unsigned long long baseTarget, const double roundTime,
-	const bool completedRound, const unsigned long long deadline)
+void Csv_Submitted(Coins coin, const unsigned long long height, const unsigned long long baseTarget, const unsigned long long netDiff,
+	const double roundTime, const bool completedRound, const unsigned long long deadline)
 {
 	std::time_t rawtime = std::time(nullptr);
 	FILE * pFile;
@@ -163,8 +165,8 @@ void Csv_Submitted(Coins coin, const unsigned long long height, const unsigned l
 		fopen_s(&pFile, csvSubmittedBurst.c_str(), "a+t");
 		if (pFile != nullptr)
 		{
-			fprintf(pFile, "%llu;%llu;%llu;%.1f;%s;%llu\n", (unsigned long long)rawtime, height, baseTarget,
-				roundTime, completedRound ? "true" : "false", deadline);
+			fprintf(pFile, "%llu;%llu;%llu;%llu;%.1f;%s;%llu\n", (unsigned long long)rawtime, height, baseTarget,
+				netDiff, roundTime, completedRound ? "true" : "false", deadline);
 			fclose(pFile);
 			return;
 		}
@@ -180,8 +182,8 @@ void Csv_Submitted(Coins coin, const unsigned long long height, const unsigned l
 		fopen_s(&pFile, csvSubmittedBhd.c_str(), "a+t");
 		if (pFile != nullptr)
 		{
-			fprintf(pFile, "%llu;%llu;%llu;%.1f;%s;%llu\n", (unsigned long long)rawtime, height, baseTarget,
-				roundTime, completedRound ? "true" : "false", deadline);
+			fprintf(pFile, "%llu;%llu;%llu;%llu;%.1f;%s;%llu\n", (unsigned long long)rawtime, height, baseTarget,
+				netDiff, roundTime, completedRound ? "true" : "false", deadline);
 			fclose(pFile);
 			return;
 		}
