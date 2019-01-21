@@ -364,7 +364,7 @@ int load_config(char const *const filename)
 		Log("UseBoost: %d", use_boost);
 
 		if (document.HasMember("WinSizeX") && (document["WinSizeX"].IsUint())) win_size_x = (short)document["WinSizeX"].GetUint();
-		if (win_size_x < 80) win_size_x = 80;
+		if (win_size_x < 90) win_size_x = 90;
 		Log("WinSizeX: %hi", win_size_x);
 
 		if (document.HasMember("WinSizeY") && (document["WinSizeY"].IsUint())) win_size_y = (short)document["WinSizeY"].GetUint();
@@ -682,8 +682,8 @@ bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& coin
 			char tbuffer[9];
 			_strtime_s(tbuffer);
 			bm_wattron(5);
-			bm_wprintw("\n%s Adding %s block %llu to the end of the queue.\n", tbuffer, coinNames[elems.front()->coin], elems.front()->mining->height, 0);
-			bm_wattron(5);
+			bm_wprintwFill("\n%s Adding %s block %llu to the end of the queue.", tbuffer, coinNames[elems.front()->coin], elems.front()->mining->height, 0);
+			bm_wattroff(5);
 		}
 	}
 	return false;
@@ -759,6 +759,8 @@ static void resizeConsole(SHORT xSize, SHORT ySize) {
 	coordScreen.X = xSize;
 	coordScreen.Y = ySize;
 
+	Log("Resizing window (x: %hi, y: %hi).", coordScreen.X, coordScreen.Y);
+
 	// If the Current Buffer is Larger than what we want, Resize the 
 	// Console Window First, then the Buffer 
 	if ((DWORD)csbi.dwSize.X * csbi.dwSize.Y > (DWORD)xSize * ySize)
@@ -776,8 +778,10 @@ static void resizeConsole(SHORT xSize, SHORT ySize) {
 	}
 
 
+	HWND consoleWindow = GetConsoleWindow();
+
 	// Get the monitor that is displaying the window
-	HMONITOR monitor = MonitorFromWindow(GetConsoleWindow(), MONITOR_DEFAULTTONEAREST);
+	HMONITOR monitor = MonitorFromWindow(consoleWindow, MONITOR_DEFAULTTONEAREST);
 
 	// Get the monitor's offset in virtual-screen coordinates
 	MONITORINFO monitorInfo;
@@ -785,9 +789,12 @@ static void resizeConsole(SHORT xSize, SHORT ySize) {
 	GetMonitorInfoA(monitor, &monitorInfo);
 		
 	RECT wSize;
-	GetWindowRect(GetConsoleWindow(), &wSize);
+	GetWindowRect(consoleWindow, &wSize);
 	// Move window to top
-	MoveWindow(GetConsoleWindow(), wSize.left, monitorInfo.rcWork.top, wSize.right - wSize.left, wSize.bottom - wSize.top, true);
+	MoveWindow(consoleWindow, wSize.left, monitorInfo.rcWork.top, wSize.right - wSize.left, wSize.bottom - wSize.top, true);
+
+	//Prevent resizing. Source: https://stackoverflow.com/a/47359526
+	SetWindowLong(consoleWindow, GWL_STYLE, GetWindowLong(consoleWindow, GWL_STYLE) & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX);
 
 	return;
 }
@@ -1107,14 +1114,14 @@ int main(int argc, char **argv) {
 		if (miningCoin->mining->interrupted) {
 			Log("------------------------    Continuing %s block: %llu", coinNames[miningCoin->coin], currentHeight);
 			bm_wattron(5);
-			bm_wprintw("\n%s Continuing %s block %llu, baseTarget %llu, netDiff %llu Tb, POC%i\n", tbuffer, coinNames[miningCoin->coin], currentHeight, currentBaseTarget, 4398046511104 / 240 / currentBaseTarget, POC2 ? 2 : 1, 0);
-			bm_wattron(5);
+			bm_wprintwFill("\n%s Continuing %s block %llu, baseTarget %llu, netDiff %llu Tb, POC%i", tbuffer, coinNames[miningCoin->coin], currentHeight, currentBaseTarget, 4398046511104 / 240 / currentBaseTarget, POC2 ? 2 : 1, 0);
+			bm_wattroff(5);
 		}
 		else {
 			Log("------------------------    New %s block: %llu", coinNames[miningCoin->coin], currentHeight);
 			bm_wattron(25);
-			bm_wprintw("\n%s New %s block %llu, baseTarget %llu, netDiff %llu Tb, POC%i\n", tbuffer, coinNames[miningCoin->coin], currentHeight, currentBaseTarget, 4398046511104 / 240 / currentBaseTarget, POC2 ? 2 : 1, 0);
-			bm_wattron(25);
+			bm_wprintwFill("\n%s New %s block %llu, baseTarget %llu, netDiff %llu Tb, POC%i", tbuffer, coinNames[miningCoin->coin], currentHeight, currentBaseTarget, 4398046511104 / 240 / currentBaseTarget, POC2 ? 2 : 1, 0);
+			bm_wattroff(25);
 		}
 				
 		if (miningCoin->mining->miner_mode == 0)
@@ -1334,7 +1341,7 @@ int main(int argc, char **argv) {
 						Log("Mining %s has been interrupted by a coin with higher priority.", coinNames[miningCoin->coin]);
 						_strtime_s(tbuffer);
 						bm_wattron(8);
-						bm_wprintw("\n%s Mining of %s has been interrupted by another coin.\n", tbuffer, coinNames[miningCoin->coin], 0);
+						bm_wprintwFill("\n%s Mining of %s has been interrupted by another coin.", tbuffer, coinNames[miningCoin->coin], 0);
 						bm_wattroff(8);
 						// Queuing the interrupted coin.
 						insertIntoQueue(queue, miningCoin);

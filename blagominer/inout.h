@@ -7,6 +7,7 @@ void bm_init();
 int bm_wattron(int color);
 int bm_wattroff(int color);
 int bm_wprintw(const char * output,...);
+int bm_wprintwFill(const char * output, ...);
 void refreshMain();
 int bm_wgetchMain(); //get input vom main window
 

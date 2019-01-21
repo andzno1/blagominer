@@ -3,7 +3,7 @@
 #undef  MOUSE_MOVED
 #include "curses.h" //include pdcurses
 
-short win_size_x = 80;
+short win_size_x = 90;
 short win_size_y = 60;
 const short progress_lines = 3;
 const short corrupted_lines = 2;
@@ -27,6 +27,33 @@ int bm_wprintw(const char * output, ...) {
 	va_start(args, output);
 	return vw_printw(win_main, output, args);
 	va_end(args);
+}
+
+// Print and fill the rest of the line
+int bm_wprintwFill(const char * output, ...) {
+	int result;
+
+	va_list args;
+	va_start(args, output);
+	result = vw_printw(win_main, output, args);
+	va_end(args);
+
+	
+	int y;
+	int x;
+	getyx(win_main, y, x);
+	const int remaining = win_size_x - x;
+
+	if (remaining > 0) {
+		result = waddstr(win_main, std::string(remaining, ' ').c_str()) || result;
+		int newY;
+		getyx(win_main, newY, x);
+		if (newY == y) {
+			result = waddstr(win_main, std::string("\n").c_str()) || result;
+		}
+	}
+
+	return result;
 }
 
 //Turn on color attribute
