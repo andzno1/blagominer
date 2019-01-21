@@ -628,7 +628,7 @@ unsigned int calcScoop() {
 	return (((unsigned char)xcache[31]) + 256 * (unsigned char)xcache[30]) % 4096;
 }
 
-void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& queue, std::shared_ptr<t_coin_info> coin, bool onScreenmessage = false) {
+void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& queue, std::shared_ptr<t_coin_info> coin) {
 	bool inserted = false;
 	for (auto it = queue.begin(); it != queue.end(); ++it) {
 		if (coin->mining->priority < (*it)->mining->priority) {
@@ -644,13 +644,6 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& queue, std::shar
 		}
 	}
 	if (!inserted) {
-		if (onScreenmessage) {
-			char tbuffer[9];
-			_strtime_s(tbuffer);
-			bm_wattron(5);
-			bm_wprintw("\n%s Adding %s block %llu to the end of the queue.\n", tbuffer, coinNames[coin->coin], coin->mining->height, 0);
-			bm_wattron(5);
-		}
 		Log("Adding %s to the end of the queue.", coinNames[coin->coin]);
 		queue.push_back(coin);
 	}
@@ -665,10 +658,8 @@ bool hasSignatureChanged(const std::vector<std::shared_ptr<t_coin_info>>& coins,
 			// Setting interrupted to false in case the coin with changed signature has been
 			// scheduled for continuing.
 			pt->mining->interrupted = false;
-			// Also resetting directories flags for the same reason.
-			resetDirs(pt);
 			updateOldSignature(pt);
-			insertIntoQueue(elems, pt, !done && pt->coin != currentCoin);
+			insertIntoQueue(elems, pt);
 			ret = true;
 		}
 	}
@@ -682,9 +673,17 @@ bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& coin
 		// Checking only the first element, since it has already the highest priority (but lowest value).
 		if (elems.front()->mining->priority <= coin->mining->priority) {
 			if (!done) {
-				Log("Interrupting current mining progress.");
+				Log("Interrupting current mining progress. %s has a higher priority than %s.",
+					coinNames[elems.front()->coin], coinNames[coin->coin]);
 			}
 			return true;
+		}
+		else {
+			char tbuffer[9];
+			_strtime_s(tbuffer);
+			bm_wattron(5);
+			bm_wprintw("\n%s Adding %s block %llu to the end of the queue.\n", tbuffer, coinNames[coin->coin], coin->mining->height, 0);
+			bm_wattron(5);
 		}
 	}
 	return false;
@@ -728,7 +727,9 @@ unsigned long long getPlotFilesSize(std::vector<std::shared_ptr<t_directory_info
 	unsigned long long size = 0;
 	for (auto &dir : dirs) {
 		for (auto &f : dir->files) {
-			size += f.Size;
+			if (!f.done) {
+				size += f.Size;
+			}
 		}
 	}
 	return size;
@@ -1118,6 +1119,10 @@ int main(int argc, char **argv) {
 		QueryPerformanceCounter((LARGE_INTEGER*)&start_threads_time);
 		double threads_speed = 0;
 
+		if (!miningCoin->mining->interrupted) {
+			resetDirs(miningCoin);
+		}
+
 		std::vector<std::string> roundDirectories;
 		for (size_t i = 0; i < miningCoin->mining->dirs.size(); i++)
 		{
@@ -1144,7 +1149,7 @@ int main(int argc, char **argv) {
 		unsigned long long old_height = currentHeight;
 		clearProgress();
 
-		miningCoin->mining->interrupted = false;
+		miningCoin->mining->interrupted = true;
 		Log("Directories in this round: %zu", roundDirectories.size());
 		Log("Round size: %llu GB", round_size / 1024 / 1024 / 1024);
 
@@ -1196,6 +1201,7 @@ int main(int argc, char **argv) {
 				//Work Done! Cleanup / Prepare
 				if (!done) {
 					Log("Round done.");
+					miningCoin->mining->interrupted = false;
 					//Display total round time
 					QueryPerformanceCounter((LARGE_INTEGER*)&end_threads_time);
 					thread_time = (double)(end_threads_time - start_threads_time) / pcFreq;
@@ -1270,41 +1276,38 @@ int main(int argc, char **argv) {
 			}
 		}
 
-		//Check if mining has been interrupted and there is no new block.
-		for (auto& dir : miningCoin->mining->dirs) {
-			if (!dir->done) {
-				Log("This directory has not been completed: %s", dir->dir.c_str());
-				bool newBlock = false;
-				for (auto& coin : queue) {
-					if (coin->coin == miningCoin->coin) {
-						// There is a new block for the coin currently being mined.
-						Log("Mining %s has been interrupted by a new block.", coinNames[miningCoin->coin]);
-						newBlock = true;
-						miningCoin->mining->interrupted = false;
+		//Check if mining has been interrupted and there is no new block. If so, add current coin to the end of the queue.
+		if (!done) {
+			for (auto& dir : miningCoin->mining->dirs) {
+				if (!dir->done) {
+					Log("This directory has not been completed: %s", dir->dir.c_str());
+					bool newBlock = false;
+					for (auto& coin : queue) {
+						if (coin->coin == miningCoin->coin) {
+							// There is a new block for the coin currently being mined.
+							Log("Mining %s has been interrupted by a new block.", coinNames[miningCoin->coin]);
+							newBlock = true;
+							break;
+						}
+					}
+					if (newBlock) {
+						break;
+					}
+					else {
+						Log("Mining %s has been interrupted by a coin with higher priority.", coinNames[miningCoin->coin]);
+						_strtime_s(tbuffer);
+						bm_wattron(8);
+						bm_wprintw("\n%s Mining of %s has been interrupted by another coin.\n", tbuffer, coinNames[miningCoin->coin], 0);
+						bm_wattroff(8);
+						// Queuing the interrupted coin.
+						insertIntoQueue(queue, miningCoin);
 						break;
 					}
 				}
-				if (newBlock) {
-					break;
-				}
-				else {
-					Log("Mining %s has been interrupted by a coin with higher priority.", coinNames[miningCoin->coin]);
-					// No new block, mining has been interrupted by coin with higher priority.
-					miningCoin->mining->interrupted = true;
-					// Queuing the interrupted coin.
-					insertIntoQueue(queue, miningCoin);
-					break;
-				}
 			}
 		}
-		if (!miningCoin->mining->interrupted) {
-			resetDirs(miningCoin);
-		}
 		else {
-			_strtime_s(tbuffer);
-			bm_wattron(8);
-			bm_wprintw("\n%s Mining of %s has been interrupted by another coin.\n", tbuffer, coinNames[miningCoin->coin], 0);
-			bm_wattroff(8);
+			Log("New block, no mining has been interrupted.");
 		}
 
 		Log("Interrupt Sender. ");
