@@ -3,7 +3,7 @@
 #undef  MOUSE_MOVED
 #include "curses.h" //include pdcurses
 
-short win_size_x = 90;
+short win_size_x = 80;
 short win_size_y = 60;
 const short progress_lines = 3;
 const short corrupted_lines = 2;

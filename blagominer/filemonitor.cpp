@@ -5,7 +5,7 @@ std::mutex m;
 std::map<std::string, t_file_stats> fileStats = std::map<std::string, t_file_stats>();
 bool showCorruptedPlotFiles = true;
 int oldLineCount = -1;
-const std::string header = "File name                                                  +DLs        -DLs         I/O";
+const std::string header = "File name                                             +DLs      -DLs       I/O";
 
 void increaseMatchingDeadline(std::string file) {
 	if (!showCorruptedPlotFiles) {
@@ -64,9 +64,9 @@ void printFileStats() {
 		if (element.second.conflictingDeadlines > 0 || element.second.readErrors > 0) {
 			bm_wattronC(14);
 			bm_wmoveC(lineCount, 1);
-			bm_wprintwC("%-51s %11llu", element.first.c_str(), element.second.matchingDeadlines, 0);
+			bm_wprintwC("%-46s %11llu", element.first.c_str(), element.second.matchingDeadlines, 0);
 			bm_wattronC(4);
-			bm_wprintwC(" %11llu %11llu", element.second.conflictingDeadlines, element.second.readErrors, 0);
+			bm_wprintwC(" %9llu %9llu", element.second.conflictingDeadlines, element.second.readErrors, 0);
 			bm_wattroffC(4);
 			++lineCount;
 		}

@@ -364,7 +364,7 @@ int load_config(char const *const filename)
 		Log("UseBoost: %d", use_boost);
 
 		if (document.HasMember("WinSizeX") && (document["WinSizeX"].IsUint())) win_size_x = (short)document["WinSizeX"].GetUint();
-		if (win_size_x < 90) win_size_x = 90;
+		if (win_size_x < 80) win_size_x = 80;
 		Log("WinSizeX: %hi", win_size_x);
 
 		if (document.HasMember("WinSizeY") && (document["WinSizeY"].IsUint())) win_size_y = (short)document["WinSizeY"].GetUint();
@@ -735,6 +735,63 @@ unsigned long long getPlotFilesSize(std::vector<std::shared_ptr<t_directory_info
 	return size;
 }
 
+/*
+	Partially taken from https://sourceforge.net/p/dosbox/code-0/HEAD/tree/dosbox/trunk/src/debug/debug_win32.cpp#l24
+*/
+static void resizeConsole(SHORT xSize, SHORT ySize) {
+	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+	CONSOLE_SCREEN_BUFFER_INFO csbi; // Hold Current Console Buffer Info 
+	BOOL bSuccess;
+	SMALL_RECT srWindowRect;         // Hold the New Console Size 
+	COORD coordScreen;
+
+	bSuccess = GetConsoleScreenBufferInfo(hConsole, &csbi);
+
+	// Get the Largest Size we can size the Console Window to 
+	coordScreen = GetLargestConsoleWindowSize(hConsole);
+
+	// Define the New Console Window Size and Scroll Position 
+	srWindowRect.Right = (SHORT)(min(xSize, coordScreen.X) - 1);
+	srWindowRect.Bottom = (SHORT)(min(ySize, coordScreen.Y) - 1);
+	srWindowRect.Left = srWindowRect.Top = (SHORT)0;
+
+	// Define the New Console Buffer Size    
+	coordScreen.X = xSize;
+	coordScreen.Y = ySize;
+
+	// If the Current Buffer is Larger than what we want, Resize the 
+	// Console Window First, then the Buffer 
+	if ((DWORD)csbi.dwSize.X * csbi.dwSize.Y > (DWORD)xSize * ySize)
+	{
+		bSuccess = SetConsoleWindowInfo(hConsole, TRUE, &srWindowRect);
+		bSuccess = SetConsoleScreenBufferSize(hConsole, coordScreen);
+	}
+
+	// If the Current Buffer is Smaller than what we want, Resize the 
+	// Buffer First, then the Console Window 
+	if ((DWORD)csbi.dwSize.X * csbi.dwSize.Y < (DWORD)xSize * ySize)
+	{
+		bSuccess = SetConsoleScreenBufferSize(hConsole, coordScreen);
+		bSuccess = SetConsoleWindowInfo(hConsole, TRUE, &srWindowRect);
+	}
+
+
+	// Get the monitor that is displaying the window
+	HMONITOR monitor = MonitorFromWindow(GetConsoleWindow(), MONITOR_DEFAULTTONEAREST);
+
+	// Get the monitor's offset in virtual-screen coordinates
+	MONITORINFO monitorInfo;
+	monitorInfo.cbSize = sizeof(MONITORINFO);
+	GetMonitorInfoA(monitor, &monitorInfo);
+		
+	RECT wSize;
+	GetWindowRect(GetConsoleWindow(), &wSize);
+	// Move window to top
+	MoveWindow(GetConsoleWindow(), wSize.left, monitorInfo.rcWork.top, wSize.right - wSize.left, wSize.bottom - wSize.top, true);
+
+	return;
+}
+
 int main(int argc, char **argv) {
 	//init
 
@@ -803,28 +860,8 @@ int main(int argc, char **argv) {
 
 	Log("Miner path: %s", p_minerPath);
 
-	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-	COORD max_coord = GetLargestConsoleWindowSize(hConsole);
-	if (win_size_x > max_coord.X) win_size_x = max_coord.X;
-	if (win_size_y > max_coord.Y) win_size_y = max_coord.Y;
-
-	COORD coord;
-	coord.X = win_size_x;
-	coord.Y = win_size_y;
-
-	SMALL_RECT Rect;
-	Rect.Top = 0;
-	Rect.Left = 0;
-	Rect.Bottom = coord.Y - 1;
-	Rect.Right = coord.X - 1;
-
-	SetConsoleScreenBufferSize(hConsole, coord);
-	SetConsoleWindowInfo(hConsole, TRUE, &Rect);
-
-	RECT wSize;
-	GetWindowRect(GetConsoleWindow(), &wSize);
-	MoveWindow(GetConsoleWindow(), 0, 0, wSize.right - wSize.left, wSize.bottom - wSize.top, true);
-
+	resizeConsole(win_size_x, win_size_y);
+	
 	bm_init();
 	bm_wattron(12);
 	bm_wprintw("\nBURST/BHD miner, %s", version, 0);
