@@ -856,9 +856,6 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 												Log("* GMI: Received: %s", Log_server(buffer));
 											}
 										}
-										else if (!loggingConfig.logAllGetMiningInfos) {
-											Log("* GMI: No new mining information.");
-										}
 									}
 									if (gmi.HasMember("targetDeadline")) {
 										if (gmi["targetDeadline"].IsString())	setTargetDeadlineInfo(coinInfo, _strtoui64(gmi["targetDeadline"].GetString(), 0, 10));
