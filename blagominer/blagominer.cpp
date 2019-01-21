@@ -673,16 +673,16 @@ bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& coin
 		// Checking only the first element, since it has already the highest priority (but lowest value).
 		if (elems.front()->mining->priority <= coin->mining->priority) {
 			if (!done) {
-				Log("Interrupting current mining progress. %s has a higher priority than %s.",
+				Log("Interrupting current mining progress. %s has a higher or equal priority than %s.",
 					coinNames[elems.front()->coin], coinNames[coin->coin]);
 			}
 			return true;
 		}
-		else {
+		else if (!done) {
 			char tbuffer[9];
 			_strtime_s(tbuffer);
 			bm_wattron(5);
-			bm_wprintw("\n%s Adding %s block %llu to the end of the queue.\n", tbuffer, coinNames[coin->coin], coin->mining->height, 0);
+			bm_wprintw("\n%s Adding %s block %llu to the end of the queue.\n", tbuffer, coinNames[elems.front()->coin], elems.front()->mining->height, 0);
 			bm_wattron(5);
 		}
 	}
