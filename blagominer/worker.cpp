@@ -65,6 +65,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		// Проверка кратности нонсов стаггеру
 		if ((double)(nonces % stagger) > DBL_EPSILON && !bfs)
 		{
+			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
+			Log("File %s (%s) wrong stagger?", iter->Name.c_str(), iter->Path.c_str());
 			bm_wattron(12);
 			bm_wprintw("File %s wrong stagger?\n", iter->Name.c_str(), 0);
 			bm_wattroff(12);
@@ -75,6 +77,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		// Проверка на повреждения плота
 		if (nonces != (iter->Size) / (4096 * 64))
 		{
+			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
+			Log("File %s (%s) name/size mismatch.", iter->Name.c_str(), iter->Path.c_str());
 			bm_wattron(12);
 			bm_wprintw("file \"%s\" name/size mismatch\n", iter->Name.c_str(), 0);
 			bm_wattroff(12);
@@ -109,6 +113,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		// Если стаггер в плоте меньше чем размер сектора - пропускаем
 		if ((stagger * 64) < bytesPerSector)
 		{
+			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
+			Log("File %s (%s): Stagger (%llu) must be >= %llu", iter->Name.c_str(), iter->Path.c_str(), stagger, bytesPerSector / 64);
 			bm_wattron(12);
 			bm_wprintw("stagger (%llu) must be >= %llu\n", stagger, bytesPerSector / 64, 0);
 			bm_wattroff(12);
@@ -118,6 +124,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		// Если нонсов в плоте меньше чем размер сектора - пропускаем
 		if ((nonces * 64) < bytesPerSector)
 		{
+			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
+			Log("File %s (%s): Nonces(%llu) must be >= %llu", iter->Name.c_str(), iter->Path.c_str(), nonces, bytesPerSector / 64);
 			bm_wattron(12);
 			bm_wprintw("nonces (%llu) must be >= %llu\n", nonces, bytesPerSector / 64, 0);
 			bm_wattroff(12);
@@ -127,6 +135,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		// Если стаггер не выровнен по сектору - можем читать сдвигая последний стагер назад (доделать)
 		if ((stagger % (bytesPerSector / 64)) != 0)
 		{
+			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
+			Log("File %s (%s): Stagger (%llu) must be a multiple of %llu", iter->Name.c_str(), iter->Path.c_str(), stagger, bytesPerSector / 64);
 			bm_wattron(12);
 			bm_wprintw("stagger (%llu) must be a multiple of %llu\n", stagger, bytesPerSector / 64, 0);
 			bm_wattroff(12);
@@ -188,6 +198,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		}
 		if (ifile == INVALID_HANDLE_VALUE)
 		{
+			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
+			Log("File %s (%s): Error opening. code = %llu", iter->Name.c_str(), iter->Path.c_str(), GetLastError());
 			bm_wattron(12);
 			bm_wprintw("File \"%s\\%s\" error opening. code = %llu\n", iter->Path.c_str(), iter->Name.c_str(), GetLastError(), 0);
 			bm_wattroff(12);
@@ -241,6 +253,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				//check if hashing would fail
 				if (bytes != cache_size_local * 64)
 				{
+					std::thread{ increaseReadError, iter->Name.c_str() }.detach();
+					Log("File %s (%s): Unexpected end of file.", iter->Name.c_str(), iter->Path.c_str());
 					bm_wattron(12);
 					bm_wprintw("Unexpected end of file %s\n", iter->Name.c_str(), 0);
 					bm_wattroff(12);
@@ -284,6 +298,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			if (!err) {
 				if (bytes != cache_size_local * 64)
 				{
+					std::thread{ increaseReadError, iter->Name.c_str() }.detach();
+					Log("Unexpected end of file %s (%s)", iter->Name.c_str(), path_loc_str.c_str());
 					bm_wattron(12);
 					bm_wprintw("Unexpected end of file %s\n", iter->Name.c_str(), 0);
 					bm_wattroff(12);
@@ -308,12 +324,15 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			start = 0 * 4096 * 64 + 1587 * stagger * 64 + 6 * 64 * 64;
 			if (!SetFilePointerEx(ifile, liDistanceToMove, nullptr, FILE_BEGIN))
 			{
+				std::thread{ increaseReadError, iter->Name.c_str() }.detach();
+				Log("BFS seek optimisation: error SetFilePointerEx. code = %llu. File: %s (%s)", GetLastError(), iter->Name.c_str(), path_loc_str.c_str());
 				bm_wattron(12);
 				bm_wprintw("BFS seek optimisation: error SetFilePointerEx. code = %llu\n", GetLastError(), 0);
 				bm_wattroff(12);
 			}
 		}
-		Log("[%zu] Close file: %s [@ %llu ms]", local_num, iter->Name.c_str(), (long long unsigned)((double)(end_time_read - start_time_read) * 1000 / pcFreq));
+		
+		Log("[%zu] Close file: %s (%s) [@ %llu ms]", local_num, iter->Name.c_str(), path_loc_str.c_str(), (long long unsigned)((double)(end_time_read - start_time_read) * 1000 / pcFreq));
 		iter->done = true;
 		CloseHandle(ifile);
 		//Log("[%zu] Freeing caches.", local_num);
@@ -347,8 +366,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		}
 		bm_wattroff(7);
 	}
+	Log("[%zu] Finished directory %s.", local_num, path_loc_str.c_str());
 	directory->done = true;
-	//Log("[%zu] Returning.", local_num);
 	return;
 }
 
