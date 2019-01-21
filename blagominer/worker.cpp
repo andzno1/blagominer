@@ -331,9 +331,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				bm_wattroff(12);
 			}
 		}
-		
-		Log("[%zu] Close file: %s (%s) [@ %llu ms]", local_num, iter->Name.c_str(), path_loc_str.c_str(), (long long unsigned)((double)(end_time_read - start_time_read) * 1000 / pcFreq));
 		iter->done = true;
+		Log("[%zu] Close file: %s (%s) [@ %llu ms]", local_num, iter->Name.c_str(), path_loc_str.c_str(), (long long unsigned)((double)(end_time_read - start_time_read) * 1000 / pcFreq));
 		CloseHandle(ifile);
 		//Log("[%zu] Freeing caches.", local_num);
 		VirtualFree(cache, 0, MEM_RELEASE);
@@ -366,8 +365,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		}
 		bm_wattroff(7);
 	}
-	Log("[%zu] Finished directory %s.", local_num, path_loc_str.c_str());
 	directory->done = true;
+	Log("[%zu] Finished directory %s.", local_num, path_loc_str.c_str());
 	return;
 }
 
