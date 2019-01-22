@@ -671,12 +671,15 @@ bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& coin
 	std::vector<std::shared_ptr<t_coin_info>>& elems) {
 	if (hasSignatureChanged(coins, elems)) {
 		// Checking only the first element, since it has already the highest priority (but lowest value).
-		if (elems.front()->mining->priority <= coin->mining->priority) {
+		if (elems.front()->mining->priority < coin->mining->priority) {
 			if (!done) {
-				Log("Interrupting current mining progress. %s has a higher or equal priority than %s.",
+				Log("Interrupting current mining progress. %s has a higher priority than %s.",
 					coinNames[elems.front()->coin], coinNames[coin->coin]);
 			}
 			return true;
+		}
+		else if (elems.front()->coin == coin->coin) {
+			Log("Interrupting current mining progress. New %s block.", coinNames[coin->coin]);
 		}
 		else if (!done) {
 			char tbuffer[9];
