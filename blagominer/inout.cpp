@@ -32,13 +32,12 @@ int bm_wprintw(const char * output, ...) {
 // Print and fill the rest of the line
 int bm_wprintwFill(const char * output, ...) {
 	int result;
-
+	
 	va_list args;
 	va_start(args, output);
 	result = vw_printw(win_main, output, args);
 	va_end(args);
 
-	
 	int y;
 	int x;
 	getyx(win_main, y, x);
@@ -47,8 +46,9 @@ int bm_wprintwFill(const char * output, ...) {
 	if (remaining > 0) {
 		result = waddstr(win_main, std::string(remaining, ' ').c_str()) || result;
 		int newY;
-		getyx(win_main, newY, x);
-		if (newY == y) {
+		int newX;
+		getyx(win_main, newY, newX);
+		if (newX != 0) {
 			result = waddstr(win_main, std::string("\n").c_str()) || result;
 		}
 	}

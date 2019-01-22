@@ -33,7 +33,7 @@ void increaseReadError(std::string file) {
 }
 
 void resetFileStats() {
-	if (!showCorruptedPlotFiles) {
+	if (!showCorruptedPlotFiles || !currentlyDisplayingCorruptedPlotFiles) {
 		return;
 	}
 	std::lock_guard<std::mutex> lockGuard(m);

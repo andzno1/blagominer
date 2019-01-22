@@ -684,7 +684,7 @@ bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& coin
 			char tbuffer[9];
 			_strtime_s(tbuffer);
 			bm_wattron(5);
-			bm_wprintwFill("\n%s Adding %s block %llu to the end of the queue.", tbuffer, coinNames[elems.front()->coin], elems.front()->mining->height, 0);
+			bm_wprintwFill("%s Adding %s block %llu to the end of the queue.", tbuffer, coinNames[elems.front()->coin], elems.front()->mining->height, 0);
 			bm_wattroff(5);
 		}
 	}
