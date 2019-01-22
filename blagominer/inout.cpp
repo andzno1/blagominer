@@ -132,10 +132,14 @@ void refreshProgress(){
 wrefresh(win_progress);
 }
 void resizeWindows(int lineCount) {
-	if (lineCount > -1) {
+	if (lineCount > 0) {
 		wresize(win_main, LINES - 3 - corrupted_lines - lineCount, COLS);
 		mvwin(win_main, corrupted_lines + lineCount, 0);
 		wresize(win_corrupted, corrupted_lines + lineCount, COLS);
+	}
+	else if (lineCount == 0) {
+		mvwin(win_main, 0, 0);
+		wresize(win_main, LINES - 2, COLS);
 	}
 }
 void refreshCorrupted() {

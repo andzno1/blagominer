@@ -16,4 +16,5 @@ extern bool showCorruptedPlotFiles;
 void increaseMatchingDeadline(std::string file);
 void increaseConflictingDeadline(std::string file);
 void increaseReadError(std::string file);
+void resetFileStats();
 void printFileStats();

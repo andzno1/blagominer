@@ -1216,6 +1216,9 @@ int main(int argc, char **argv) {
 			case 'c':
 				bm_wprintw("*** Chance to find a block: %.5f%%  (%llu Gb)\n", ((double)((total_size / 1024 / 1024) * 100 * 60)*(double)currentBaseTarget) / 1152921504606846976, total_size / 1024 / 1024 / 1024, 0);
 				break;
+			case 'f':
+				resetFileStats();
+				break;
 			}
 			boxProgress();
 			bytesRead = 0;

@@ -5,6 +5,7 @@ std::mutex m;
 std::map<std::string, t_file_stats> fileStats = std::map<std::string, t_file_stats>();
 bool showCorruptedPlotFiles = true;
 int oldLineCount = -1;
+bool currentlyDisplayingCorruptedPlotFiles = false;
 const std::string header = "File name                                             +DLs      -DLs       I/O";
 
 void increaseMatchingDeadline(std::string file) {
@@ -31,6 +32,14 @@ void increaseReadError(std::string file) {
 	++fileStats[file].readErrors;
 }
 
+void resetFileStats() {
+	if (!showCorruptedPlotFiles) {
+		return;
+	}
+	std::lock_guard<std::mutex> lockGuard(m);
+	fileStats.clear();
+}
+
 void printFileStats() {
 	if (!showCorruptedPlotFiles) {
 		return;
@@ -43,13 +52,21 @@ void printFileStats() {
 		}
 	}
 	
-	if (lineCount == 0) {
+	if (lineCount == 0 && currentlyDisplayingCorruptedPlotFiles) {
 		clearCorrupted();
+		resizeWindows(0);
+		refreshCorrupted();
+		currentlyDisplayingCorruptedPlotFiles = false;
+		return;
+	}
+	else if (lineCount == 0) {
 		return;
 	}
 
-	resizeWindows(++lineCount);
-	boxCorrupted();
+	// Incese for header and for clear message.
+	lineCount += 2;
+
+	resizeWindows(lineCount);
 	if (lineCount != oldLineCount) {
 		clearCorrupted();
 		oldLineCount = lineCount;
@@ -66,11 +83,15 @@ void printFileStats() {
 			bm_wmoveC(lineCount, 1);
 			bm_wprintwC("%-46s %11llu", element.first.c_str(), element.second.matchingDeadlines, 0);
 			bm_wattronC(4);
-			bm_wprintwC(" %9llu %9llu", element.second.conflictingDeadlines, element.second.readErrors, 0);
+			bm_wprintwC(" %9llu %9llu\n", element.second.conflictingDeadlines, element.second.readErrors, 0);
 			bm_wattroffC(4);
 			++lineCount;
 		}
 	}
 	bm_wattroffC(14);
+	bm_wmoveC(lineCount, 1);
+	bm_wprintwC("Press 'f' to clear data.");
+	boxCorrupted();
 	refreshCorrupted();
+	currentlyDisplayingCorruptedPlotFiles = true;
 }
