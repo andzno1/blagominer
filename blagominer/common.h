@@ -3,6 +3,7 @@
 #include "stdafx.h"
 #include <mutex>
 #include <vector>
+#include <ctime>
 
 enum Coins {
 	BURST,
@@ -98,3 +99,5 @@ void setSignature(std::shared_ptr<t_coin_info> coin, const char* signature);
 void updateOldSignature(std::shared_ptr<t_coin_info> coin);
 bool signaturesDiffer(std::shared_ptr<t_coin_info> coin);
 bool signaturesDiffer(std::shared_ptr<t_coin_info> coin, const char* sig);
+
+void getLocalDateTime(const std::time_t &rawtime, char* local);

@@ -57,3 +57,11 @@ bool signaturesDiffer(std::shared_ptr<t_coin_info> coin, const char* sig) {
 	std::lock_guard<std::mutex> lockGuard(coin->locks->mSignature);
 	return memcmp(coin->mining->signature, sig, 32) != 0;
 }
+
+void getLocalDateTime(const std::time_t &rawtime, char* local) {
+	struct tm timeinfo;
+
+	localtime_s(&timeinfo, &rawtime);
+	// YYYY-mm-dd HH:MM:SS
+	strftime(local, 80, "%Y-%m-%d %H:%M:%S", &timeinfo);
+}

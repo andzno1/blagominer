@@ -639,9 +639,10 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo, const unsigned long long curr
 
 									if (ndeadline != iter->deadline)
 									{
-										Log("Calculated and confirmed deadlines don't match. Fast block or corrupted file?");
+										const char* answString = docToString(answ).c_str();
+										Log("Calculated and confirmed deadlines don't match. Fast block or corrupted file? Response: %s", answString);
 										std::thread{ Csv_Fail, coinInfo->coin, currentHeight, iter->body.file_name, currentBaseTarget, 4398046511104 / 240 / currentBaseTarget, iter->body.nonce, iter->deadline,
-											ndeadline, docToString(answ).c_str() }.detach();
+											ndeadline, answString }.detach();
 										std::thread{ increaseConflictingDeadline, iter->body.file_name }.detach();
 										bm_wattron(6);
 										bm_wprintw("----Fast block or corrupted file?----\nSent deadline:\t%llu\nServer's deadline:\t%llu \n----\n", iter->deadline, ndeadline, 0); //shares[i].file_name.c_str());
