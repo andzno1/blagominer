@@ -737,48 +737,80 @@ unsigned long long getPlotFilesSize(std::vector<std::shared_ptr<t_directory_info
 	return size;
 }
 
-/*
-	Partially taken from https://sourceforge.net/p/dosbox/code-0/HEAD/tree/dosbox/trunk/src/debug/debug_win32.cpp#l24
-*/
-static void resizeConsole(SHORT xSize, SHORT ySize) {
+void handleReturn(BOOL success) {
+	if (!success) {
+		Log("FAILED with error %i", GetLastError());
+	}
+}
+
+static void resizeConsole(SHORT newColumns, SHORT newRows) {
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	CONSOLE_SCREEN_BUFFER_INFO csbi; // Hold Current Console Buffer Info 
 	BOOL bSuccess;
-	SMALL_RECT srWindowRect;         // Hold the New Console Size 
-	COORD coordScreen;
-
+	SMALL_RECT newWindowRect;         // Hold the New Console Size 
+	COORD currentWindowSize;
+	
+	Log("GetConsoleScreenBufferInfo");
 	bSuccess = GetConsoleScreenBufferInfo(hConsole, &csbi);
+	handleReturn(bSuccess);
+	currentWindowSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+	currentWindowSize.Y = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+	
+	Log("Current buffer size csbi.dwSize X: %hi, Y: %hi", csbi.dwSize.X, csbi.dwSize.Y);
+	Log("csbi.dwMaximumWindowSize X: %hi, Y: %hi", csbi.dwMaximumWindowSize.X, csbi.dwMaximumWindowSize.Y);
+	Log("currentWindowSize X: %hi, Y: %hi", currentWindowSize.X, currentWindowSize.Y);
 
 	// Get the Largest Size we can size the Console Window to 
-	coordScreen = GetLargestConsoleWindowSize(hConsole);
+	COORD largestWindowSize = GetLargestConsoleWindowSize(hConsole);
+	Log("largestWindowSize X: %hi, Y: %hi", largestWindowSize.X, largestWindowSize.Y);
 
 	// Define the New Console Window Size and Scroll Position 
-	srWindowRect.Right = (SHORT)(min(xSize, coordScreen.X) - 1);
-	srWindowRect.Bottom = (SHORT)(min(ySize, coordScreen.Y) - 1);
-	srWindowRect.Left = srWindowRect.Top = (SHORT)0;
+	newWindowRect.Right = min(newColumns, largestWindowSize.X) - 1;
+	newWindowRect.Bottom = min(newRows, largestWindowSize.Y) - 1;
+	newWindowRect.Left = newWindowRect.Top = (SHORT)0;
 
-	// Define the New Console Buffer Size    
-	coordScreen.X = xSize;
-	coordScreen.Y = ySize;
+	Log("newWindowRect b: %hi, l: %hi, r: %hi, t: %hi", newWindowRect.Bottom, newWindowRect.Left, newWindowRect.Right, newWindowRect.Top);
 
-	Log("Resizing window (x: %hi, y: %hi).", coordScreen.X, coordScreen.Y);
+	// Define the New Console Buffer Size
+	COORD newBufferSize;
+	newBufferSize.X = min(newColumns, largestWindowSize.X);
+	newBufferSize.Y = min(newRows, largestWindowSize.Y);
 
-	// If the Current Buffer is Larger than what we want, Resize the 
-	// Console Window First, then the Buffer 
-	if ((DWORD)csbi.dwSize.X * csbi.dwSize.Y > (DWORD)xSize * ySize)
-	{
-		bSuccess = SetConsoleWindowInfo(hConsole, TRUE, &srWindowRect);
-		bSuccess = SetConsoleScreenBufferSize(hConsole, coordScreen);
+	Log("Resizing buffer (x: %hi, y: %hi).", newBufferSize.X, newBufferSize.Y);
+	Log("Resizing window (x: %hi, y: %hi).", newWindowRect.Right - newWindowRect.Left, newWindowRect.Bottom - newWindowRect.Top);
+
+
+	/*
+		Information from https://docs.microsoft.com/en-us/windows/console/window-and-screen-buffer-size
+
+		To change a screen buffer's size, use the SetConsoleScreenBufferSize function. This function
+		fails if either dimension of the specified size is less than the corresponding dimension of the
+		console's window.
+
+		To change the size or location of a screen buffer's window, use the SetConsoleWindowInfo function.
+		This function fails if the specified window-corner coordinates exceed the limits of the console
+		screen buffer or the screen. Changing the window size of the active screen buffer changes the
+		size of the console window displayed on the screen.	
+	
+	*/
+
+	if (currentWindowSize.X > newBufferSize.X || currentWindowSize.Y > newBufferSize.Y) {
+		Log("Current window size is larger than the new buffer size. Resizing window first.");
+		Log("SetConsoleWindowInfo srWindowRect b: %hi, l: %hi, r: %hi, t: %hi", newWindowRect.Bottom, newWindowRect.Left, newWindowRect.Right, newWindowRect.Top);
+		bSuccess = SetConsoleWindowInfo(hConsole, TRUE, &newWindowRect);
+		handleReturn(bSuccess);
+		Log("SetConsoleScreenBufferSize coordScreen X: %hi, Y: %hi", newBufferSize.X, newBufferSize.Y);
+		bSuccess = SetConsoleScreenBufferSize(hConsole, newBufferSize);
+		handleReturn(bSuccess);
 	}
-
-	// If the Current Buffer is Smaller than what we want, Resize the 
-	// Buffer First, then the Console Window 
-	if ((DWORD)csbi.dwSize.X * csbi.dwSize.Y < (DWORD)xSize * ySize)
-	{
-		bSuccess = SetConsoleScreenBufferSize(hConsole, coordScreen);
-		bSuccess = SetConsoleWindowInfo(hConsole, TRUE, &srWindowRect);
+	else {
+		Log("SetConsoleScreenBufferSize coordScreen X: %hi, Y: %hi", newBufferSize.X, newBufferSize.Y);
+		bSuccess = SetConsoleScreenBufferSize(hConsole, newBufferSize);
+		handleReturn(bSuccess);
+		Log("SetConsoleWindowInfo srWindowRect b: %hi, l: %hi, r: %hi, t: %hi", newWindowRect.Bottom, newWindowRect.Left, newWindowRect.Right, newWindowRect.Top);
+		bSuccess = SetConsoleWindowInfo(hConsole, TRUE, &newWindowRect);
+		handleReturn(bSuccess);
 	}
-
 
 	HWND consoleWindow = GetConsoleWindow();
 
@@ -792,8 +824,11 @@ static void resizeConsole(SHORT xSize, SHORT ySize) {
 		
 	RECT wSize;
 	GetWindowRect(consoleWindow, &wSize);
+	Log("Window Rect wSize b: %hi, l: %hi, r: %hi, t: %hi", wSize.bottom, wSize.left, wSize.right, wSize.top);
 	// Move window to top
-	MoveWindow(consoleWindow, wSize.left, monitorInfo.rcWork.top, wSize.right - wSize.left, wSize.bottom - wSize.top, true);
+	Log("MoveWindow X: %ld, Y: %ld, w: %ld, h: %ld", wSize.left, monitorInfo.rcWork.top, wSize.right - wSize.left, wSize.bottom - wSize.top);
+	bSuccess = MoveWindow(consoleWindow, wSize.left, monitorInfo.rcWork.top, wSize.right - wSize.left, wSize.bottom - wSize.top, true);
+	handleReturn(bSuccess);
 
 	//Prevent resizing. Source: https://stackoverflow.com/a/47359526
 	SetWindowLong(consoleWindow, GWL_STYLE, GetWindowLong(consoleWindow, GWL_STYLE) & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX);
