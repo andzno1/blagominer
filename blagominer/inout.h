@@ -1,4 +1,5 @@
 #pragma once
+
 extern short win_size_x;
 extern short win_size_y;
 

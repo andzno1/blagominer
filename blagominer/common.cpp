@@ -1,5 +1,7 @@
 #include "common.h"
 
+HANDLE hHeap;
+
 char *coinNames[] =
 {
 	(char *) "Burstcoin",

@@ -5,6 +5,24 @@
 #include <vector>
 #include <ctime>
 
+// blago version
+#ifdef __AVX512F__
+	char const *const version = "v1.180121_AVX512";
+#else
+#ifdef __AVX2__
+	char const *const version = "v1.180121_AVX2";
+#else
+	#ifdef __AVX__
+		char const *const version = "v1.180121_AVX";
+	#else
+		char const *const version = "v1.180121_SSE";
+		//	char const *const version = "v1.180121";
+	#endif
+#endif 
+#endif 
+
+extern HANDLE hHeap;							//heap
+
 enum Coins {
 	BURST,
 	BHD

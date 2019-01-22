@@ -6,24 +6,6 @@
 #include "common.h"
 #include "filemonitor.h"
 
-// blago version
-#ifdef __AVX512F__
-	char const *const version = "v1.170997.2_AVX512";
-#else
-#ifdef __AVX2__
-	char const *const version = "v1.170997.2_AVX2";
-#else
-	#ifdef __AVX__
-		char const *const version = "v1.170997.2_AVX";
-	#else
-			char const *const version = "v1.170997.2_SSE";
-		//	char const *const version = "v1.170997.2";
-	#endif
-#endif 
-#endif 
-
-extern HANDLE hHeap;							//heap
-
 // locks
 extern CRITICAL_SECTION sessionsLock;			// session lock
 extern CRITICAL_SECTION bestsLock;				// best lock

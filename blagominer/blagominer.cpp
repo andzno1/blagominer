@@ -24,7 +24,6 @@ unsigned int hddWakeUpTimer = 180;              // HDD wakeup timer in seconds
 bool use_debug = false;
 
 bool done = false;
-HANDLE hHeap;
 
  CRITICAL_SECTION sessionsLock;
  CRITICAL_SECTION bestsLock;

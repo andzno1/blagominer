@@ -1,6 +1,4 @@
 #pragma once
-#include "blagominer.h"
-#include "inout.h"
 #include "error.h"
 #include "common.h"
 #include <mutex>
