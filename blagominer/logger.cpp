@@ -215,10 +215,11 @@ void Log_init(void)
 			use_log = false;
 			return;
 		}
-		SYSTEMTIME cur_time;
-		GetLocalTime(&cur_time);
-		GetLocalTime(&cur_time);
-		ss << "Logs\\" << cur_time.wYear << "-" << cur_time.wMonth << "-" << cur_time.wDay << "_" << cur_time.wHour << "_" << cur_time.wMinute << "_" << cur_time.wSecond << ".log";
+		std::time_t rawtime = std::time(nullptr);
+		char timeDate[20];
+		getLocalDateTime(rawtime, timeDate, "-");
+
+		ss << "Logs\\" << timeDate << ".log";
 		std::string filename = ss.str();
 		if ((fp_Log = _fsopen(filename.c_str(), "wt", _SH_DENYNO)) == NULL)
 		{

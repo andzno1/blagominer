@@ -60,10 +60,11 @@ bool signaturesDiffer(std::shared_ptr<t_coin_info> coin, const char* sig) {
 	return memcmp(coin->mining->signature, sig, 32) != 0;
 }
 
-void getLocalDateTime(const std::time_t &rawtime, char* local) {
+void getLocalDateTime(const std::time_t &rawtime, char* local, const std::string sepTime) {
 	struct tm timeinfo;
 
 	localtime_s(&timeinfo, &rawtime);
 	// YYYY-mm-dd HH:MM:SS
-	strftime(local, 80, "%Y-%m-%d %H:%M:%S", &timeinfo);
+	std::string format = "%Y-%m-%d %H" + sepTime + "%M" + sepTime + "%S";
+	strftime(local, 80, format.c_str(), &timeinfo);
 }

@@ -118,4 +118,4 @@ void updateOldSignature(std::shared_ptr<t_coin_info> coin);
 bool signaturesDiffer(std::shared_ptr<t_coin_info> coin);
 bool signaturesDiffer(std::shared_ptr<t_coin_info> coin, const char* sig);
 
-void getLocalDateTime(const std::time_t &rawtime, char* local);
+void getLocalDateTime(const std::time_t &rawtime, char* local, const std::string sepTime = ":");
