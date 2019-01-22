@@ -82,9 +82,18 @@ void printFileStats() {
 			bm_wattronC(14);
 			bm_wmoveC(lineCount, 1);
 			bm_wprintwC("%-46s %11llu", element.first.c_str(), element.second.matchingDeadlines, 0);
-			bm_wattronC(4);
-			bm_wprintwC(" %9llu %9llu\n", element.second.conflictingDeadlines, element.second.readErrors, 0);
+			if (element.second.conflictingDeadlines > 0) {
+				bm_wattronC(4);
+			}
+			bm_wprintwC(" %9llu", element.second.conflictingDeadlines, 0);
 			bm_wattroffC(4);
+			bm_wattronC(14);
+			if (element.second.readErrors > 0) {
+				bm_wattronC(4);
+			}
+			bm_wprintwC(" %9llu\n", element.second.readErrors, 0);
+			bm_wattroffC(4);
+			
 			++lineCount;
 		}
 	}
