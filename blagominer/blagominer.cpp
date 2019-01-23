@@ -36,7 +36,6 @@ std::vector<std::string> paths_dir; // ïóòè
 
 sph_shabal_context  local_32;
 
-bool newMiningInfoReceived = false;
 char currentSignature[33];
 Coins currentCoin;
 unsigned long long currentHeight = 0;
@@ -1141,7 +1140,8 @@ int main(int argc, char **argv) {
 		
 		miningCoin = queue.front();
 		queue.erase(queue.begin());
-
+		setnewMiningInfoReceived(miningCoin, false);
+		
 		updateGlobals(miningCoin);
 
 		miningCoin->mining->scoop = calcScoop();
@@ -1235,8 +1235,8 @@ int main(int argc, char **argv) {
 		Log("Round size: %llu GB", round_size / 1024 / 1024 / 1024);
 
 		// Wait until signature changed or exit
-		while ((!newMiningInfoReceived || !needToInterruptMining(coins, miningCoin, queue)) && !exit_flag)
-		{
+		while ((!haveReceivedNewMiningInfo(coins) || !needToInterruptMining(coins, miningCoin, queue)) && !exit_flag)
+		{			
 			switch (bm_wgetchMain())
 			{
 			case 'q':

@@ -61,10 +61,12 @@ struct t_locks {
 	std::mutex mTargetDeadlineInfo;
 	std::mutex mSignature;
 	std::mutex mOldSignature;
+	std::mutex mNewMiningInfoReceived;
 };
 
 struct t_mining_info {
 	bool enable;
+	bool newMiningInfoReceived;
 	size_t miner_mode;						// miner mode. 0=solo, 1=pool
 	size_t priority;
 	bool interrupted;						// Flag for interrupted block when dual mining.
@@ -117,5 +119,7 @@ void setSignature(std::shared_ptr<t_coin_info> coin, const char* signature);
 void updateOldSignature(std::shared_ptr<t_coin_info> coin);
 bool signaturesDiffer(std::shared_ptr<t_coin_info> coin);
 bool signaturesDiffer(std::shared_ptr<t_coin_info> coin, const char* sig);
+bool haveReceivedNewMiningInfo(const std::vector<std::shared_ptr<t_coin_info>>& coins);
+void setnewMiningInfoReceived(std::shared_ptr<t_coin_info> coin, const bool val);
 
 void getLocalDateTime(const std::time_t &rawtime, char* local, const std::string sepTime = ":");

@@ -60,6 +60,20 @@ bool signaturesDiffer(std::shared_ptr<t_coin_info> coin, const char* sig) {
 	return memcmp(coin->mining->signature, sig, 32) != 0;
 }
 
+bool haveReceivedNewMiningInfo(const std::vector<std::shared_ptr<t_coin_info>>& coins) {
+	for (auto& e : coins) {
+		std::lock_guard<std::mutex> lockGuard(e->locks->mNewMiningInfoReceived);
+		if (e->mining->newMiningInfoReceived) {
+			return true;
+		}
+	}
+	return false;
+}
+void setnewMiningInfoReceived(std::shared_ptr<t_coin_info> coin, const bool val) {
+	std::lock_guard<std::mutex> lockGuard(coin->locks->mNewMiningInfoReceived);
+	coin->mining->newMiningInfoReceived = val;
+}
+
 void getLocalDateTime(const std::time_t &rawtime, char* local, const std::string sepTime) {
 	struct tm timeinfo;
 

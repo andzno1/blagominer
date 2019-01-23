@@ -12,7 +12,6 @@ extern CRITICAL_SECTION bestsLock;				// best lock
 extern CRITICAL_SECTION sharesLock;				// shares lock
 
 // global variables
-extern bool newMiningInfoReceived;
 extern char currentSignature[33];
 extern Coins currentCoin;
 extern unsigned long long currentHeight;

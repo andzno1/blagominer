@@ -740,8 +740,11 @@ void updater_i(std::shared_ptr<t_coin_info> coinInfo)
 		exit(2);
 	}
 	for (; !exit_flag;) {
-		newMiningInfoReceived = pollLocal(coinInfo);
-				
+
+		if (pollLocal(coinInfo) && !coinInfo->mining->newMiningInfoReceived) {
+			setnewMiningInfoReceived(coinInfo, true);
+		}
+
 		std::this_thread::yield();
 		std::this_thread::sleep_for(std::chrono::milliseconds(coinInfo->network->update_interval));
 	}
