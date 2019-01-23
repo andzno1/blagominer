@@ -853,6 +853,14 @@ static void resizeConsole(SHORT newColumns, SHORT newRows) {
 	//Prevent resizing. Source: https://stackoverflow.com/a/47359526
 	SetWindowLong(consoleWindow, GWL_STYLE, GetWindowLong(consoleWindow, GWL_STYLE) & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX);
 
+	Log("GetConsoleScreenBufferInfo");
+	bSuccess = GetConsoleScreenBufferInfo(hConsole, &csbi);
+	handleReturn(bSuccess);
+	currentWindowSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+	currentWindowSize.Y = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+	Log("New buffer size csbi.dwSize X: %hi, Y: %hi", csbi.dwSize.X, csbi.dwSize.Y);
+	Log("New window size X: %hi, Y: %hi", currentWindowSize.X, currentWindowSize.Y);
+
 	return;
 }
 
@@ -1154,7 +1162,7 @@ int main(int argc, char **argv) {
 
 		std::string out = "Coin queue: ";
 		for (auto& c : queue) {
-			out += coinNames[c->coin];
+			out += std::string(coinNames[c->coin]) + " (" + std::to_string(c->mining->height) + ")";
 			if (c != queue.back())	out += ", "; else out += ".";
 		}
 		Log(out.c_str());
@@ -1402,7 +1410,7 @@ int main(int argc, char **argv) {
 						Log("Mining %s has been interrupted by a coin with higher priority.", coinNames[miningCoin->coin]);
 						_strtime_s(tbuffer);
 						bm_wattron(8);
-						bm_wprintwFill("\n%s Mining of %s has been interrupted by another coin.", tbuffer, coinNames[miningCoin->coin], 0);
+						bm_wprintwFill("%s Mining of %s has been interrupted by another coin.", tbuffer, coinNames[miningCoin->coin], 0);
 						bm_wattroff(8);
 						// Queuing the interrupted coin.
 						insertIntoQueue(queue, miningCoin, miningCoin);
