@@ -626,30 +626,52 @@ unsigned int calcScoop() {
 	return (((unsigned char)xcache[31]) + 256 * (unsigned char)xcache[30]) % 4096;
 }
 
-void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& queue, std::shared_ptr<t_coin_info> coin) {
+void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& queue, std::shared_ptr<t_coin_info> newCoin,
+	std::shared_ptr<t_coin_info > coinCurrentlyMining) {
 	bool inserted = false;
 	for (auto it = queue.begin(); it != queue.end(); ++it) {
-		if (coin->mining->priority < (*it)->mining->priority) {
-			Log("Adding %s to the queue before %s.", coinNames[coin->coin], coinNames[(*it)->coin]);
-			queue.insert(it, coin);
+		if (newCoin->mining->priority < (*it)->mining->priority) {
+			Log("Adding %s to the queue before %s.", coinNames[newCoin->coin], coinNames[(*it)->coin]);
+			queue.insert(it, newCoin);
 			inserted = true;
 			break;
 		}
-		if (coin == (*it)) {
-			Log("Coin %s already in queue. No action needed", coinNames[coin->coin]);
+		if (newCoin == (*it)) {
+			Log("Coin %s already in queue. No action needed", coinNames[newCoin->coin]);
 			inserted = true;
+			if (!done) {
+				char tbuffer[9];
+				_strtime_s(tbuffer);
+				bm_wattron(5);
+				bm_wprintwFill("%s Added %s block %llu to the queue.", tbuffer, coinNames[newCoin->coin], newCoin->mining->height, 0);
+				bm_wattroff(5);
+			}
 			break;
 		}
 	}
 	if (!inserted) {
-		Log("Adding %s to the end of the queue.", coinNames[coin->coin]);
-		queue.push_back(coin);
+		Log("Adding %s to the end of the queue.", coinNames[newCoin->coin]);
+		queue.push_back(newCoin);
+		if (!done &&
+			newCoin->coin != coinCurrentlyMining->coin &&
+			newCoin->mining->priority >= coinCurrentlyMining->mining->priority) {
+			char tbuffer[9];
+			_strtime_s(tbuffer);
+			bm_wattron(5);
+			bm_wprintwFill("%s %s block %llu has been added to the end of the queue.", tbuffer,
+				coinNames[newCoin->coin], newCoin->mining->height, 0);
+			bm_wattroff(5);
+		}
+	}
+	else {
+		Log("insertIntoQueue: did nothing.");
 	}
 }
 
-bool hasSignatureChanged(const std::vector<std::shared_ptr<t_coin_info>>& coins,
+bool getNewRoundInformation(const std::vector<std::shared_ptr<t_coin_info>>& coins,
+	std::shared_ptr<t_coin_info > coinCurrentlyMining,
 	std::vector<std::shared_ptr<t_coin_info>>& elems) {
-	bool ret = false;
+	bool newDataAvailable = false;
 	for (auto& pt : coins) {
 		if (pt->mining->enable && signaturesDiffer(pt)) {
 			Log("Signature for %s changed.", coinNames[pt->coin]);
@@ -657,34 +679,33 @@ bool hasSignatureChanged(const std::vector<std::shared_ptr<t_coin_info>>& coins,
 			// scheduled for continuing.
 			pt->mining->interrupted = false;
 			updateOldSignature(pt);
-			insertIntoQueue(elems, pt);
-			ret = true;
+			insertIntoQueue(elems, pt, coinCurrentlyMining);
+			newDataAvailable = true;
 		}
 	}
-	return ret;
+	return newDataAvailable;
 }
 
 bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& coins,
-	std::shared_ptr<t_coin_info > coin,
+	std::shared_ptr<t_coin_info > coinCurrentlyMining,
 	std::vector<std::shared_ptr<t_coin_info>>& elems) {
-	if (hasSignatureChanged(coins, elems)) {
+	if (getNewRoundInformation(coins, coinCurrentlyMining, elems)) {
+		//TODO Bei gleicher Priorität kann elems den Coin enthalten, der gerade geminet wird. Auch abbrechen (siehe Screenshots Handy un PC)
 		// Checking only the first element, since it has already the highest priority (but lowest value).
-		if (elems.front()->mining->priority < coin->mining->priority) {
+		if (elems.front()->mining->priority < coinCurrentlyMining->mining->priority) {
 			if (!done) {
 				Log("Interrupting current mining progress. %s has a higher priority than %s.",
-					coinNames[elems.front()->coin], coinNames[coin->coin]);
+					coinNames[elems.front()->coin], coinNames[coinCurrentlyMining->coin]);
 			}
 			return true;
 		}
-		else if (elems.front()->coin == coin->coin) {
-			Log("Interrupting current mining progress. New %s block.", coinNames[coin->coin]);
-		}
-		else if (!done) {
-			char tbuffer[9];
-			_strtime_s(tbuffer);
-			bm_wattron(5);
-			bm_wprintwFill("%s Adding %s block %llu to the end of the queue.", tbuffer, coinNames[elems.front()->coin], elems.front()->mining->height, 0);
-			bm_wattroff(5);
+		else  {
+			for (auto& pt : elems) {
+				if (pt->coin == coinCurrentlyMining->coin) {
+					Log("Interrupting current mining progress. New %s block.", coinNames[coinCurrentlyMining->coin]);
+					return true;
+				}
+			}
 		}
 	}
 	return false;
@@ -1384,7 +1405,7 @@ int main(int argc, char **argv) {
 						bm_wprintwFill("\n%s Mining of %s has been interrupted by another coin.", tbuffer, coinNames[miningCoin->coin], 0);
 						bm_wattroff(8);
 						// Queuing the interrupted coin.
-						insertIntoQueue(queue, miningCoin);
+						insertIntoQueue(queue, miningCoin, miningCoin);
 						break;
 					}
 				}
