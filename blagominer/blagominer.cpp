@@ -690,7 +690,6 @@ bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& coin
 	std::shared_ptr<t_coin_info > coinCurrentlyMining,
 	std::vector<std::shared_ptr<t_coin_info>>& elems) {
 	if (getNewRoundInformation(coins, coinCurrentlyMining, elems)) {
-		//TODO Bei gleicher Priorität kann elems den Coin enthalten, der gerade geminet wird. Auch abbrechen (siehe Screenshots Handy un PC)
 		// Checking only the first element, since it has already the highest priority (but lowest value).
 		if (elems.front()->mining->priority < coinCurrentlyMining->mining->priority) {
 			if (!done) {
