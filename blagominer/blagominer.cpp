@@ -62,7 +62,7 @@ void init_mining_info() {
 	bhd->mining = std::make_shared<t_mining_info>();
 	bhd->coin = BHD;
 	bhd->locks = std::make_shared<t_locks>();
-	bhd->mining->miner_mode = 0;
+	bhd->mining->miner_mode = 1;
 	bhd->mining->priority = 1;
 	bhd->mining->interrupted = false;
 	bhd->mining->baseTarget = 0;
@@ -253,13 +253,6 @@ int load_config(char const *const filename)
 				}
 				else {
 					coins.insert(coins.begin(), bhd);
-				}
-
-				if (settingsBhd.HasMember("Mode") && settingsBhd["Mode"].IsString())
-				{
-					if (strcmp(settingsBhd["Mode"].GetString(), "solo") == 0) bhd->mining->miner_mode = 0;
-					else bhd->mining->miner_mode = 1;
-					Log("Mode: %zu", bhd->mining->miner_mode);
 				}
 
 				if (settingsBhd.HasMember("Server") && settingsBhd["Server"].IsString())	bhd->network->nodeaddr = settingsBhd["Server"].GetString();//strcpy_s(nodeaddr, document["Server"].GetString());
@@ -962,7 +955,7 @@ int main(int argc, char **argv) {
 	refreshMain();
 	refreshProgress();
 
-	if ((burst->mining->enable && burst->mining->miner_mode == 0) || (bhd->mining->enable && bhd->mining->miner_mode == 0)) GetPass(p_minerPath);
+	if ((burst->mining->enable && burst->mining->miner_mode == 0)) GetPass(p_minerPath);
 
 	// адрес и порт сервера
 	Log("Searching servers...");
