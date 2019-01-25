@@ -5,6 +5,7 @@
 
 short win_size_x = 90;
 short win_size_y = 60;
+int minimumWinMainHeight = 5;
 const short progress_lines = 3;
 const short corrupted_lines = 2;
 const short new_version_lines = 3;
@@ -59,15 +60,11 @@ int bm_wprintwFill(const char * output, ...) {
 }
 
 bool currentlyDisplayingCorruptedPlotFiles() {
-	int x, y;
-	getbegyx(win_corrupted, y, x);
-	return y >= 0;
+	return getbegy(win_corrupted) >= 0;
 }
 
 bool currentlyDisplayingNewVersion() {
-	int x, y;
-	getbegyx(win_new_version, y, x);
-	return y >= 0;
+	return getbegy(win_new_version) >= 0;
 }
 
 int bm_wgetchMain() {
@@ -146,6 +143,7 @@ void bm_init() {
 }
 
 void refreshMain(){
+	box(win_main, 0, 0);
 	wrefresh(win_main);
 }
 void refreshProgress(){
@@ -160,19 +158,30 @@ void showNewVersion(std::string version) {
 	version = "New version available: " + version;
 	if (!currentlyDisplayingNewVersion()) {
 		mvwin(win_new_version, 0, 0);
-		int winMainX, winMainY, winMainCol, winMainRow, winMainOffset;
-		getbegyx(win_main, winMainY, winMainX);
-		getmaxyx(win_main, winMainRow, winMainCol);
+		int winMainY = getbegy(win_main);
+		int winMainRow = getmaxy(win_main);
 
-		winMainOffset = winMainY + new_version_lines;
+		int winMainOffset = winMainY + new_version_lines;
 		winMainRow -= new_version_lines;
 
 		if (currentlyDisplayingCorruptedPlotFiles()) {
+			int totalSpaceNeeded = new_version_lines + corrupted_lines + getRowsCorrupted() + progress_lines + minimumWinMainHeight + 3;
+			if (totalSpaceNeeded > LINES) {
+				Log("Terminal too small to output everything (%i).", totalSpaceNeeded);
+				int corruptedLineCount = LINES - new_version_lines - corrupted_lines - progress_lines - minimumWinMainHeight - 3 + 2;
+				Log("Setting corrupted linecount to %i", corruptedLineCount);
+				resizeCorrupted(corruptedLineCount);
+			}
+			else {
+				wresize(win_main, winMainRow, COLS);
+				mvwin(win_main, winMainOffset, 0);
+			}
 			mvwin(win_corrupted, new_version_lines, 0);
 		}
-
-		wresize(win_main, winMainRow, COLS);
-		mvwin(win_main, winMainOffset, 0);
+		else {
+			wresize(win_main, winMainRow, COLS);
+			mvwin(win_main, winMainOffset, 0);
+		}
 	}
 
 	clearNewVersion();
@@ -191,29 +200,43 @@ void showNewVersion(std::string version) {
 
 void resizeCorrupted(int lineCount) {
 	
-	int extraSpace = 2;
+	int extraSpace = progress_lines - 1;
 
-	int winVerCol = 0, winVerRow = 0;
+	int winVerRow = 0;
 	if (currentlyDisplayingNewVersion()) {
-		getmaxyx(win_new_version, winVerRow, winVerCol);
+		winVerRow = getmaxy(win_new_version);
 		if (lineCount == 0) {
 			extraSpace++;
 		}
 	}
-	
+		
 	if (lineCount > 0) {
 		extraSpace++;
 		if (!currentlyDisplayingCorruptedPlotFiles()) {
 			mvwin(win_corrupted, winVerRow, 0);
 		}
+		
+		int totalSpaceNeeded = lineCount + corrupted_lines + winVerRow + extraSpace + minimumWinMainHeight;
+		if (totalSpaceNeeded > LINES) {
+			Log("Terminal too small to output everything (lineCount: %i).", lineCount);
+			lineCount = LINES - winVerRow - extraSpace - corrupted_lines - minimumWinMainHeight;
+			Log("Setting linecount to %i", lineCount);
+		}
+		
 		wresize(win_main, LINES - extraSpace - corrupted_lines - lineCount - winVerRow, COLS);
 		mvwin(win_main, corrupted_lines + lineCount + winVerRow, 0);
+				
+
 		wresize(win_corrupted, corrupted_lines + lineCount, COLS);
 	}
 	else if (lineCount == 0) {
 		mvwin(win_main, winVerRow, 0);
 		wresize(win_main, LINES - extraSpace - winVerRow, COLS);
 	}
+}
+
+int getRowsCorrupted() {
+	return getmaxy(win_corrupted);
 }
 
 void clearProgress(){
@@ -225,6 +248,9 @@ void clearCorrupted() {
 		wclear(win_corrupted);
 	}
 }
+void clearCorruptedLine() {
+	wclrtoeol(win_corrupted);
+}
 void clearNewVersion() {
 	wclear(win_new_version);
 }
@@ -232,13 +258,6 @@ void clearNewVersion() {
 void hideCorrupted() {
 	if (currentlyDisplayingCorruptedPlotFiles()) {
 		win_corrupted = newwin(corrupted_lines, COLS, -1, 0);
-		leaveok(win_corrupted, true);
-	}
-}
-
-void hideNewVersion() {
-	if (currentlyDisplayingNewVersion()) {
-		win_new_version = newwin(new_version_lines, COLS, -1, 0);
 		leaveok(win_corrupted, true);
 	}
 }

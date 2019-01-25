@@ -61,7 +61,7 @@ void printFileStats() {
 		return;
 	}
 
-	// Incese for header and for clear message.
+	// Increase for header and for clear message.
 	lineCount += 2;
 
 	if (lineCount != oldLineCount) {
@@ -96,8 +96,21 @@ void printFileStats() {
 		}
 	}
 	bm_wattroffC(14);
-	bm_wmoveC(lineCount, 1);
-	bm_wprintwC("Press 'f' to clear data.");
+	
+	int rowsCorrupted = getRowsCorrupted();
+	if (rowsCorrupted < lineCount + 2) {
+		bm_wmoveC(rowsCorrupted - 3, 1);
+		clearCorruptedLine();
+		bm_wprintwC("Not enough space to display all data.");
+		bm_wmoveC(rowsCorrupted - 2, 1);
+		clearCorruptedLine();
+		bm_wprintwC("Press 'f' to clear data.");
+	}
+	else {
+		
+		bm_wmoveC(lineCount, 1);
+		bm_wprintwC("Press 'f' to clear data.");
+	}   
 	boxCorrupted();
 	refreshCorrupted();
 }

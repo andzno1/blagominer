@@ -369,6 +369,7 @@ int load_config(char const *const filename)
 		Log("WinSizeX: %hi", win_size_x);
 
 		if (document.HasMember("WinSizeY") && (document["WinSizeY"].IsUint())) win_size_y = (short)document["WinSizeY"].GetUint();
+		if (win_size_y < 20) win_size_y = 20;
 		Log("WinSizeY: %hi", win_size_y);
 
 #ifdef GPU_ON_C

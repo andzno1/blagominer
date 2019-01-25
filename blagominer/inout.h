@@ -1,6 +1,7 @@
 #pragma once
 
 #include "common.h"
+#include "logger.h"
 
 extern short win_size_x;
 extern short win_size_y;
@@ -31,13 +32,14 @@ void refreshCorrupted();
 void showNewVersion(std::string version);
 
 void resizeCorrupted(int lineCount);
+int getRowsCorrupted();
 
 void clearProgress();
 void clearCorrupted();
+void clearCorruptedLine();
 void clearNewVersion();
 
 void hideCorrupted();
-void hideNewVersion();
 
 void bm_wmoveP();
 int bm_wmoveC(int line, int column);
