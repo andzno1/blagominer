@@ -6,7 +6,7 @@ LPCWSTR versionUrl = L"https://raw.githubusercontent.com/andzno1/blagominer/mast
 //const char* versionPort = "443";
 
 double getDiffernceinDays(const std::time_t end, std::time_t beginning) {
-	return std::difftime(end, beginning); // / (60 * 60 * 24);
+	return std::difftime(end, beginning) / (60 * 60 * 24);
 }
 
 //void checkForUpdate(LPCWSTR lpszURL) {
@@ -77,7 +77,6 @@ void checkForUpdate() {
 								}
 								else {
 									Log("UPDATE CHECKER: The miner is up to date (%i.%i)", versionMajor, versionMinor);
-									newVersionAvailable = false;
 								}
 							}
 							else {
