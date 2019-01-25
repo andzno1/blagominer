@@ -6,20 +6,13 @@
 #include <ctime>
 
 // blago version
-#ifdef __AVX512F__
-	char const *const version = "v1.180121_AVX512";
-#else
-#ifdef __AVX2__
-	char const *const version = "v1.180121_AVX2";
-#else
-	#ifdef __AVX__
-		char const *const version = "v1.180121_AVX";
-	#else
-		char const *const version = "v1.180121_SSE";
-		//	char const *const version = "v1.180121";
-	#endif
-#endif 
-#endif 
+extern const int versionMajor;
+extern const int versionMinor;
+extern std::string version;
+extern bool newVersionAvailable;
+
+extern double checkForUpdateInterval;
+extern bool exit_flag;							// true if miner is to be exited
 
 extern HANDLE hHeap;							//heap
 

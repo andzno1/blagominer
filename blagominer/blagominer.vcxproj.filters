@@ -72,6 +72,9 @@
     <ClInclude Include="filemonitor.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="updateChecker.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -123,6 +126,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="filemonitor.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="updateChecker.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

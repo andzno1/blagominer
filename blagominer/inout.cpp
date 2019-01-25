@@ -7,9 +7,11 @@ short win_size_x = 90;
 short win_size_y = 60;
 const short progress_lines = 3;
 const short corrupted_lines = 2;
+const short new_version_lines = 3;
 WINDOW * win_main;
 WINDOW * win_progress;
 WINDOW * win_corrupted;
+WINDOW * win_new_version;
 
 //Turn on color attribute
 int bm_wattron(int color) {
@@ -54,6 +56,22 @@ int bm_wprintwFill(const char * output, ...) {
 	}
 
 	return result;
+}
+
+bool currentlyDisplayingCorruptedPlotFiles() {
+	int x, y;
+	getbegyx(win_corrupted, y, x);
+	return y >= 0;
+}
+
+bool currentlyDisplayingNewVersion() {
+	int x, y;
+	getbegyx(win_new_version, y, x);
+	return y >= 0;
+}
+
+int bm_wgetchMain() {
+	return wgetch(win_main);
 }
 
 //Turn on color attribute
@@ -121,51 +139,122 @@ void bm_init() {
 	nodelay(win_main, true);
 	win_progress = newwin(progress_lines, COLS, LINES - progress_lines, 0);
 	leaveok(win_progress, true);
-	win_corrupted = newwin(corrupted_lines, COLS, 0, 0);
+	win_corrupted = newwin(corrupted_lines, COLS, -1, 0);
+	leaveok(win_corrupted, true);
+	win_new_version = newwin(new_version_lines, COLS, -1, 0);
 	leaveok(win_corrupted, true);
 }
 
 void refreshMain(){
-wrefresh(win_main);
+	wrefresh(win_main);
 }
 void refreshProgress(){
-wrefresh(win_progress);
+	wrefresh(win_progress);
 }
-void resizeWindows(int lineCount) {
+void refreshCorrupted() {
+	if (currentlyDisplayingCorruptedPlotFiles()) {
+		wrefresh(win_corrupted);
+	}
+}
+void showNewVersion(std::string version) {
+	version = "New version available: " + version;
+	if (!currentlyDisplayingNewVersion()) {
+		mvwin(win_new_version, 0, 0);
+		int winMainX, winMainY, winMainCol, winMainRow, winMainOffset;
+		getbegyx(win_main, winMainY, winMainX);
+		getmaxyx(win_main, winMainRow, winMainCol);
+
+		winMainOffset = winMainY + new_version_lines;
+		winMainRow -= new_version_lines;
+
+		if (currentlyDisplayingCorruptedPlotFiles()) {
+			mvwin(win_corrupted, new_version_lines, 0);
+		}
+
+		wresize(win_main, winMainRow, COLS);
+		mvwin(win_main, winMainOffset, 0);
+	}
+
+	clearNewVersion();
+	wattron(win_new_version, COLOR_PAIR(4));
+	box(win_new_version, 0, 0);
+	wattroff(win_new_version, COLOR_PAIR(4));
+	wmove(win_new_version, 1, 1);
+	wattron(win_new_version, COLOR_PAIR(14));
+	waddstr(win_new_version, version.c_str());
+	wattroff(win_new_version, COLOR_PAIR(14));
+
+	wrefresh(win_new_version);
+	refreshCorrupted();
+	refreshMain();
+}
+
+void resizeCorrupted(int lineCount) {
+	
+	int extraSpace = 2;
+
+	int winVerCol = 0, winVerRow = 0;
+	if (currentlyDisplayingNewVersion()) {
+		getmaxyx(win_new_version, winVerRow, winVerCol);
+		if (lineCount == 0) {
+			extraSpace++;
+		}
+	}
+	
 	if (lineCount > 0) {
-		wresize(win_main, LINES - 3 - corrupted_lines - lineCount, COLS);
-		mvwin(win_main, corrupted_lines + lineCount, 0);
+		extraSpace++;
+		if (!currentlyDisplayingCorruptedPlotFiles()) {
+			mvwin(win_corrupted, winVerRow, 0);
+		}
+		wresize(win_main, LINES - extraSpace - corrupted_lines - lineCount - winVerRow, COLS);
+		mvwin(win_main, corrupted_lines + lineCount + winVerRow, 0);
 		wresize(win_corrupted, corrupted_lines + lineCount, COLS);
 	}
 	else if (lineCount == 0) {
-		mvwin(win_main, 0, 0);
-		wresize(win_main, LINES - 2, COLS);
+		mvwin(win_main, winVerRow, 0);
+		wresize(win_main, LINES - extraSpace - winVerRow, COLS);
 	}
 }
-void refreshCorrupted() {
-	wrefresh(win_corrupted);
-}
+
 void clearProgress(){
 wclear(win_progress);
 }
 void clearCorrupted() {
-	wclear(win_corrupted);
+	if (currentlyDisplayingCorruptedPlotFiles()) {
+		mvwin(win_corrupted, -1, 0);
+		wclear(win_corrupted);
+	}
+}
+void clearNewVersion() {
+	wclear(win_new_version);
 }
 
-int bm_wgetchMain() {
-	return wgetch(win_main);
+void hideCorrupted() {
+	if (currentlyDisplayingCorruptedPlotFiles()) {
+		win_corrupted = newwin(corrupted_lines, COLS, -1, 0);
+		leaveok(win_corrupted, true);
+	}
 }
-void boxProgress(){
-box(win_progress, 0, 0);
+
+void hideNewVersion() {
+	if (currentlyDisplayingNewVersion()) {
+		win_new_version = newwin(new_version_lines, COLS, -1, 0);
+		leaveok(win_corrupted, true);
+	}
 }
-void boxCorrupted() {
-	wattron(win_corrupted, COLOR_PAIR(4));
-	box(win_corrupted, 0, 0);
-	wattroff(win_corrupted, COLOR_PAIR(4));
-}
+
 void bm_wmoveP() {
 	wmove(win_progress, 1, 1);
 };
 int bm_wmoveC(int line, int column) {
 	return wmove(win_corrupted, line, column);
 };
+
+void boxProgress() {
+	box(win_progress, 0, 0);
+}
+void boxCorrupted() {
+	wattron(win_corrupted, COLOR_PAIR(4));
+	box(win_corrupted, 0, 0);
+	wattroff(win_corrupted, COLOR_PAIR(4));
+}

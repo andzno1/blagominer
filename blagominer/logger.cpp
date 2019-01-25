@@ -230,7 +230,7 @@ void Log_init(void)
 		}
 		else {
 			writer = std::thread(_writer);
-			Log(version);
+			Log(version.c_str());
 			atexit(Log_end);
 		}
 	}

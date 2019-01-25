@@ -5,6 +5,7 @@
 #include "shabal.h"
 #include "common.h"
 #include "filemonitor.h"
+#include "updateChecker.h"
 
 // locks
 extern CRITICAL_SECTION sessionsLock;			// session lock
@@ -18,7 +19,6 @@ extern unsigned long long currentHeight;
 extern unsigned long long currentBaseTarget;
 
 // miner
-extern bool exit_flag;							// true if miner is to be exited
 extern volatile int stopThreads;
 extern char *pass;								// passphrase for solo mining
 extern unsigned long long total_size;			// sum of all local plot file sizes

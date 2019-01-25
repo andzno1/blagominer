@@ -5,7 +5,6 @@ std::mutex m;
 std::map<std::string, t_file_stats> fileStats = std::map<std::string, t_file_stats>();
 bool showCorruptedPlotFiles = true;
 int oldLineCount = -1;
-bool currentlyDisplayingCorruptedPlotFiles = false;
 const std::string header = "File name                                             +DLs      -DLs       I/O";
 
 void increaseMatchingDeadline(std::string file) {
@@ -33,7 +32,7 @@ void increaseReadError(std::string file) {
 }
 
 void resetFileStats() {
-	if (!showCorruptedPlotFiles || !currentlyDisplayingCorruptedPlotFiles) {
+	if (!showCorruptedPlotFiles || !currentlyDisplayingCorruptedPlotFiles()) {
 		return;
 	}
 	std::lock_guard<std::mutex> lockGuard(m);
@@ -52,11 +51,10 @@ void printFileStats() {
 		}
 	}
 	
-	if (lineCount == 0 && currentlyDisplayingCorruptedPlotFiles) {
-		clearCorrupted();
-		resizeWindows(0);
+	if (lineCount == 0 && currentlyDisplayingCorruptedPlotFiles()) {
+		hideCorrupted();
+		resizeCorrupted(0);
 		refreshCorrupted();
-		currentlyDisplayingCorruptedPlotFiles = false;
 		return;
 	}
 	else if (lineCount == 0) {
@@ -66,9 +64,9 @@ void printFileStats() {
 	// Incese for header and for clear message.
 	lineCount += 2;
 
-	resizeWindows(lineCount);
 	if (lineCount != oldLineCount) {
 		clearCorrupted();
+		resizeCorrupted(lineCount);
 		oldLineCount = lineCount;
 	}
 	refreshCorrupted();
@@ -102,5 +100,4 @@ void printFileStats() {
 	bm_wprintwC("Press 'f' to clear data.");
 	boxCorrupted();
 	refreshCorrupted();
-	currentlyDisplayingCorruptedPlotFiles = true;
 }

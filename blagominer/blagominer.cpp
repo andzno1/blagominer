@@ -12,7 +12,6 @@ t_logging loggingConfig = {};
 
 std::vector<std::shared_ptr<t_coin_info>> coins;
 
-bool exit_flag = false;
 char *p_minerPath = nullptr;
 char *pass = nullptr;
 unsigned long long total_size = 0;
@@ -357,7 +356,11 @@ int load_config(char const *const filename)
 
 		if (document.HasMember("Debug") && (document["Debug"].IsBool()))	use_debug = document["Debug"].GetBool();
 		Log("Debug: %d", use_debug);
-		
+
+		if (document.HasMember("CheckForUpdateIntervalInDays") && (document["CheckForUpdateIntervalInDays"].IsUint()))
+			checkForUpdateInterval = document["CheckForUpdateIntervalInDays"].GetUint();
+		Log("checkForUpdateInterval: %i", checkForUpdateInterval);
+				
 		if (document.HasMember("UseBoost") && (document["UseBoost"].IsBool())) use_boost = document["UseBoost"].GetBool();
 		Log("UseBoost: %d", use_boost);
 
@@ -877,6 +880,7 @@ int main(int argc, char **argv) {
 
 	std::thread proxyBurst;
 	std::thread proxyBhd;
+	std::thread updateChecker;
 	std::vector<std::thread> generator;
 
 	InitializeCriticalSection(&sessionsLock);
@@ -935,7 +939,7 @@ int main(int argc, char **argv) {
 	
 	bm_init();
 	bm_wattron(12);
-	bm_wprintw("\nBURST/BHD miner, %s", version, 0);
+	bm_wprintw("BURST/BHD miner, %s", version.c_str(), 0);
 	bm_wattroff(12);
 	bm_wattron(4);
 	bm_wprintw("\nProgramming: dcct (Linux) & Blago (Windows)\n", 0);
@@ -1069,6 +1073,10 @@ int main(int argc, char **argv) {
 		bm_wattron(25);
 		bm_wprintw("Bitcoin HD proxy thread started\n", 0);
 		bm_wattroff(25);
+	}
+
+	if (checkForUpdateInterval > 0) {
+		updateChecker = std::thread(checkForUpdate);
 	}
 
 	// Run updater;
@@ -1442,6 +1450,7 @@ int main(int argc, char **argv) {
 	Log("Updater stopped");
 	if (burst->mining->enable && burst->network->enable_proxy && proxyBurst.joinable()) proxyBurst.join();
 	if (bhd->mining->enable && bhd->network->enable_proxy && proxyBhd.joinable()) proxyBhd.join();
+	if (updateChecker.joinable()) updateChecker.join();
 	worker.~map();
 	worker_progress.~map();
 	paths_dir.~vector();

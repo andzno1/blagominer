@@ -1,5 +1,28 @@
 #include "common.h"
 
+const int versionMajor = 1;
+const int versionMinor = 180121;
+
+// blago version
+#ifdef __AVX512F__
+std::string versionSuffix = "_AVX512";
+#else
+#ifdef __AVX2__
+std::string versionSuffix = "_AVX2";
+#else
+#ifdef __AVX__
+std::string versionSuffix = "_AVX";
+#else
+std::string versionSuffix = "_SSE";
+//	std::string versionSuffix = "";
+#endif
+#endif 
+#endif 
+std::string version = std::to_string(versionMajor) + "." + std::to_string(versionMinor) + versionSuffix;
+
+double checkForUpdateInterval = 1;
+bool exit_flag = false;
+
 HANDLE hHeap;
 
 char *coinNames[] =

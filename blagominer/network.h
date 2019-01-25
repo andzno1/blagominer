@@ -1,19 +1,11 @@
 #pragma once
+#include "stdafx.h"
 #include "logger.h"
 #include "error.h"
 #include "accounts.h"
 #include "common.h"
 #include "filemonitor.h"
 
-
-#define RAPIDJSON_NO_SIZETYPEDEFINE
-
-namespace rapidjson { typedef size_t SizeType; }
-using namespace rapidjson;
-
-#include "rapidjson/document.h"		// rapidjson's DOM-style API
-#include "rapidjson/error/en.h"
-#include "rapidjson/writer.h"
 
 #pragma comment(lib,"Ws2_32.lib")
 
