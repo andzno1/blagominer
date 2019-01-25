@@ -950,6 +950,15 @@ int main(int argc, char **argv) {
 
 	GetCPUInfo();
 
+	if (!burst->mining->enable && !bhd->mining->enable) {
+		bm_wattron(12);
+		bm_wprintw("All coins are disabled. Please check your configuration.\n", 0);
+		bm_wattroff(12);
+		refreshMain();
+		system("pause");
+		exit(0);
+	}
+
 	refreshMain();
 	refreshProgress();
 
