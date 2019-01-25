@@ -143,7 +143,6 @@ void bm_init() {
 }
 
 void refreshMain(){
-	box(win_main, 0, 0);
 	wrefresh(win_main);
 }
 void refreshProgress(){
