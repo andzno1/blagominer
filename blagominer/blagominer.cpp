@@ -646,7 +646,7 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& queue, std::shar
 				char tbuffer[9];
 				_strtime_s(tbuffer);
 				bm_wattron(5);
-				bm_wprintwFill("%s Added %s block %llu to the queue.", tbuffer, coinNames[newCoin->coin], newCoin->mining->height, 0);
+				bm_wprintwFill("%s %s block %llu has been added to the queue.", tbuffer, coinNames[newCoin->coin], newCoin->mining->height, 0);
 				bm_wattroff(5);
 			}
 			break;
