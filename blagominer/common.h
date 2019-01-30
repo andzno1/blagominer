@@ -21,6 +21,13 @@ enum Coins {
 	BHD
 };
 
+enum MiningState {
+	QUEUED,
+	MINING,
+	DONE,
+	INTERRUPTED
+};
+
 extern char *coinNames[];
 
 struct t_shares {
@@ -90,7 +97,7 @@ struct t_mining_info {
 	bool newMiningInfoReceived;
 	size_t miner_mode;						// miner mode. 0=solo, 1=pool
 	size_t priority;
-	bool interrupted;						// Flag for interrupted block when dual mining.
+	MiningState state;
 	unsigned long long baseTarget;			// base target of current block
 	unsigned long long targetDeadlineInfo;	// target deadline info from pool
 	unsigned long long height;				// current block height
