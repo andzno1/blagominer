@@ -32,6 +32,9 @@ void _writer()
 			fprintf_s(fp_Log, "%02d:%02d:%02d %s\n", cur_time.wHour, cur_time.wMinute, cur_time.wSecond, str.c_str());
 			fflush(fp_Log);
 		}
+		else {
+			std::this_thread::sleep_for(std::chrono::milliseconds(2));
+		}
 	}
 }
 
@@ -44,7 +47,7 @@ void Csv_Init()
 {
 	const char* headersFail = "Timestamp epoch;Timestamp local;Height;File;baseTarget;Network difficulty;Nonce;Deadline sent;Deadline confirmed;Response\n";
 	const char* headersSubmitted = "Timestamp epoch;Timestamp local;Height;baseTarget;Network difficulty;Round time;Completed round; Deadline\n";
-	if (burst->mining->enable && !existsFile(csvFailBurst))
+	if ((burst->mining->enable || burst->network->enable_proxy) && !existsFile(csvFailBurst))
 	{
 		std::lock_guard<std::mutex> lockGuard(mCsvFailBurst);
 		Log("Writing headers to %s", csvFailBurst.c_str());
@@ -60,7 +63,7 @@ void Csv_Init()
 			Log("Failed to open %s", csvFailBurst.c_str());
 		}
 	}
-	if (burst->mining->enable && !existsFile(csvSubmittedBurst))
+	if ((burst->mining->enable || burst->network->enable_proxy) && !existsFile(csvSubmittedBurst))
 	{
 		std::lock_guard<std::mutex> lockGuard(mCsvSubmittedBurst);
 		Log("Writing headers to %s", csvSubmittedBurst.c_str());
@@ -77,7 +80,7 @@ void Csv_Init()
 		}
 	}
 
-	if (bhd->mining->enable && !existsFile(csvFailBhd))
+	if ((bhd->mining->enable || burst->network->enable_proxy) && !existsFile(csvFailBhd))
 	{
 		std::lock_guard<std::mutex> lockGuard(mCsvFailBhd);
 		Log("Writing headers to %s", csvFailBhd.c_str());
@@ -93,7 +96,7 @@ void Csv_Init()
 			Log("Failed to open %s", csvFailBhd.c_str());
 		}
 	}
-	if (bhd->mining->enable && !existsFile(csvSubmittedBhd))
+	if ((bhd->mining->enable || bhd->network->enable_proxy) && !existsFile(csvSubmittedBhd))
 	{
 		std::lock_guard<std::mutex> lockGuard(mCsvSubmittedBhd);
 		Log("Writing headers to %s", csvSubmittedBhd.c_str());
@@ -120,7 +123,7 @@ void Csv_Fail(Coins coin, const unsigned long long height, const std::string& fi
 	getLocalDateTime(rawtime, timeDate);
 
 	FILE * pFile;
-	if (coin == BURST && burst->mining->enable)
+	if (coin == BURST && (burst->mining->enable || burst->network->enable_proxy))
 	{	
 		std::lock_guard<std::mutex> lockGuard(mCsvFailBurst);
 		fopen_s(&pFile, csvFailBurst.c_str(), "a+t");
@@ -137,7 +140,7 @@ void Csv_Fail(Coins coin, const unsigned long long height, const std::string& fi
 			return;
 		}
 	}
-	else if (coin == BHD && bhd->mining->enable)
+	else if (coin == BHD && (bhd->mining->enable || bhd->network->enable_proxy))
 	{
 		std::lock_guard<std::mutex> lockGuard(mCsvFailBhd);
 		fopen_s(&pFile, csvFailBhd.c_str(), "a+t");
@@ -165,7 +168,7 @@ void Csv_Submitted(Coins coin, const unsigned long long height, const unsigned l
 	getLocalDateTime(rawtime, timeDate);
 
 	FILE * pFile;
-	if (coin == BURST && burst->mining->enable)
+	if (coin == BURST && (burst->mining->enable || burst->network->enable_proxy))
 	{
 		std::lock_guard<std::mutex> lockGuard(mCsvSubmittedBurst);
 		fopen_s(&pFile, csvSubmittedBurst.c_str(), "a+t");
@@ -182,7 +185,7 @@ void Csv_Submitted(Coins coin, const unsigned long long height, const unsigned l
 			return;
 		}
 	}
-	else if (coin == BHD && bhd->mining->enable)
+	else if (coin == BHD && (bhd->mining->enable || bhd->network->enable_proxy))
 	{
 		std::lock_guard<std::mutex> lockGuard(mCsvSubmittedBhd);
 		fopen_s(&pFile, csvSubmittedBhd.c_str(), "a+t");

@@ -40,8 +40,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 	DWORD totalNumberOfClusters;
 	bool converted = false;
 	bool isbfs = false;
-	const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
-
+	
 	//for (auto iter = files.begin(); iter != files.end(); ++iter)
 	for (auto iter = directory->files.rbegin(); iter != directory->files.rend(); ++iter)
 	{
@@ -220,8 +219,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		LARGE_INTEGER MirrorliDistanceToMove = { 0 };
 		bool flip = false;
 
-
-		size_t acc = Get_index_acc(key, targetDeadlineInfo);
+		size_t acc = Get_index_acc(key, coinInfo, getTargetDeadlineInfo(coinInfo));
 		for (unsigned long long n = 0; n < nonces; n += stagger)
 		{
 			cache_size_local = cache_size_local_backup;
@@ -262,7 +260,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 					break;
 				}
 
-				std::thread hash(th_hash, &(*iter), &sum_time_proc, local_num, bytes, cache_size_local, i - cache_size_local, nonce, n, cachep, acc);
+				std::thread hash(th_hash, coinInfo, &(*iter), &sum_time_proc, local_num, bytes, cache_size_local, i - cache_size_local, nonce, n, cachep, acc);
 
 				cont = false;
 				//Threadded Reading
@@ -309,10 +307,10 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			if (!err)
 			{
 				if (count % 2 == 0) {
-					th_hash(&(*iter), &sum_time_proc, local_num, bytes, cache_size_local, i - cache_size_local, nonce, n, cache, acc);
+					th_hash(coinInfo, &(*iter), &sum_time_proc, local_num, bytes, cache_size_local, i - cache_size_local, nonce, n, cache, acc);
 				}
 				else {
-					th_hash(&(*iter), &sum_time_proc, local_num, bytes, cache_size_local, i - cache_size_local, nonce, n, cache2, acc);
+					th_hash(coinInfo, &(*iter), &sum_time_proc, local_num, bytes, cache_size_local, i - cache_size_local, nonce, n, cache2, acc);
 				}
 			}
 
@@ -475,22 +473,22 @@ readend:
 	}
 }
 
-void th_hash(t_files const * const iter, double * const sum_time_proc, const size_t &local_num, unsigned long long const bytes, size_t const cache_size_local, unsigned long long const i, unsigned long long const nonce, unsigned long long const n, char const * const cache, size_t const acc) {
+void th_hash(std::shared_ptr<t_coin_info> coin, t_files const * const iter, double * const sum_time_proc, const size_t &local_num, unsigned long long const bytes, size_t const cache_size_local, unsigned long long const i, unsigned long long const nonce, unsigned long long const n, char const * const cache, size_t const acc) {
 	LARGE_INTEGER li;
 	LARGE_INTEGER start_time_proc;
 	QueryPerformanceCounter(&start_time_proc);
 
 #ifdef __AVX512F__
-	procscoop_avx512_fast(n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block AVX2
+	procscoop_avx512_fast(coin, n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block AVX2
 #else
 #ifdef __AVX2__
-	procscoop_avx2_fast(n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block AVX2
+	procscoop_avx2_fast(coin, n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block AVX2
 #else
 	#ifdef __AVX__
-		procscoop_avx_fast(n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block AVX
+		procscoop_avx_fast(coin, n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block AVX
 	#else
-			procscoop_sse_fast(n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block SSE
-		//	procscoop_sph(n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block SPH, please uncomment one of the two when compiling    
+			procscoop_sse_fast(coin, n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block SSE
+		//	procscoop_sph(coin, n + nonce + i, cache_size_local, cache, acc, iter->Name);// Process block SPH, please uncomment one of the two when compiling    
 	#endif
 #endif
 #endif

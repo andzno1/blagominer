@@ -7,17 +7,6 @@
 #include "filemonitor.h"
 #include "updateChecker.h"
 
-// locks
-extern CRITICAL_SECTION sessionsLock;			// session lock
-extern CRITICAL_SECTION bestsLock;				// best lock
-extern CRITICAL_SECTION sharesLock;				// shares lock
-
-// global variables
-extern char currentSignature[33];
-extern Coins currentCoin;
-extern unsigned long long currentHeight;
-extern unsigned long long currentBaseTarget;
-
 // miner
 extern volatile int stopThreads;
 extern char *pass;								// passphrase for solo mining
@@ -29,36 +18,6 @@ extern bool use_debug;							// output debug information if true
 
 // PoC2
 extern bool POC2;								// true if PoC2 is activated
-
-// structures
-
-struct t_shares {
-	std::string file_name;
-	unsigned long long account_id;// = 0;
-	unsigned long long best;// = 0;
-	unsigned long long nonce;// = 0;
-	int retryCount;
-};
-
-extern std::vector<t_shares> shares;
-
-struct t_best {
-	unsigned long long account_id;// = 0;
-	unsigned long long best;// = 0;
-	unsigned long long nonce;// = 0;
-	unsigned long long DL;// = 0;
-	unsigned long long targetDeadline;// = 0;
-};
-
-extern std::vector<t_best> bests;
-
-struct t_session {
-	SOCKET Socket;
-	unsigned long long deadline;
-	t_shares body;
-};
-
-extern std::vector<t_session> sessions;
 
 #include "worker.h"
 

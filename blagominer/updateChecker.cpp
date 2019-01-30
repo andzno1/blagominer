@@ -3,7 +3,6 @@
 bool newVersionAvailable = false;
 
 LPCWSTR versionUrl = L"https://raw.githubusercontent.com/andzno1/blagominer/master/.version";
-//const char* versionPort = "443";
 
 double getDiffernceinDays(const std::time_t end, std::time_t beginning) {
 	return std::difftime(end, beginning) / (60 * 60 * 24);

@@ -61,15 +61,38 @@ char* getSignature(std::shared_ptr<t_coin_info> coin) {
 	}
 	return sig;
 }
+/**
+	Don't forget to delete the pointer after using it.
+**/
+char* getCurrentStrSignature(std::shared_ptr<t_coin_info> coin) {
+	char* str_signature = new char[65];
+	RtlSecureZeroMemory(str_signature, 65);
+	{
+		std::lock_guard<std::mutex> lockGuard(coin->locks->mCurrentStrSignature);
+		memmove(str_signature, coin->mining->current_str_signature, 64);
+	}
+	return str_signature;
+}
+
 void setSignature(std::shared_ptr<t_coin_info> coin, const char* signature) {
 	std::lock_guard<std::mutex> lockGuard(coin->locks->mSignature);
 	memmove(coin->mining->signature, signature, 32);
+}
+void setStrSignature(std::shared_ptr<t_coin_info> coin, const char* signature) {
+	std::lock_guard<std::mutex> lockGuard(coin->locks->mStrSignature);
+	memmove(coin->mining->str_signature, signature, 64);
 }
 
 void updateOldSignature(std::shared_ptr<t_coin_info> coin) {
 	std::lock_guard<std::mutex> lockGuard(coin->locks->mSignature);
 	std::lock_guard<std::mutex> lockGuardO(coin->locks->mOldSignature);
 	memmove(coin->mining->oldSignature, coin->mining->signature, 32);
+}
+
+void updateCurrentStrSignature(std::shared_ptr<t_coin_info> coin) {
+	std::lock_guard<std::mutex> lockGuard(coin->locks->mStrSignature);
+	std::lock_guard<std::mutex> lockGuardO(coin->locks->mCurrentStrSignature);
+	memmove(coin->mining->current_str_signature, coin->mining->str_signature, 64);
 }
 
 bool signaturesDiffer(std::shared_ptr<t_coin_info> coin) {
@@ -95,6 +118,13 @@ bool haveReceivedNewMiningInfo(const std::vector<std::shared_ptr<t_coin_info>>& 
 void setnewMiningInfoReceived(std::shared_ptr<t_coin_info> coin, const bool val) {
 	std::lock_guard<std::mutex> lockGuard(coin->locks->mNewMiningInfoReceived);
 	coin->mining->newMiningInfoReceived = val;
+}
+
+int getNetworkQuality(std::shared_ptr<t_coin_info> coin) {
+	if (coin->network->network_quality < 0) {
+		return 0;
+	}
+	return coin->network->network_quality;
 }
 
 void getLocalDateTime(const std::time_t &rawtime, char* local, const std::string sepTime) {

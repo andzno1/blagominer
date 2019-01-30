@@ -23,6 +23,28 @@ enum Coins {
 
 extern char *coinNames[];
 
+struct t_shares {
+	std::string file_name;
+	unsigned long long account_id;// = 0;
+	unsigned long long best;// = 0;
+	unsigned long long nonce;// = 0;
+	int retryCount;
+};
+
+struct t_best {
+	unsigned long long account_id;// = 0;
+	unsigned long long best;// = 0;
+	unsigned long long nonce;// = 0;
+	unsigned long long DL;// = 0;
+	unsigned long long targetDeadline;// = 0;
+};
+
+struct t_session {
+	SOCKET Socket;
+	unsigned long long deadline;
+	t_shares body;
+};
+
 struct t_files {
 	bool done;
 	std::string Path;
@@ -53,8 +75,14 @@ struct t_locks {
 	std::mutex mHeight;
 	std::mutex mTargetDeadlineInfo;
 	std::mutex mSignature;
+	std::mutex mStrSignature;
 	std::mutex mOldSignature;
+	std::mutex mCurrentStrSignature;
 	std::mutex mNewMiningInfoReceived;
+
+	CRITICAL_SECTION sessionsLock;			// session lock
+	CRITICAL_SECTION bestsLock;				// best lock
+	CRITICAL_SECTION sharesLock;			// shares lock
 };
 
 struct t_mining_info {
@@ -71,9 +99,21 @@ struct t_mining_info {
 	unsigned long long POC2StartBlock;
 	unsigned int scoop;						// currenty scoop
 	bool show_winner;
+	std::vector<std::shared_ptr<t_directory_info>> dirs;
+
+	// Values for current mining process
+	char currentSignature[33];
+	char current_str_signature[65];
+	unsigned long long currentHeight = 0;
+	unsigned long long currentBaseTarget = 0;
+	unsigned long long currentTargetDeadlineInfo = 0;
+	std::vector<t_best> bests;
+	std::vector<t_shares> shares;
+
+	// Values for new mining info check
 	char signature[33];						// signature of current block
 	char oldSignature[33];					// signature of last block
-	std::vector<std::shared_ptr<t_directory_info>> dirs;
+	char str_signature[65];
 };
 
 struct t_network_info {
@@ -88,6 +128,7 @@ struct t_network_info {
 	size_t send_interval;
 	size_t update_interval;
 	int network_quality;
+	std::vector<t_session> sessions;
 };
 
 struct t_coin_info {
@@ -108,11 +149,15 @@ void setHeight(std::shared_ptr<t_coin_info> coin, const unsigned long long heigh
 unsigned long long getTargetDeadlineInfo(std::shared_ptr<t_coin_info> coin);
 void setTargetDeadlineInfo(std::shared_ptr<t_coin_info> coin, const unsigned long long targetDeadlineInfo);
 char* getSignature(std::shared_ptr<t_coin_info> coin);
+char* getCurrentStrSignature(std::shared_ptr<t_coin_info> coin);
 void setSignature(std::shared_ptr<t_coin_info> coin, const char* signature);
+void setStrSignature(std::shared_ptr<t_coin_info> coin, const char* signature);
 void updateOldSignature(std::shared_ptr<t_coin_info> coin);
+void updateCurrentStrSignature(std::shared_ptr<t_coin_info> coin);
 bool signaturesDiffer(std::shared_ptr<t_coin_info> coin);
 bool signaturesDiffer(std::shared_ptr<t_coin_info> coin, const char* sig);
 bool haveReceivedNewMiningInfo(const std::vector<std::shared_ptr<t_coin_info>>& coins);
 void setnewMiningInfoReceived(std::shared_ptr<t_coin_info> coin, const bool val);
+int getNetworkQuality(std::shared_ptr<t_coin_info> coin);
 
 void getLocalDateTime(const std::time_t &rawtime, char* local, const std::string sepTime = ":");

@@ -13,8 +13,6 @@
 
 extern std::map <u_long, unsigned long long> satellite_size; // Структура с объемами плотов сателлитов
 
-extern char str_signature[65];
-
 const int maxSubmissionRetries = 3;
 
 extern std::thread showWinnerBurst;
@@ -29,6 +27,5 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo);
 void hostname_to_ip(char const *const  in_addr, char* out_addr);
 void updater_i(std::shared_ptr<t_coin_info> coinInfo);
 void proxy_i(std::shared_ptr<t_coin_info> coinInfo);
-void send_i(std::shared_ptr<t_coin_info> coinInfo, const unsigned long long currentHeight,
-	const unsigned long long currentBaseTarget);
+void send_i(std::shared_ptr<t_coin_info> coinInfo);
 size_t xstr2strr(char *buf, size_t const bufsize, const char *const in);

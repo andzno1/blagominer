@@ -14,12 +14,12 @@ mshabal512_context global_512;
 mshabal512_context_fast global_512_fast;
 
 //ALL CPUs
-void procscoop_sph(const unsigned long long nonce, const unsigned long long n, char const *const data, const size_t acc, const std::string &file_name) {
+void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long nonce, const unsigned long long n, char const *const data, const size_t acc, const std::string &file_name) {
 	char const *cache;
 	char sig[32 + 128];
 	cache = data;
 	char res[32];
-	memcpy_s(sig, sizeof(sig), currentSignature, sizeof(char) * 32);
+	memcpy_s(sig, sizeof(sig), coin->mining->currentSignature, sizeof(char) * 32);
 	
 	sph_shabal_context x;
 	for (unsigned long long v = 0; v < n; v++)
@@ -32,25 +32,25 @@ void procscoop_sph(const unsigned long long nonce, const unsigned long long n, c
 
 		unsigned long long *wertung = (unsigned long long*)res;
 		
-		if ((*wertung / currentBaseTarget) <= bests[acc].targetDeadline)
+		if ((*wertung / coin->mining->currentBaseTarget) <= coin->mining->bests[acc].targetDeadline)
 		{
-			if (*wertung < bests[acc].best)
+			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log("found deadline=%llu nonce=%llu for account: %llu file: %s", *wertung / currentBaseTarget, nonce + v, bests[acc].account_id, file_name.c_str());
-				EnterCriticalSection(&bestsLock);
-				bests[acc].best = *wertung;
-				bests[acc].nonce = nonce + v;
-				bests[acc].DL = *wertung / currentBaseTarget;
-				LeaveCriticalSection(&bestsLock);
-				EnterCriticalSection(&sharesLock);
-				shares.push_back({ file_name, bests[acc].account_id, bests[acc].best, bests[acc].nonce });
-				LeaveCriticalSection(&sharesLock);
+				Log("found deadline=%llu nonce=%llu for account: %llu file: %s", *wertung / coin->mining->currentBaseTarget, nonce + v, coin->mining->bests[acc].account_id, file_name.c_str());
+				EnterCriticalSection(&coin->locks->bestsLock);
+				coin->mining->bests[acc].best = *wertung;
+				coin->mining->bests[acc].nonce = nonce + v;
+				coin->mining->bests[acc].DL = *wertung / coin->mining->currentBaseTarget;
+				LeaveCriticalSection(&coin->locks->bestsLock);
+				EnterCriticalSection(&coin->locks->sharesLock);
+				coin->mining->shares.push_back({ file_name, coin->mining->bests[acc].account_id, coin->mining->bests[acc].best, coin->mining->bests[acc].nonce });
+				LeaveCriticalSection(&coin->locks->sharesLock);
 				if (use_debug)
 				{
 					char tbuffer[9];
 					_strtime_s(tbuffer);
 					bm_wattron(2);
-					bm_wprintw("%s [%20llu] found DL:      %9llu\n", tbuffer, bests[acc].account_id, bests[acc].DL, 0);
+					bm_wprintw("%s [%20llu] found DL:      %9llu\n", tbuffer, coin->mining->bests[acc].account_id, coin->mining->bests[acc].DL, 0);
 					bm_wattroff(2);
 				}
 			}
@@ -59,7 +59,7 @@ void procscoop_sph(const unsigned long long nonce, const unsigned long long n, c
 }
 
 //SSE fast
-void procscoop_sse_fast(unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
+void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
 	char const *cache;
 	char sig0[32];
 	char end0[32];
@@ -70,7 +70,7 @@ void procscoop_sse_fast(unsigned long long const nonce, unsigned long long const
 	cache = data;
 	unsigned long long v;
 
-	memmove(sig0, currentSignature, 32);
+	memmove(sig0, coin->mining->currentSignature, 32);
 	end0[0] = -128;
 	memset(&end0[1], 0, 31);
 
@@ -138,25 +138,25 @@ void procscoop_sse_fast(unsigned long long const nonce, unsigned long long const
 			posn = 3;
 		}
 
-		if ((*wertung / currentBaseTarget) <= bests[acc].targetDeadline)
+		if ((*wertung / coin->mining->currentBaseTarget) <= coin->mining->bests[acc].targetDeadline)
 		{
-			if (*wertung < bests[acc].best)
+			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log("found deadline=%llu nonce=%llu for account: %llu file: %s", *wertung / currentBaseTarget, nonce + v + posn, bests[acc].account_id, file_name.c_str());
-				EnterCriticalSection(&bestsLock);
-				bests[acc].best = *wertung;
-				bests[acc].nonce = nonce + v + posn;
-				bests[acc].DL = *wertung / currentBaseTarget;
-				LeaveCriticalSection(&bestsLock);
-				EnterCriticalSection(&sharesLock);
-				shares.push_back({ file_name, bests[acc].account_id, bests[acc].best, bests[acc].nonce });
-				LeaveCriticalSection(&sharesLock);
+				Log("found deadline=%llu nonce=%llu for account: %llu file: %s", *wertung / coin->mining->currentBaseTarget, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
+				EnterCriticalSection(&coin->locks->bestsLock);
+				coin->mining->bests[acc].best = *wertung;
+				coin->mining->bests[acc].nonce = nonce + v + posn;
+				coin->mining->bests[acc].DL = *wertung / coin->mining->currentBaseTarget;
+				LeaveCriticalSection(&coin->locks->bestsLock);
+				EnterCriticalSection(&coin->locks->sharesLock);
+				coin->mining->shares.push_back({ file_name, coin->mining->bests[acc].account_id, coin->mining->bests[acc].best, coin->mining->bests[acc].nonce });
+				LeaveCriticalSection(&coin->locks->sharesLock);
 				if (use_debug)
 				{
 					char tbuffer[9];
 					_strtime_s(tbuffer);
 					bm_wattron(2);
-					bm_wprintw("%s [%20llu] found DL:      %9llu\n", tbuffer, bests[acc].account_id, bests[acc].DL, 0);
+					bm_wprintw("%s [%20llu] found DL:      %9llu\n", tbuffer, coin->mining->bests[acc].account_id, coin->mining->bests[acc].DL, 0);
 					bm_wattroff(2);
 				}
 			}
@@ -165,7 +165,7 @@ void procscoop_sse_fast(unsigned long long const nonce, unsigned long long const
 }
 
 //AVX fast
-void procscoop_avx_fast(unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
+void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
 	char const *cache;
 	char sig0[32];
 	char end0[32];
@@ -176,7 +176,7 @@ void procscoop_avx_fast(unsigned long long const nonce, unsigned long long const
 	cache = data;
 	unsigned long long v;
 
-	memmove(sig0, currentSignature, 32);
+	memmove(sig0, coin->mining->currentSignature, 32);
 	end0[0] = -128;
 	memset(&end0[1], 0, 31);
 
@@ -244,25 +244,25 @@ void procscoop_avx_fast(unsigned long long const nonce, unsigned long long const
 			posn = 3;
 		}
 
-		if ((*wertung / currentBaseTarget) <= bests[acc].targetDeadline)
+		if ((*wertung / coin->mining->currentBaseTarget) <= coin->mining->bests[acc].targetDeadline)
 		{
-			if (*wertung < bests[acc].best)
+			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log("found deadline=%llu nonce=%llu for account: %llu file: %s", *wertung / currentBaseTarget, nonce + v + posn, bests[acc].account_id, file_name.c_str());
-				EnterCriticalSection(&bestsLock);
-				bests[acc].best = *wertung;
-				bests[acc].nonce = nonce + v + posn;
-				bests[acc].DL = *wertung / currentBaseTarget;
-				LeaveCriticalSection(&bestsLock);
-				EnterCriticalSection(&sharesLock);
-				shares.push_back({ file_name, bests[acc].account_id, bests[acc].best, bests[acc].nonce });
-				LeaveCriticalSection(&sharesLock);
+				Log("found deadline=%llu nonce=%llu for account: %llu file: %s", *wertung / coin->mining->currentBaseTarget, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
+				EnterCriticalSection(&coin->locks->bestsLock);
+				coin->mining->bests[acc].best = *wertung;
+				coin->mining->bests[acc].nonce = nonce + v + posn;
+				coin->mining->bests[acc].DL = *wertung / coin->mining->currentBaseTarget;
+				LeaveCriticalSection(&coin->locks->bestsLock);
+				EnterCriticalSection(&coin->locks->sharesLock);
+				coin->mining->shares.push_back({ file_name, coin->mining->bests[acc].account_id, coin->mining->bests[acc].best, coin->mining->bests[acc].nonce });
+				LeaveCriticalSection(&coin->locks->sharesLock);
 				if (use_debug)
 				{
 					char tbuffer[9];
 					_strtime_s(tbuffer);
 					bm_wattron(2);
-					bm_wprintw("%s [%20llu] found DL:      %9llu\n", tbuffer, bests[acc].account_id, bests[acc].DL, 0);
+					bm_wprintw("%s [%20llu] found DL:      %9llu\n", tbuffer, coin->mining->bests[acc].account_id, coin->mining->bests[acc].DL, 0);
 					bm_wattroff(2);
 				}
 			}
@@ -271,7 +271,7 @@ void procscoop_avx_fast(unsigned long long const nonce, unsigned long long const
 }
 
 //AVX2 fast
-void procscoop_avx2_fast(unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
+void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
 	char const *cache;
 	char sig0[32];
 	char end0[32];
@@ -286,7 +286,7 @@ void procscoop_avx2_fast(unsigned long long const nonce, unsigned long long cons
 	cache = data;
 	unsigned long long v;
 
-	memmove(sig0, currentSignature, 32);
+	memmove(sig0, coin->mining->currentSignature, 32);
 	end0[0] = -128;
 	memset(&end0[1], 0, 31);
 
@@ -395,27 +395,27 @@ void procscoop_avx2_fast(unsigned long long const nonce, unsigned long long cons
 			posn = 7;
 		}
 
-		if ((*wertung / currentBaseTarget) <= bests[acc].targetDeadline)
+		if ((*wertung / coin->mining->currentBaseTarget) <= coin->mining->bests[acc].targetDeadline)
 		{
-			Log("[Check] %llu <= %llu", (*wertung / currentBaseTarget), bests[acc].targetDeadline);
-			if (*wertung < bests[acc].best)
+			Log("[Check] %llu <= %llu", (*wertung / coin->mining->currentBaseTarget), coin->mining->bests[acc].targetDeadline);
+			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log("[Check] %llu < %llu", *wertung, bests[acc].best);
-				Log("found deadline=%llu nonce=%llu for account: %llu file: %s", *wertung / currentBaseTarget, nonce + v + posn, bests[acc].account_id, file_name.c_str());
-				EnterCriticalSection(&bestsLock);
-				bests[acc].best = *wertung;
-				bests[acc].nonce = nonce + v + posn;
-				bests[acc].DL = *wertung / currentBaseTarget;
-				LeaveCriticalSection(&bestsLock);
-				EnterCriticalSection(&sharesLock);
-				shares.push_back({ file_name, bests[acc].account_id, bests[acc].best, bests[acc].nonce });
-				LeaveCriticalSection(&sharesLock);
+				Log("[Check] %llu < %llu", *wertung, coin->mining->bests[acc].best);
+				Log("found deadline=%llu nonce=%llu for account: %llu file: %s", *wertung / coin->mining->currentBaseTarget, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
+				EnterCriticalSection(&coin->locks->bestsLock);
+				coin->mining->bests[acc].best = *wertung;
+				coin->mining->bests[acc].nonce = nonce + v + posn;
+				coin->mining->bests[acc].DL = *wertung / coin->mining->currentBaseTarget;
+				LeaveCriticalSection(&coin->locks->bestsLock);
+				EnterCriticalSection(&coin->locks->sharesLock);
+				coin->mining->shares.push_back({ file_name, coin->mining->bests[acc].account_id, coin->mining->bests[acc].best, coin->mining->bests[acc].nonce });
+				LeaveCriticalSection(&coin->locks->sharesLock);
 				if (use_debug)
 				{
 					char tbuffer[9];
 					_strtime_s(tbuffer);
 					bm_wattron(2);
-					bm_wprintw("%s [%20llu] found DL:      %9llu\n", tbuffer, bests[acc].account_id, bests[acc].DL, 0);
+					bm_wprintw("%s [%20llu] found DL:      %9llu\n", tbuffer, coin->mining->bests[acc].account_id, coin->mining->bests[acc].DL, 0);
 					bm_wattroff(2);
 				}
 			}
@@ -424,7 +424,7 @@ void procscoop_avx2_fast(unsigned long long const nonce, unsigned long long cons
 }
 
 //AVX512 fast
-void procscoop_avx512_fast(unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
+void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long const nonce, unsigned long long const n, char const *const data, size_t const acc, const std::string &file_name) {
 	char const *cache;
 	char sig0[32];
 	char end0[32];
@@ -447,7 +447,7 @@ void procscoop_avx512_fast(unsigned long long const nonce, unsigned long long co
 	cache = data;
 	unsigned long long v;
 
-	memmove(sig0, currentSignature, 32);
+	memmove(sig0, coin->mining->currentSignature, 32);
 	end0[0] = -128;
 	memset(&end0[1], 0, 31);
 
@@ -636,25 +636,25 @@ void procscoop_avx512_fast(unsigned long long const nonce, unsigned long long co
 			posn = 15;
 		}
 
-		if ((*wertung / currentBaseTarget) <= bests[acc].targetDeadline)
+		if ((*wertung / coin->mining->currentBaseTarget) <= coin->mining->bests[acc].targetDeadline)
 		{
-			if (*wertung < bests[acc].best)
+			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log("found deadline=%llu nonce=%llu for account: %llu file: %s", *wertung / currentBaseTarget, nonce + v + posn, bests[acc].account_id, file_name.c_str());
-				EnterCriticalSection(&bestsLock);
-				bests[acc].best = *wertung;
-				bests[acc].nonce = nonce + v + posn;
-				bests[acc].DL = *wertung / currentBaseTarget;
-				LeaveCriticalSection(&bestsLock);
-				EnterCriticalSection(&sharesLock);
-				shares.push_back({ file_name, bests[acc].account_id, bests[acc].best, bests[acc].nonce });
-				LeaveCriticalSection(&sharesLock);
+				Log("found deadline=%llu nonce=%llu for account: %llu file: %s", *wertung / coin->mining->currentBaseTarget, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
+				EnterCriticalSection(&coin->locks->bestsLock);
+				coin->mining->bests[acc].best = *wertung;
+				coin->mining->bests[acc].nonce = nonce + v + posn;
+				coin->mining->bests[acc].DL = *wertung / coin->mining->currentBaseTarget;
+				LeaveCriticalSection(&coin->locks->bestsLock);
+				EnterCriticalSection(&coin->locks->sharesLock);
+				coin->mining->shares.push_back({ file_name, coin->mining->bests[acc].account_id, coin->mining->bests[acc].best, coin->mining->bests[acc].nonce });
+				LeaveCriticalSection(&coin->locks->sharesLock);
 				if (use_debug)
 				{
 					char tbuffer[9];
 					_strtime_s(tbuffer);
 					bm_wattron(2);
-					bm_wprintw("%s [%20llu] found DL:      %9llu\n", tbuffer, bests[acc].account_id, bests[acc].DL, 0);
+					bm_wprintw("%s [%20llu] found DL:      %9llu\n", tbuffer, coin->mining->bests[acc].account_id, coin->mining->bests[acc].DL, 0);
 					bm_wattroff(2);
 				}
 			}
