@@ -1082,7 +1082,7 @@ int main(int argc, char **argv) {
 	}
 	else if (total_size == 0) {
 		bm_wattron(12);
-		bm_wprintw("\nNo plot files found.");
+		bm_wprintw("\nNo plot files found.\n");
 		bm_wattroff(12);
 		refreshMain();
 	}
@@ -1113,7 +1113,7 @@ int main(int argc, char **argv) {
 	{
 		proxyBurst = std::thread(proxy_i, burst);
 		bm_wattron(25);
-		bm_wprintw("Burstcoin proxy thread started\n", 0);
+		bm_wprintw("\nBurstcoin proxy thread started\n", 0);
 		bm_wattroff(25);
 	}
 
@@ -1121,7 +1121,7 @@ int main(int argc, char **argv) {
 	{
 		proxyBhd = std::thread(proxy_i, bhd);
 		bm_wattron(25);
-		bm_wprintw("Bitcoin HD proxy thread started\n", 0);
+		bm_wprintw("\nBitcoin HD proxy thread started\n", 0);
 		bm_wattroff(25);
 	}
 
@@ -1144,6 +1144,8 @@ int main(int argc, char **argv) {
 	}	
 
 	std::vector<std::shared_ptr<t_coin_info>> queue;
+
+	refreshMain();
 
 	Log("Update mining info");
 	while (
