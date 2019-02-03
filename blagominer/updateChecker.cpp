@@ -8,7 +8,6 @@ double getDiffernceinDays(const std::time_t end, std::time_t beginning) {
 	return std::difftime(end, beginning) / (60 * 60 * 24);
 }
 
-//void checkForUpdate(LPCWSTR lpszURL) {
 // Source partially from http://www.rohitab.com/discuss/topic/28719-downloading-a-file-winsock-http-c/page-2#entry10072081
 void checkForUpdate() {
 
@@ -86,6 +85,7 @@ void checkForUpdate() {
 				}
 			}
 			lastChecked = std::time(nullptr);
+			std::this_thread::sleep_for(std::chrono::milliseconds(200));
 		}
 	}
 

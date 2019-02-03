@@ -1165,7 +1165,7 @@ int main(int argc, char **argv) {
 		(!(bhd->mining->enable   || bhd->network->enable_proxy)   || getHeight(bhd) == 0))
 	{
 		std::this_thread::yield();
-		std::this_thread::sleep_for(std::chrono::milliseconds(2));
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
 	};
 
 	Log("Burst height: %llu", getHeight(burst));
