@@ -805,53 +805,64 @@ static void resizeConsole(SHORT newColumns, SHORT newRows) {
 		size of the console window displayed on the screen.	
 	
 	*/
+	while (true) {
+		if (currentWindowSize.X > newBufferSize.X || currentWindowSize.Y > newBufferSize.Y) {
+			Log("Current window size is larger than the new buffer size. Resizing window first.");
+			Log("SetConsoleWindowInfo srWindowRect b: %hi, l: %hi, r: %hi, t: %hi", newWindowRect.Bottom, newWindowRect.Left, newWindowRect.Right, newWindowRect.Top);
+			bSuccess = SetConsoleWindowInfo(hConsole, TRUE, &newWindowRect);
+			handleReturn(bSuccess);
+			//std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+			Log("SetConsoleScreenBufferSize coordScreen X: %hi, Y: %hi", newBufferSize.X, newBufferSize.Y);
+			bSuccess = SetConsoleScreenBufferSize(hConsole, newBufferSize);
+			handleReturn(bSuccess);
+		}
+		else {
+			Log("SetConsoleScreenBufferSize coordScreen X: %hi, Y: %hi", newBufferSize.X, newBufferSize.Y);
+			bSuccess = SetConsoleScreenBufferSize(hConsole, newBufferSize);
+			handleReturn(bSuccess);
+			//std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
+			Log("SetConsoleWindowInfo srWindowRect b: %hi, l: %hi, r: %hi, t: %hi", newWindowRect.Bottom, newWindowRect.Left, newWindowRect.Right, newWindowRect.Top);
+			bSuccess = SetConsoleWindowInfo(hConsole, TRUE, &newWindowRect);
+			handleReturn(bSuccess);
+		}
 
-	if (currentWindowSize.X > newBufferSize.X || currentWindowSize.Y > newBufferSize.Y) {
-		Log("Current window size is larger than the new buffer size. Resizing window first.");
-		Log("SetConsoleWindowInfo srWindowRect b: %hi, l: %hi, r: %hi, t: %hi", newWindowRect.Bottom, newWindowRect.Left, newWindowRect.Right, newWindowRect.Top);
-		bSuccess = SetConsoleWindowInfo(hConsole, TRUE, &newWindowRect);
+		HWND consoleWindow = GetConsoleWindow();
+
+		// Get the monitor that is displaying the window
+		HMONITOR monitor = MonitorFromWindow(consoleWindow, MONITOR_DEFAULTTONEAREST);
+
+		// Get the monitor's offset in virtual-screen coordinates
+		MONITORINFO monitorInfo;
+		monitorInfo.cbSize = sizeof(MONITORINFO);
+		GetMonitorInfoA(monitor, &monitorInfo);
+
+		RECT wSize;
+		GetWindowRect(consoleWindow, &wSize);
+		Log("Window Rect wSize b: %hi, l: %hi, r: %hi, t: %hi", wSize.bottom, wSize.left, wSize.right, wSize.top);
+		// Move window to top
+		Log("MoveWindow X: %ld, Y: %ld, w: %ld, h: %ld", wSize.left, monitorInfo.rcWork.top, wSize.right - wSize.left, wSize.bottom - wSize.top);
+		bSuccess = MoveWindow(consoleWindow, wSize.left, monitorInfo.rcWork.top, wSize.right - wSize.left, wSize.bottom - wSize.top, true);
 		handleReturn(bSuccess);
-		Log("SetConsoleScreenBufferSize coordScreen X: %hi, Y: %hi", newBufferSize.X, newBufferSize.Y);
-		bSuccess = SetConsoleScreenBufferSize(hConsole, newBufferSize);
+
+		//Prevent resizing. Source: https://stackoverflow.com/a/47359526
+		SetWindowLong(consoleWindow, GWL_STYLE, GetWindowLong(consoleWindow, GWL_STYLE) & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX);
+
+		Log("GetConsoleScreenBufferInfo");
+		bSuccess = GetConsoleScreenBufferInfo(hConsole, &csbi);
 		handleReturn(bSuccess);
+		currentWindowSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
+		currentWindowSize.Y = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
+		Log("New buffer size csbi.dwSize X: %hi, Y: %hi", csbi.dwSize.X, csbi.dwSize.Y);
+		Log("New window size X: %hi, Y: %hi", currentWindowSize.X, currentWindowSize.Y);
+
+		if (currentWindowSize.X != newBufferSize.X || currentWindowSize.Y != newBufferSize.Y) {
+			Log("Failed to resize window. Retrying.");
+		}
+		else {
+			break;
+		}
+
 	}
-	else {
-		Log("SetConsoleScreenBufferSize coordScreen X: %hi, Y: %hi", newBufferSize.X, newBufferSize.Y);
-		bSuccess = SetConsoleScreenBufferSize(hConsole, newBufferSize);
-		handleReturn(bSuccess);
-		Log("SetConsoleWindowInfo srWindowRect b: %hi, l: %hi, r: %hi, t: %hi", newWindowRect.Bottom, newWindowRect.Left, newWindowRect.Right, newWindowRect.Top);
-		bSuccess = SetConsoleWindowInfo(hConsole, TRUE, &newWindowRect);
-		handleReturn(bSuccess);
-	}
-
-	HWND consoleWindow = GetConsoleWindow();
-
-	// Get the monitor that is displaying the window
-	HMONITOR monitor = MonitorFromWindow(consoleWindow, MONITOR_DEFAULTTONEAREST);
-
-	// Get the monitor's offset in virtual-screen coordinates
-	MONITORINFO monitorInfo;
-	monitorInfo.cbSize = sizeof(MONITORINFO);
-	GetMonitorInfoA(monitor, &monitorInfo);
-		
-	RECT wSize;
-	GetWindowRect(consoleWindow, &wSize);
-	Log("Window Rect wSize b: %hi, l: %hi, r: %hi, t: %hi", wSize.bottom, wSize.left, wSize.right, wSize.top);
-	// Move window to top
-	Log("MoveWindow X: %ld, Y: %ld, w: %ld, h: %ld", wSize.left, monitorInfo.rcWork.top, wSize.right - wSize.left, wSize.bottom - wSize.top);
-	bSuccess = MoveWindow(consoleWindow, wSize.left, monitorInfo.rcWork.top, wSize.right - wSize.left, wSize.bottom - wSize.top, true);
-	handleReturn(bSuccess);
-
-	//Prevent resizing. Source: https://stackoverflow.com/a/47359526
-	SetWindowLong(consoleWindow, GWL_STYLE, GetWindowLong(consoleWindow, GWL_STYLE) & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX);
-
-	Log("GetConsoleScreenBufferInfo");
-	bSuccess = GetConsoleScreenBufferInfo(hConsole, &csbi);
-	handleReturn(bSuccess);
-	currentWindowSize.X = csbi.srWindow.Right - csbi.srWindow.Left + 1;
-	currentWindowSize.Y = csbi.srWindow.Bottom - csbi.srWindow.Top + 1;
-	Log("New buffer size csbi.dwSize X: %hi, Y: %hi", csbi.dwSize.X, csbi.dwSize.Y);
-	Log("New window size X: %hi, Y: %hi", currentWindowSize.X, currentWindowSize.Y);
 
 	return;
 }
