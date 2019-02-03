@@ -3,7 +3,7 @@
 #undef  MOUSE_MOVED
 #include "curses.h" //include pdcurses
 
-short win_size_x = 90;
+short win_size_x = 96;
 short win_size_y = 60;
 int minimumWinMainHeight = 5;
 const short progress_lines = 3;
@@ -44,7 +44,7 @@ int bm_wprintwFill(const char * output, ...) {
 	int y;
 	int x;
 	getyx(win_main, y, x);
-	const int remaining = win_size_x - x;
+	const int remaining = COLS - x;
 
 	if (remaining > 0) {
 		result = waddstr(win_main, std::string(remaining, ' ').c_str()) || result;

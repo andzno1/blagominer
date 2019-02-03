@@ -79,17 +79,17 @@ void printFileStats() {
 		if (element.second.conflictingDeadlines > 0 || element.second.readErrors > 0) {
 			bm_wattronC(14);
 			bm_wmoveC(lineCount, 1);
-			bm_wprintwC("%-46s %11llu", element.first.c_str(), element.second.matchingDeadlines, 0);
+			bm_wprintwC("%s %s", toStr(element.first, 46).c_str(), toStr(element.second.matchingDeadlines, 11).c_str(), 0);
 			if (element.second.conflictingDeadlines > 0) {
 				bm_wattronC(4);
 			}
-			bm_wprintwC(" %9llu", element.second.conflictingDeadlines, 0);
+			bm_wprintwC(" %s", toStr(element.second.conflictingDeadlines, 9).c_str(), 0);
 			bm_wattroffC(4);
 			bm_wattronC(14);
 			if (element.second.readErrors > 0) {
 				bm_wattronC(4);
 			}
-			bm_wprintwC(" %9llu\n", element.second.readErrors, 0);
+			bm_wprintwC(" %s\n", toStr(element.second.readErrors, 9).c_str(), 0);
 			bm_wattroffC(4);
 			
 			++lineCount;

@@ -321,7 +321,8 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 
 							_strtime_s(tbuffer);
 							bm_wattron(2);
-							bm_wprintw("%s [%20llu]\treceived DL via %s proxy: %11llu {%s}\n", tbuffer, get_accountId, proxyName, get_deadline / coinInfo->mining->currentBaseTarget, client_address_str, 0);
+							bm_wprintw("%s [%20llu|%-10s|Proxy ] DL found     : %s {%s}\n", tbuffer, get_accountId, proxyName,
+								toStr(get_deadline / coinInfo->mining->currentBaseTarget, 11).c_str(), client_address_str, 0);
 							bm_wattroff(2);
 							Log("Proxy %s: received DL %llu from %s", proxyName, get_deadline, client_address_str);
 							
@@ -343,7 +344,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 								{
 									_strtime_s(tbuffer);
 									bm_wattron(9);
-									bm_wprintw("%s [%20llu]\t%s proxy sent confirmation to %s\n", tbuffer, get_accountId, proxyName, client_address_str, 0);
+									bm_wprintw("%s [%20llu|%-10s|Proxy ] DL confirmed to            %s\n", tbuffer, get_accountId, proxyName, client_address_str, 0);
 									bm_wattroff(9);
 								}
 								Log("Proxy %s: sent confirmation to %s", proxyName, client_address_str);
@@ -450,7 +451,8 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 				{
 					_strtime_s(tbuffer);
 					bm_wattron(2);
-					bm_wprintw("%s: %s [%20llu]\t%llu > %llu  discarded\n", senderName, tbuffer, iter->account_id, iter->best / coinInfo->mining->currentBaseTarget, coinInfo->mining->bests[Get_index_acc(iter->account_id, coinInfo, targetDeadlineInfo)].targetDeadline, 0);
+					bm_wprintw("%s [%20llu|%-10s|Sender] DL discarded : %s > %s\n", tbuffer, iter->account_id, senderName,
+						toStr(iter->best / coinInfo->mining->currentBaseTarget, 11).c_str(), toStr(coinInfo->mining->bests[Get_index_acc(iter->account_id, coinInfo, targetDeadlineInfo)].targetDeadline, 11).c_str(), 0);
 					bm_wattroff(2);
 				}
 				EnterCriticalSection(&coinInfo->locks->sharesLock);
@@ -467,8 +469,9 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 			iResult = getaddrinfo(coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), &hints, &result);
 			if (iResult != 0) {
 				decreaseNetworkQuality(coinInfo);
+				_strtime_s(tbuffer);
 				bm_wattron(12);
-				bm_wprintw("SENDER %s: getaddrinfo failed with error: %d\n", senderName, iResult, 0);
+				bm_wprintw("%s [%20llu|%-10s|Sender] getaddrinfo failed with error: %d\n", tbuffer, iter->account_id, senderName, iResult, 0);
 				bm_wattroff(12);
 				continue;
 			}
@@ -530,7 +533,8 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 					increaseNetworkQuality(coinInfo);
 					Log("[%20llu] %s sent DL: %15llu %5llud %02llu:%02llu:%02llu", iter->account_id, senderName, dl, (dl) / (24 * 60 * 60), (dl % (24 * 60 * 60)) / (60 * 60), (dl % (60 * 60)) / 60, dl % 60, 0);
 					bm_wattron(9);
-					bm_wprintw("%s [%20llu] %s sent DL: %15llu %5llud %02llu:%02llu:%02llu\n", tbuffer, iter->account_id, senderName, dl, (dl) / (24 * 60 * 60), (dl % (24 * 60 * 60)) / (60 * 60), (dl % (60 * 60)) / 60, dl % 60, 0);
+					bm_wprintw("%s [%20llu|%-10s|Sender] DL sent      : %s %sd %02llu:%02llu:%02llu\n", tbuffer, iter->account_id, senderName,
+						toStr(dl, 11).c_str(), toStr((dl) / (24 * 60 * 60), 7).c_str(), (dl % (24 * 60 * 60)) / (60 * 60), (dl % (60 * 60)) / 60, dl % 60, 0);
 					bm_wattroff(9);
 
 					EnterCriticalSection(&coinInfo->locks->sessionsLock);
@@ -645,14 +649,18 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 										EnterCriticalSection(&coinInfo->locks->bestsLock);
 										coinInfo->mining->bests[Get_index_acc(naccountId, coinInfo, targetDeadlineInfo)].targetDeadline = ntargetDeadline;
 										LeaveCriticalSection(&coinInfo->locks->bestsLock);
-										bm_wprintw("%s [%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u\n", tbuffer, naccountId, senderName, ndeadline, days, hours, min, sec, 0);
+										
+										
+										bm_wprintw("%s [%20llu|%-10s|Sender] DL confirmed : %s %sd %02llu:%02llu:%02llu\n", tbuffer, naccountId, senderName,
+											toStr(ndeadline, 11).c_str(), toStr(days, 7).c_str(), hours, min, sec, 0);
 										Log("[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", naccountId, senderName, ndeadline, days, hours, min, sec, 0);
 										Log("[%20llu] %s set targetDL: %10llu", naccountId, senderName, ntargetDeadline);
 										if (use_debug) {
-											bm_wprintw("%s [%20llu] set targetDL: %10llu\n", tbuffer, naccountId, ntargetDeadline, 0);
+											bm_wprintw("%s [%20llu|%-10s|Sender] Set target DL: %s\n", tbuffer, naccountId, toStr(ntargetDeadline, 11).c_str(), 0);
 										}
 									}
-									else bm_wprintw("%s [%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u\n", tbuffer, iter->body.account_id, senderName, ndeadline, days, hours, min, sec, 0);
+									else bm_wprintw("%s [%20llu|%-10s|Sender] DL confirmed : %s %sd %02llu:%02llu:%02llu\n", tbuffer, iter->body.account_id, senderName,
+										toStr(ndeadline, 11).c_str(), toStr(days, 7).c_str(), hours, min, sec, 0);
 									bm_wattroff(10);
 									if (ndeadline < coinInfo->mining->deadline || coinInfo->mining->deadline == 0)  coinInfo->mining->deadline = ndeadline;
 
@@ -705,7 +713,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 																						   // if(deadline > iter->deadline) deadline = iter->deadline;
 								std::thread{ increaseMatchingDeadline, iter->body.file_name }.detach();
 								bm_wattron(10);
-								bm_wprintw("%s [%20llu] %s confirmed DL   %10llu\n", tbuffer, iter->body.account_id, senderName, iter->deadline, 0);
+								bm_wprintw("%s [%20llu|%-10s|Sender] DL confirmed : %s\n", tbuffer, iter->body.account_id, senderName, toStr(iter->deadline, 11).c_str(), 0);
 								bm_wattroff(10);
 							}
 							else //получили нераспознанный ответ

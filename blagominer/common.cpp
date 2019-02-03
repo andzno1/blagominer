@@ -135,3 +135,59 @@ void getLocalDateTime(const std::time_t &rawtime, char* local, const std::string
 	std::string format = "%Y-%m-%d %H" + sepTime + "%M" + sepTime + "%S";
 	strftime(local, 80, format.c_str(), &timeinfo);
 }
+
+std::string toStr(int number, const unsigned short length) {
+	std::string s = std::to_string(number);
+	std::string prefix;
+
+	if (length == 0) {
+		return "";
+	}
+	else if (length == 1 && s.size() > 1) {
+		return ">";
+	} else if (s.size() > length) {
+		s = std::to_string(static_cast<int>(pow(10, length - 1)) - 1);
+		prefix = ">";
+	}
+	else if (s.size() < length) {
+		prefix = std::string(length - s.size(), ' ');
+	}
+	
+	return prefix + s;
+}
+
+std::string toStr(unsigned long long number, const unsigned short length) {
+	std::string s = std::to_string(number);
+	std::string prefix;
+
+	if (length == 0) {
+		return "";
+	}
+	else if (length == 1 && s.size() > 1) {
+		return ">";
+	}
+	else if (s.size() > length) {
+		s = std::to_string(static_cast<unsigned long long>(pow(10, length - 1)) - 1);
+		prefix = ">";
+	}
+	else if (s.size() < length) {
+		prefix = std::string(length - s.size(), ' ');
+	}
+
+	return prefix + s;
+}
+
+std::string toStr(std::string str, const unsigned short length) {
+	if (str.size() > length) {
+		if (length > 3) {
+			str = "..." + std::string(str.end() - length + 3, str.end());
+		}
+		else {
+			str = std::string(length, '.');
+		}
+	}
+	else if (str.size() < length) {
+		str = str + std::string(length - str.size(), ' ');
+	}
+	return str;
+}

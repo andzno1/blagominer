@@ -1,4 +1,4 @@
-// blagominer.cpp
+﻿// blagominer.cpp
 #include "stdafx.h"
 #include "blagominer.h"
 
@@ -347,7 +347,7 @@ int load_config(char const *const filename)
 		Log("UseBoost: %d", use_boost);
 
 		if (document.HasMember("WinSizeX") && (document["WinSizeX"].IsUint())) win_size_x = (short)document["WinSizeX"].GetUint();
-		if (win_size_x < 90) win_size_x = 90;
+		if (win_size_x < 96) win_size_x = 96;
 		Log("WinSizeX: %hi", win_size_x);
 
 		if (document.HasMember("WinSizeY") && (document["WinSizeY"].IsUint())) win_size_y = (short)document["WinSizeY"].GetUint();
@@ -630,7 +630,8 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& queue, std::shar
 				char tbuffer[9];
 				_strtime_s(tbuffer);
 				bm_wattron(5);
-				bm_wprintwFill("%s %s block %llu has been added to the queue.", tbuffer, coinNames[newCoin->coin], newCoin->mining->height, 0);
+				bm_wprintwFill("\n%s [#%7llu|%-10s|Info    ] New block has been added to the queue.",
+					tbuffer, newCoin->mining->height, coinNames[newCoin->coin], 0);
 				bm_wattroff(5);
 			}
 			break;
@@ -644,8 +645,8 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& queue, std::shar
 			char tbuffer[9];
 			_strtime_s(tbuffer);
 			bm_wattron(5);
-			bm_wprintwFill("%s %s block %llu has been added to the end of the queue.", tbuffer,
-				coinNames[newCoin->coin], newCoin->mining->height, 0);
+			bm_wprintwFill("\n%s [#%7llu|%-10s|Info    ] New block has been added to the end of the queue.",
+				tbuffer, newCoin->mining->height, coinNames[newCoin->coin], 0);
 			bm_wattroff(5);
 		}
 		queue.push_back(newCoin);
@@ -724,7 +725,7 @@ unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool 
 			all_files.push_back(*it);
 		}
 		if (log) {
-			bm_wprintw("%s\tfiles: %2Iu\t size: %4llu Gb\n", (char*)iter->c_str(), (unsigned)files.size(), tot_size / 1024 / 1024 / 1024, 0);
+			bm_wprintw("%s\tfiles: %2Iu\t size: %4llu GiB\n", (char*)iter->c_str(), (unsigned)files.size(), tot_size / 1024 / 1024 / 1024, 0);
 		}
 		size += tot_size;
 	}
@@ -1069,7 +1070,7 @@ int main(int argc, char **argv) {
 	std::vector<t_files> all_files;
 	total_size = getPlotFilesSize(paths_dir, true, all_files);
 	bm_wattron(15);
-	bm_wprintw("TOTAL: %llu Gb\n", total_size / 1024 / 1024 / 1024, 0);
+	bm_wprintw("TOTAL: %llu GiB (%llu TiB)\n", total_size / 1024 / 1024 / 1024, total_size / 1024 / 1024 / 1024 / 1024, 0);
 	bm_wattroff(15);
 
 	if (total_size == 0 && (burst->mining->enable || bhd->mining->enable)) {
@@ -1235,13 +1236,18 @@ int main(int argc, char **argv) {
 		if (miningCoin->mining->state == INTERRUPTED) {
 			Log("------------------------    Continuing %s block: %llu", coinNames[miningCoin->coin], miningCoin->mining->currentHeight);
 			bm_wattron(5);
-			bm_wprintwFill("\n%s Continuing %s block %llu, baseTarget %llu, netDiff %llu Tb, POC%i", tbuffer, coinNames[miningCoin->coin], miningCoin->mining->currentHeight, miningCoin->mining->currentBaseTarget, 4398046511104 / 240 / miningCoin->mining->currentBaseTarget, POC2 ? 2 : 1, 0);
+			bm_wprintwFill("\n%s [#%7llu|%-10s|Continue] Base Target %s %c Net Diff %s TiB %c PoC%i",
+				tbuffer, miningCoin->mining->currentHeight, coinNames[miningCoin->coin], toStr(miningCoin->mining->currentBaseTarget, 7).c_str(),
+				250, toStr(4398046511104 / 240 / miningCoin->mining->currentBaseTarget, 8).c_str(), 250, POC2 ? 2 : 1, 0);
 			bm_wattroff(5);
 		}
 		else {
 			Log("------------------------    New %s block: %llu", coinNames[miningCoin->coin], miningCoin->mining->currentHeight);
 			bm_wattron(25);
-			bm_wprintwFill("\n%s New %s block %llu, baseTarget %llu, netDiff %llu Tb, POC%i", tbuffer, coinNames[miningCoin->coin], miningCoin->mining->currentHeight, miningCoin->mining->currentBaseTarget, 4398046511104 / 240 / miningCoin->mining->currentBaseTarget, POC2 ? 2 : 1, 0);
+
+			bm_wprintwFill("\n%s [#%7llu|%-10s|Start   ] Base Target %s %c Net Diff %s TiB %c PoC%i",
+				tbuffer, miningCoin->mining->currentHeight, coinNames[miningCoin->coin], toStr(miningCoin->mining->currentBaseTarget, 7).c_str(),
+				250, toStr(4398046511104 / 240 / miningCoin->mining->currentBaseTarget, 8).c_str(), 250, POC2 ? 2 : 1, 0);
 			bm_wattroff(25);
 		}
 
@@ -1249,7 +1255,7 @@ int main(int argc, char **argv) {
 		{
 			unsigned long long sat_total_size = 0;
 			for (auto It = satellite_size.begin(); It != satellite_size.end(); ++It) sat_total_size += It->second;
-			bm_wprintw("*** Chance to find a block: %.5f%%  (%llu Gb)\n", ((double)((sat_total_size * 1024 + total_size / 1024 / 1024) * 100 * 60)*(double)miningCoin->mining->currentBaseTarget) / 1152921504606846976, sat_total_size + total_size / 1024 / 1024 / 1024, 0);
+			bm_wprintw("*** Chance to find a block: %.5f%%  (%llu GiB)\n", ((double)((sat_total_size * 1024 + total_size / 1024 / 1024) * 100 * 60)*(double)miningCoin->mining->currentBaseTarget) / 1152921504606846976, sat_total_size + total_size / 1024 / 1024 / 1024, 0);
 		}
 
 		EnterCriticalSection(&miningCoin->locks->sessionsLock);
@@ -1326,17 +1332,16 @@ int main(int argc, char **argv) {
 				break;
 			case 'r':
 				bm_wattron(15);
-				bm_wprintw("Recommended size for this block: %llu Gb\n", (4398046511104 / miningCoin->mining->currentBaseTarget) * 1024 / miningCoin->mining->currentTargetDeadlineInfo);
+				bm_wprintw("Recommended size for this block: %llu GiB\n", (4398046511104 / miningCoin->mining->currentBaseTarget) * 1024 / getTargetDeadlineInfo(miningCoin));
 				bm_wattroff(15);
 				break;
 			case 'c':
-				bm_wprintw("*** Chance to find a block: %.5f%%  (%llu Gb)\n", ((double)((total_size / 1024 / 1024) * 100 * 60)*(double)miningCoin->mining->currentBaseTarget) / 1152921504606846976, total_size / 1024 / 1024 / 1024, 0);
+				bm_wprintw("*** Chance to find a block: %.5f%%  (%llu GiB)\n", ((double)((total_size / 1024 / 1024) * 100 * 60)*(double)miningCoin->mining->currentBaseTarget) / 1152921504606846976, total_size / 1024 / 1024 / 1024, 0);
 				break;
 			case 'f':
 				resetFileStats();
 				break;
 			}
-			boxProgress();
 			bytesRead = 0;
 
 			int threads_running = 0;
@@ -1354,6 +1359,7 @@ int main(int argc, char **argv) {
 			{
 				QueryPerformanceCounter((LARGE_INTEGER*)&end_threads_time);
 				threads_speed = (double)(bytesRead / (1024 * 1024)) / ((double)(end_threads_time - start_threads_time) / pcFreq);
+				thread_time = (double)(end_threads_time - start_threads_time) / pcFreq;
 			}
 			else {
 				/*
@@ -1367,6 +1373,7 @@ int main(int argc, char **argv) {
 				//Work Done! Cleanup / Prepare
 				if (miningCoin->mining->state == MINING) {
 					Log("Round done.");
+					Log("Bytes read: %llu", bytesRead);
 					miningCoin->mining->state = DONE;
 					//Display total round time
 					QueryPerformanceCounter((LARGE_INTEGER*)&end_threads_time);
@@ -1416,32 +1423,40 @@ int main(int argc, char **argv) {
 
 			if (!miningCoin->mining->enable) {
 				if (burst->network->enable_proxy && bhd->network->enable_proxy) {
-					bm_wprintwP("                                                     Connection: %3i%%/%3i%%", getNetworkQuality(burst), getNetworkQuality(bhd), 0);
+					bm_wprintwP("                                                                         Connection: %3i%% | %3i%%", getNetworkQuality(burst), getNetworkQuality(bhd), 0);
 				}
 				else {
-					bm_wprintwP("                                                     Connection: %3i%%", getNetworkQuality(miningCoin), 0);
+					bm_wprintwP("                                                                         Connection: %3i%%", getNetworkQuality(miningCoin), 0);
 				}
 			}
 			else if (burst->mining->enable && bhd->mining->enable) {
 				if (miningCoin->mining->deadline == 0)
-					bm_wprintwP("%3llu%% %6llu GB (%.2f MB/s). no deadline            Connection: %3i%%/%3i%%", (bytesRead * 4096 * 100 / round_size), (bytesRead / (256 * 1024)), threads_speed, getNetworkQuality(burst), getNetworkQuality(bhd), 0);
+					bm_wprintwP("%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline:           - %c Connection: %3i%%|%3i%%",
+					(bytesRead * 4096 * 100 / round_size), 250, (((double) bytesRead) / (256 * 1024 * 1024)), 250, thread_time, 250, threads_speed, 250, 250, getNetworkQuality(burst), getNetworkQuality(bhd), 0);
 				else
-					bm_wprintwP("%3llu%% %6llu GB (%.2f MB/s). Deadline =%10llu   Connection: %3i%%/%3i%%", (bytesRead * 4096 * 100 / round_size), (bytesRead / (256 * 1024)), threads_speed, miningCoin->mining->deadline, getNetworkQuality(burst), getNetworkQuality(bhd), 0);
+					bm_wprintwP("%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c Connection: %3i%%|%3i%%",
+					(bytesRead * 4096 * 100 / round_size), 250, (((double)bytesRead) / (256 * 1024 * 1024)), 250, thread_time, 250, threads_speed, 250, toStr(miningCoin->mining->deadline, 11).c_str(), 250,
+						getNetworkQuality(burst), getNetworkQuality(bhd), 0);
 			}
 			else {
 				if (miningCoin->mining->deadline == 0)
-					bm_wprintwP("%3llu%% %6llu GB (%.2f MB/s). no deadline            Connection: %3i%%", (bytesRead * 4096 * 100 / round_size), (bytesRead / (256 * 1024)), threads_speed, getNetworkQuality(miningCoin), 0);
+					bm_wprintwP("%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline:           - %c Connection:      %3i%%",
+					(bytesRead * 4096 * 100 / round_size), 250, (((double)bytesRead) / (256 * 1024 * 1024)), 250, thread_time, 250, threads_speed, 250, 250, getNetworkQuality(miningCoin), 0);
 				else
-					bm_wprintwP("%3llu%% %6llu GB (%.2f MB/s). Deadline =%10llu       Connection: %3i%%", (bytesRead * 4096 * 100 / round_size), (bytesRead / (256 * 1024)), threads_speed, miningCoin->mining->deadline, getNetworkQuality(miningCoin), 0);
+
+					bm_wprintwP("%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c Connection:      %3i%%",
+					(bytesRead * 4096 * 100 / round_size), 250, (((double)bytesRead) / (256 * 1024 * 1024)), 250, thread_time, 250, threads_speed, 250, toStr(miningCoin->mining->deadline, 11).c_str(), 250,
+						getNetworkQuality(miningCoin), 0);
 			}
 			bm_wattroffP(14);
 
 			printFileStats();
 			refreshMain();
+			boxProgress();
 			refreshProgress();
 
 			std::this_thread::yield();
-			std::this_thread::sleep_for(std::chrono::milliseconds(39));
+			std::this_thread::sleep_for(std::chrono::milliseconds(50));
 		}
 
 		stopThreads = 1;   // Tell all threads to stop
@@ -1459,7 +1474,8 @@ int main(int argc, char **argv) {
 			Log("Mining %s has been interrupted by a coin with higher priority.", coinNames[miningCoin->coin]);
 			_strtime_s(tbuffer);
 			bm_wattron(8);
-			bm_wprintwFill("%s Mining of %s has been interrupted by another coin.", tbuffer, coinNames[miningCoin->coin], 0);
+			bm_wprintwFill("%s [#%7llu|%-10s|Info    ] Mining has been interrupted by another coin.",
+				tbuffer, miningCoin->mining->currentHeight, coinNames[miningCoin->coin], 0);
 			bm_wattroff(8);
 			// Queuing the interrupted coin.
 			insertIntoQueue(queue, miningCoin, miningCoin);

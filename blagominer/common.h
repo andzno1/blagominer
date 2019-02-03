@@ -4,6 +4,7 @@
 #include <mutex>
 #include <vector>
 #include <ctime>
+#include <math.h>
 
 // blago version
 extern const int versionMajor;
@@ -113,7 +114,6 @@ struct t_mining_info {
 	char current_str_signature[65];
 	unsigned long long currentHeight = 0;
 	unsigned long long currentBaseTarget = 0;
-	unsigned long long currentTargetDeadlineInfo = 0;
 	std::vector<t_best> bests;
 	std::vector<t_shares> shares;
 
@@ -168,3 +168,7 @@ void setnewMiningInfoReceived(std::shared_ptr<t_coin_info> coin, const bool val)
 int getNetworkQuality(std::shared_ptr<t_coin_info> coin);
 
 void getLocalDateTime(const std::time_t &rawtime, char* local, const std::string sepTime = ":");
+
+std::string toStr(int number, const unsigned short length);
+std::string toStr(unsigned long long number, const unsigned short length);
+std::string toStr(std::string str, const unsigned short length);
