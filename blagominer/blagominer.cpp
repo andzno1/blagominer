@@ -1431,34 +1431,24 @@ int main(int argc, char **argv) {
 
 			bm_wmoveP();
 			bm_wattronP(14);
-
-			if (!miningCoin->mining->enable) {
-				if (burst->network->enable_proxy && bhd->network->enable_proxy) {
-					bm_wprintwP("                                                                         Connection: %3i%% | %3i%%", getNetworkQuality(burst), getNetworkQuality(bhd), 0);
-				}
-				else {
-					bm_wprintwP("                                                                         Connection: %3i%%", getNetworkQuality(miningCoin), 0);
-				}
-			}
-			else if (burst->mining->enable && bhd->mining->enable) {
-				if (miningCoin->mining->deadline == 0)
-					bm_wprintwP("%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline:           - %c Connection: %3i%%|%3i%%",
-					(bytesRead * 4096 * 100 / round_size), 250, (((double) bytesRead) / (256 * 1024 * 1024)), 250, thread_time, 250, threads_speed, 250, 250, getNetworkQuality(burst), getNetworkQuality(bhd), 0);
-				else
-					bm_wprintwP("%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c Connection: %3i%%|%3i%%",
-					(bytesRead * 4096 * 100 / round_size), 250, (((double)bytesRead) / (256 * 1024 * 1024)), 250, thread_time, 250, threads_speed, 250, toStr(miningCoin->mining->deadline, 11).c_str(), 250,
-						getNetworkQuality(burst), getNetworkQuality(bhd), 0);
+			if (miningCoin->mining->enable) {
+				bm_wprintwP("%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c ",
+					(bytesRead * 4096 * 100 / round_size), 250,
+					(((double)bytesRead) / (256 * 1024 * 1024)), 250,
+					thread_time, 250,
+					threads_speed, 250,
+					(miningCoin->mining->deadline == 0) ? "          -" : toStr(miningCoin->mining->deadline, 11).c_str(), 250, 0);
 			}
 			else {
-				if (miningCoin->mining->deadline == 0)
-					bm_wprintwP("%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline:           - %c Connection:      %3i%%",
-					(bytesRead * 4096 * 100 / round_size), 250, (((double)bytesRead) / (256 * 1024 * 1024)), 250, thread_time, 250, threads_speed, 250, 250, getNetworkQuality(miningCoin), 0);
-				else
-
-					bm_wprintwP("%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c Connection:      %3i%%",
-					(bytesRead * 4096 * 100 / round_size), 250, (((double)bytesRead) / (256 * 1024 * 1024)), 250, thread_time, 250, threads_speed, 250, toStr(miningCoin->mining->deadline, 11).c_str(), 250,
-						getNetworkQuality(miningCoin), 0);
+				bm_wprintwP("                                                                         ");
 			}
+
+			if ((burst->mining->enable || burst->network->enable_proxy) && (bhd->mining->enable || bhd->network->enable_proxy)) {
+				bm_wprintwP("Connection: %3i%%|%3i%%", getNetworkQuality(burst), getNetworkQuality(bhd), 0);
+			}
+			else {
+				bm_wprintwP("Connection:      %3i%%", getNetworkQuality(miningCoin), 0);
+			}		
 			bm_wattroffP(14);
 
 			printFileStats();
