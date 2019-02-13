@@ -665,8 +665,8 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, st
 				char tbuffer[9];
 				_strtime_s(tbuffer);
 				bm_wattron(5);
-				bm_wprintwFill("\n%s [#%7llu|%-10s|Info    ] New block has been added to the queue.",
-					tbuffer, newCoin->mining->height, coinNames[newCoin->coin], 0);
+				bm_wprintwFill("\n%s [#%s|%s|Info    ] New block has been added to the queue.",
+					tbuffer, toStr(newCoin->mining->height, 7).c_str(), toStr(coinNames[newCoin->coin], 10).c_str(), 0);
 				bm_wattroff(5);
 			}
 			break;
@@ -680,8 +680,8 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, st
 			char tbuffer[9];
 			_strtime_s(tbuffer);
 			bm_wattron(5);
-			bm_wprintwFill("\n%s [#%7llu|%-10s|Info    ] New block has been added to the end of the queue.",
-				tbuffer, newCoin->mining->height, coinNames[newCoin->coin], 0);
+			bm_wprintwFill("\n%s [#%s|%s|Info    ] New block has been added to the end of the queue.",
+				tbuffer, toStr(newCoin->mining->height, 7).c_str(), toStr(coinNames[newCoin->coin], 10).c_str(), 0);
 			bm_wattroff(5);
 		}
 		currentQueue.push_back(newCoin);
@@ -731,8 +731,8 @@ void handleProxyOnly(std::shared_ptr<t_coin_info> coin) {
 			char tbuffer[9];
 			_strtime_s(tbuffer);
 			bm_wattron(5);
-			bm_wprintwFill("\n%s [#%7llu|%-10s|Info    ] New block.",
-				tbuffer, coin->mining->height, coinNames[coin->coin], 0);
+			bm_wprintwFill("\n%s [#%s|%s|Info    ] New block.",
+				tbuffer, toStr(coin->mining->height, 7).c_str(), toStr(coinNames[coin->coin], 10).c_str(), 0);
 			bm_wattroff(5);
 			coin->network->stopSender = true;
 			if (coin->network->sender.joinable()) {
@@ -1358,16 +1358,16 @@ int main(int argc, char **argv) {
 			if (miningCoin->mining->enable && miningCoin->mining->state == INTERRUPTED) {
 				Log("------------------------    Continuing %s block: %llu", coinNames[miningCoin->coin], miningCoin->mining->currentHeight);
 				bm_wattron(5);
-				bm_wprintwFill("\n%s [#%7llu|%-10s|Continue] Base Target %s %c Net Diff %s TiB %c PoC%i",
-					tbuffer, miningCoin->mining->currentHeight, coinNames[miningCoin->coin], toStr(miningCoin->mining->currentBaseTarget, 7).c_str(),
+				bm_wprintwFill("\n%s [#%s|%s|Continue] Base Target %s %c Net Diff %s TiB %c PoC%i",
+					tbuffer, toStr(miningCoin->mining->currentHeight, 7).c_str(), toStr(coinNames[miningCoin->coin], 10).c_str(), toStr(miningCoin->mining->currentBaseTarget, 7).c_str(),
 					250, toStr(4398046511104 / 240 / miningCoin->mining->currentBaseTarget, 8).c_str(), 250, POC2 ? 2 : 1, 0);
 				bm_wattroff(5);
 			}
 			else if (miningCoin->mining->enable) {
 				Log("------------------------    New %s block: %llu", coinNames[miningCoin->coin], miningCoin->mining->currentHeight);
 				bm_wattron(25);
-				bm_wprintwFill("\n%s [#%7llu|%-10s|Start   ] Base Target %s %c Net Diff %s TiB %c PoC%i",
-					tbuffer, miningCoin->mining->currentHeight, coinNames[miningCoin->coin], toStr(miningCoin->mining->currentBaseTarget, 7).c_str(),
+				bm_wprintwFill("\n%s [#%s|%s|Start   ] Base Target %s %c Net Diff %s TiB %c PoC%i",
+					tbuffer, toStr(miningCoin->mining->currentHeight, 7).c_str(), toStr(coinNames[miningCoin->coin], 10).c_str(), toStr(miningCoin->mining->currentBaseTarget, 7).c_str(),
 					250, toStr(4398046511104 / 240 / miningCoin->mining->currentBaseTarget, 8).c_str(), 250, POC2 ? 2 : 1, 0);
 				bm_wattroff(25);
 			}
@@ -1564,8 +1564,8 @@ int main(int argc, char **argv) {
 					Log("Mining %s has been interrupted by a coin with higher priority.", coinNames[miningCoin->coin]);
 					_strtime_s(tbuffer);
 					bm_wattron(8);
-					bm_wprintwFill("%s [#%7llu|%-10s|Info    ] Mining has been interrupted by another coin.",
-						tbuffer, miningCoin->mining->currentHeight, coinNames[miningCoin->coin], 0);
+					bm_wprintwFill("%s [#%s|%s|Info    ] Mining has been interrupted by another coin.",
+						tbuffer, toStr(miningCoin->mining->currentHeight, 7).c_str(), toStr(coinNames[miningCoin->coin], 10).c_str(), 0);
 					bm_wattroff(8);
 					// Queuing the interrupted coin.
 					insertIntoQueue(queue, miningCoin, miningCoin);
