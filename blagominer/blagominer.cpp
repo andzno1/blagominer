@@ -1052,7 +1052,7 @@ int main(int argc, char **argv) {
 	bm_wattron(4);
 	bm_wprintw("\nProgramming: dcct (Linux) & Blago (Windows)\n", 0);
 	bm_wprintw("POC2 mod: Quibus & Johnny (5/2018)\n", 0);
-	bm_wprintw("Dual mining mod: andz (1/2019)\n", 0);
+	bm_wprintw("Dual mining mod: andz (2/2019)\n", 0);
 	bm_wattroff(4);
 
 	GetCPUInfo();
