@@ -1,11 +1,31 @@
 # Blagominer
-I've modded Blagominer by modding a modded version from Quibus :-)<br>
-Added a couple of thing to Blagominer:<br>
--automatically switch from POC1 to POC2 depending on block height<br>
--added config item "POC2StartBlock":502000 <br>
--added second cache parameter as shuffling needs more cache to perform (less seeks)<br>
--added config item "CacheSize2" : 262144<br>
--added ability to include POC2 filenames (no stagger in filename)<br>
--ability to run the miner on mixed POC1 & POC2 files<br>
--abbility to run POC2 files in a POC1 world & vice versa<br>
--reading in hashing now performed in parallel<br>
+| <img src="img/warning.png" width="36" align="left" alt="Warning"> There have been some major changes in the configuration file `miner.conf`. If coming from another Blagominer version, please make sure to download the new configuration file and change it according to your needs! |
+| --- |
+
+## Features
+This version of Blagominer adds the following features:
+
+* **Collision free dual mining** of Burstcoin and Bitcoin HD (configurable via priority).
+    * Whenever a high priority coin interrupts the mining process of a coin with lower priority, the interrupted mining process will be resumed after the high priority coin has finished its mining process. Files that have completely been read before the interruption will not be scanned again.
+    ![Example of console output when a mining process is being interrupted](img/interruptedMining.png?raw=true "Collision free dual mining")
+    * Whenever there is new mining information for a coin with lower priority, the mining process of said coin will be started after the high priority coin has finished its mining process:
+    ![Example of console output when a coin is being queued](img/queue.png?raw=true "Collision free dual mining")
+* Tracking (and displaying) of **possibly corrupted plot files**. The data can be shown in the miner window and is also being logged to csv files. The following data is collected per plot file during mining:
+    * Number of calculated deadlines that did not match with the wallet's/pool's calculation (`-DLs` column).
+    * Number of calculated deadlines that have been confirmed (`+DLs` column).
+    * Number of input/output errors that have been recorded (`I/O` colum).
+    ![Statistics for possibly corrupted plot files](img/corrupted.png?raw=true "Statistics for possibly corrupted plot files")
+* The miner can run as dedicated proxy. No mining needed.
+* Notification for updates.
+
+## Changes in the configuration file
+Due to the new dual mining ability some fields in the configuration file have been moved to a different "section" and some have been added. The following table shows all the added fields.
+
+| Field         | Explanation |
+| ------------- | ------------- |
+| `"Burst"."Enable"` and `"BHD"."Enable"` | `true` enables the mining of the corresponding coin, `false` disables it.  |
+| `"Burst"."Priority"` and `"BHD"."Priority"` | A higher priority coin (lower value) interrupts the mining process of a coin with lower priority (higher value). This value must be `>= 0`. If both coins have the same priority, there won't be any interruptions and there will be a mining queue.  |
+| `"Burst"."ProxyUpdateInterval"` and `"BHD"."ProxyUpdateInterval"` | Interval in milliseconds for the proxy checking for new client requests.  |
+| `ShowCorruptedPlotFiles`  | If you want to see possibly corrupted plot files in the console windows, set this to `true`, `false` otherwise.  |
+| `CheckForUpdateIntervalInDays`  | Check for new versions every x days. Set it to `0` to disable update check.  |
+| `"Logging"."logAllGetMiningInfos"`  | Set it to `false` if you want to log every received mining information, even if there is no new information. This increases the log file size quite fast. Set it to `true` otherwise. |
