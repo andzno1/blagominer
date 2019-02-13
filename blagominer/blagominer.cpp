@@ -171,6 +171,12 @@ int load_config(char const *const filename)
 					else if (settingsBurst["ProxyPort"].IsUint())	burst->network->proxyport = std::to_string(settingsBurst["ProxyPort"].GetUint());
 				}
 				Log("ProxyPort: %s", burst->network->proxyport.c_str());
+
+				if (settingsBurst.HasMember("ProxyUpdateInterval") && (settingsBurst["ProxyUpdateInterval"].IsUint())) {
+					burst->network->proxy_update_interval = (size_t)settingsBurst["ProxyUpdateInterval"].GetUint();
+				}
+				Log("ProxyUpdateInterval: %zu", burst->network->proxy_update_interval);
+
 			}
 
 			if (burst->mining->enable || burst->network->enable_proxy) {
@@ -270,6 +276,11 @@ int load_config(char const *const filename)
 					else if (settingsBhd["ProxyPort"].IsUint())	bhd->network->proxyport = std::to_string(settingsBhd["ProxyPort"].GetUint());
 				}
 				Log("ProxyPort: %s", bhd->network->proxyport.c_str());
+
+				if (settingsBhd.HasMember("ProxyUpdateInterval") && (settingsBhd["ProxyUpdateInterval"].IsUint())) {
+					bhd->network->proxy_update_interval = (size_t)settingsBhd["ProxyUpdateInterval"].GetUint();
+				}
+				Log("ProxyUpdateInterval: %zu", bhd->network->proxy_update_interval);
 			}
 
 			if (bhd->mining->enable || bhd->network->enable_proxy) {

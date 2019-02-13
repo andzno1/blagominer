@@ -25,6 +25,7 @@ void init_network_info() {
 	burst->network->proxyport = "8125";
 	burst->network->send_interval = 100;
 	burst->network->update_interval = 1000;
+	burst->network->proxy_update_interval = 500;
 	burst->network->network_quality = -1;
 	burst->network->stopSender = false;
 
@@ -39,6 +40,7 @@ void init_network_info() {
 	bhd->network->proxyport = "8732";
 	bhd->network->send_interval = 100;
 	bhd->network->update_interval = 1000;
+	bhd->network->proxy_update_interval = 500;
 	bhd->network->network_quality = -1;
 	bhd->network->stopSender = false;
 }
@@ -395,7 +397,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 			iResult = closesocket(ClientSocket);
 		}
 		std::this_thread::yield();
-		std::this_thread::sleep_for(std::chrono::milliseconds(200));
+		std::this_thread::sleep_for(std::chrono::milliseconds(coinInfo->network->proxy_update_interval));
 	}
 	HeapFree(hHeap, 0, buffer);
 	HeapFree(hHeap, 0, tmp_buffer);

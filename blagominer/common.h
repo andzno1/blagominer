@@ -134,6 +134,7 @@ struct t_network_info {
 	std::string proxyport;
 	size_t send_interval;
 	size_t update_interval;
+	size_t proxy_update_interval;
 	int network_quality;
 	std::vector<t_session> sessions;
 	std::thread sender;
