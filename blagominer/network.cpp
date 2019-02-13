@@ -26,6 +26,7 @@ void init_network_info() {
 	burst->network->send_interval = 100;
 	burst->network->update_interval = 1000;
 	burst->network->network_quality = -1;
+	burst->network->stopSender = false;
 
 	bhd->network = std::make_shared<t_network_info>();
 	bhd->network->nodeaddr = "localhost";
@@ -39,6 +40,7 @@ void init_network_info() {
 	bhd->network->send_interval = 100;
 	bhd->network->update_interval = 1000;
 	bhd->network->network_quality = -1;
+	bhd->network->stopSender = false;
 }
 
 char* GetJSON(std::shared_ptr<t_coin_info> coinInfo, char const *const req) {
@@ -435,14 +437,15 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 
 	for (; !exit_flag;)
 	{
-		if (stopThreads == 1)
+		if (coinInfo->network->stopSender == 1)
 		{
 			HeapFree(hHeap, 0, buffer);
 			return;
 		}
 
 		const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
-		for (auto iter = coinInfo->mining->shares.begin(); iter != coinInfo->mining->shares.end() && !exit_flag && !stopThreads;)
+		for (auto iter = coinInfo->mining->shares.begin(); iter != coinInfo->mining->shares.end()
+			&& !exit_flag && !coinInfo->network->stopSender;)
 		{
 			//Гасим шару если она больше текущего targetDeadline, актуально для режима Proxy
 			if ((iter->best / coinInfo->mining->currentBaseTarget) > coinInfo->mining->bests[Get_index_acc(iter->account_id, coinInfo, targetDeadlineInfo)].targetDeadline)
@@ -554,7 +557,8 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 		if (!coinInfo->network->sessions.empty())
 		{
 			EnterCriticalSection(&coinInfo->locks->sessionsLock);
-			for (auto iter = coinInfo->network->sessions.begin(); iter != coinInfo->network->sessions.end() && !exit_flag && !stopThreads;)
+			for (auto iter = coinInfo->network->sessions.begin(); iter != coinInfo->network->sessions.end() &&
+				!exit_flag && !coinInfo->network->stopSender;)
 			{
 				ConnectSocket = iter->Socket;
 
@@ -768,8 +772,7 @@ void updater_i(std::shared_ptr<t_coin_info> coinInfo)
 		exit(2);
 	}
 	for (; !exit_flag;) {
-
-		if (pollLocal(coinInfo) && !coinInfo->mining->newMiningInfoReceived) {
+		if (pollLocal(coinInfo) && coinInfo->mining->enable && !coinInfo->mining->newMiningInfoReceived) {
 			setnewMiningInfoReceived(coinInfo, true);
 		}
 
@@ -879,10 +882,10 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 										size_t sigLen = xstr2strr(sig, 33, gmi["generationSignature"].GetString());
 										bool sigDiffer = signaturesDiffer(coinInfo, sig);
 										
-										if (sigLen == 0)
+										if (sigLen <= 1) {
 											Log("*! GMI %s: Node response: Error decoding generationsignature: %s", updaterName, Log_server(buffer));
-
-										if (sigDiffer) {
+										}
+										else if (sigDiffer) {
 											newBlock = true;
 											setSignature(coinInfo, sig);
 											if (!loggingConfig.logAllGetMiningInfos) {
@@ -891,9 +894,27 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 										}
 									}
 									if (gmi.HasMember("targetDeadline")) {
-										if (gmi["targetDeadline"].IsString())	setTargetDeadlineInfo(coinInfo, _strtoui64(gmi["targetDeadline"].GetString(), 0, 10));
-										else
-											if (gmi["targetDeadline"].IsInt64()) setTargetDeadlineInfo(coinInfo, gmi["targetDeadline"].GetInt64());
+										unsigned long long newTargetDeadlineInfo = 0;
+										if (gmi["targetDeadline"].IsString()) {
+											newTargetDeadlineInfo = _strtoui64(gmi["targetDeadline"].GetString(), 0, 10);
+										}
+										else {
+											newTargetDeadlineInfo = gmi["targetDeadline"].GetInt64();
+										}
+										Log("%s: newTargetDeadlineInfo: %llu", updaterName, newTargetDeadlineInfo);
+										Log("%s: my_target_deadline: %llu", updaterName, coinInfo->mining->my_target_deadline);
+										if ((newTargetDeadlineInfo > 0) && (newTargetDeadlineInfo < coinInfo->mining->my_target_deadline)) {
+											setTargetDeadlineInfo(coinInfo, newTargetDeadlineInfo);
+											if (loggingConfig.logAllGetMiningInfos || newBlock) {
+												Log("%s: Target deadline from pool is lower than deadline set in the configuration. Updating targetDeadline: %llu", updaterName, newTargetDeadlineInfo);
+											}
+										}
+										else {
+											setTargetDeadlineInfo(coinInfo, coinInfo->mining->my_target_deadline);
+											if (loggingConfig.logAllGetMiningInfos || newBlock) {
+												Log("%s: Using target deadline from configuration: %llu", updaterName, coinInfo->mining->my_target_deadline);
+											}
+										}
 									}
 								}
 							}

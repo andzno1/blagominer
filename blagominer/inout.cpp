@@ -239,7 +239,7 @@ int getRowsCorrupted() {
 }
 
 void clearProgress(){
-wclear(win_progress);
+	wclear(win_progress);
 }
 void clearCorrupted() {
 	if (currentlyDisplayingCorruptedPlotFiles()) {

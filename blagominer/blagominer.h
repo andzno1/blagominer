@@ -8,7 +8,8 @@
 #include "updateChecker.h"
 
 // miner
-extern volatile int stopThreads;
+extern volatile bool stopSender;
+extern volatile bool stopThreads;
 extern char *pass;								// passphrase for solo mining
 extern unsigned long long total_size;			// sum of all local plot file sizes
 extern std::vector<std::string> paths_dir;      // plot paths

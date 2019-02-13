@@ -136,6 +136,8 @@ struct t_network_info {
 	size_t update_interval;
 	int network_quality;
 	std::vector<t_session> sessions;
+	std::thread sender;
+	volatile bool stopSender;
 };
 
 struct t_coin_info {
