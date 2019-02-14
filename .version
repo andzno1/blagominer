@@ -1,3 +1,6 @@
 {
-    "release" : "1.180120"
+    "release" : "1.190214",
+    "major" : 1,
+    "minor" : 190214,
+    "revision" : 0
 }
