@@ -903,8 +903,10 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 										else {
 											newTargetDeadlineInfo = gmi["targetDeadline"].GetInt64();
 										}
-										Log("%s: newTargetDeadlineInfo: %llu", updaterName, newTargetDeadlineInfo);
-										Log("%s: my_target_deadline: %llu", updaterName, coinInfo->mining->my_target_deadline);
+										if (loggingConfig.logAllGetMiningInfos || newBlock) {
+											Log("%s: newTargetDeadlineInfo: %llu", updaterName, newTargetDeadlineInfo);
+											Log("%s: my_target_deadline: %llu", updaterName, coinInfo->mining->my_target_deadline);
+										}
 										if ((newTargetDeadlineInfo > 0) && (newTargetDeadlineInfo < coinInfo->mining->my_target_deadline)) {
 											setTargetDeadlineInfo(coinInfo, newTargetDeadlineInfo);
 											if (loggingConfig.logAllGetMiningInfos || newBlock) {
