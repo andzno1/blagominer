@@ -7,10 +7,10 @@
 #include <math.h>
 
 // blago version
-extern const int versionMajor;
-extern const int versionMinor;
+extern const unsigned int versionMajor;
+extern const unsigned int versionMinor;
+extern const unsigned int versionRevision;
 extern std::string version;
-extern bool newVersionAvailable;
 
 extern double checkForUpdateInterval;
 extern bool exit_flag;							// true if miner is to be exited

@@ -1,7 +1,8 @@
 #include "common.h"
 
-const int versionMajor = 1;
-const int versionMinor = 190213;
+const unsigned int versionMajor = 1;
+const unsigned int versionMinor = 190214;
+const unsigned int versionRevision = 0;
 
 // blago version
 #ifdef __AVX512F__
@@ -18,7 +19,7 @@ std::string versionSuffix = "_SSE";
 #endif
 #endif 
 #endif 
-std::string version = std::to_string(versionMajor) + "." + std::to_string(versionMinor) + versionSuffix;
+std::string version = std::to_string(versionMajor) + "." + std::to_string(versionMinor) + "." + std::to_string(versionRevision) + versionSuffix;
 
 double checkForUpdateInterval = 1;
 bool exit_flag = false;

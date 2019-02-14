@@ -1,7 +1,5 @@
 #include "updateChecker.h"
 
-bool newVersionAvailable = false;
-
 LPCWSTR versionUrl = L"https://raw.githubusercontent.com/andzno1/blagominer/master/.version";
 
 double getDiffernceinDays(const std::time_t end, std::time_t beginning) {
@@ -54,32 +52,28 @@ void checkForUpdate() {
 				}
 				else {
 					if (document.IsObject()) {
-						if (document.HasMember("release") && document["release"].IsString()) {
-							std::string releaseVersion = document["release"].GetString();
-
-							std::stringstream ss(releaseVersion);
-							std::string item;
-							std::vector<std::string> splittedStrings;
-							while (std::getline(ss, item, '.'))
-							{
-								splittedStrings.push_back(item);
-							}
-							if (splittedStrings.size() == 2) {
-								int releaseVersionMajor = std::stoi(splittedStrings.at(0));
-								int releaseVersionMinor = std::stoi(splittedStrings.at(1));
-
-								if (releaseVersionMajor >= versionMajor && releaseVersionMinor > versionMinor) {
-									Log("UPDATE CHECKER: New verison availabe: %i.%i", releaseVersionMajor, releaseVersionMinor);
-									newVersionAvailable = true;
-									showNewVersion(releaseVersion);
-								}
-								else {
-									Log("UPDATE CHECKER: The miner is up to date (%i.%i)", versionMajor, versionMinor);
-								}
+						if (document.HasMember("major") && document["major"].IsUint() &&
+							document.HasMember("minor") && document["minor"].IsUint() &&
+							document.HasMember("revision") && document["revision"].IsUint()) {
+							
+							unsigned int major = document["major"].GetUint();
+							unsigned int minor = document["minor"].GetUint();
+							unsigned int revision = document["revision"].GetUint();
+							
+							if (major > versionMajor ||
+								(major >= versionMajor && minor > versionMinor) ||
+								(major >= versionMajor && minor >= versionMinor && revision > versionRevision)) {
+								std::string releaseVersion =
+									std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(revision);
+								Log("UPDATE CHECKER: New version availabe: %s", releaseVersion.c_str());
+								showNewVersion(releaseVersion);
 							}
 							else {
-								Log("UPDATE CHECKER: Error parsing release version number.");
+								Log("UPDATE CHECKER: The miner is up to date (%i.%i)", versionMajor, versionMinor);
 							}
+						}
+						else {
+							Log("UPDATE CHECKER: Error parsing release version number.");
 						}
 					}
 				}
