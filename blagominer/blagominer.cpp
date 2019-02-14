@@ -951,6 +951,10 @@ static void resizeConsole(SHORT newColumns, SHORT newRows) {
 		Log("New buffer size csbi.dwSize X: %hi, Y: %hi", csbi.dwSize.X, csbi.dwSize.Y);
 		Log("New window size X: %hi, Y: %hi", currentWindowSize.X, currentWindowSize.Y);
 
+		Log("Hiding scroll bars.");
+		bSuccess = ShowScrollBar(consoleWindow, SB_BOTH, FALSE);
+		handleReturn(bSuccess);
+
 		if (currentWindowSize.X != newBufferSize.X || currentWindowSize.Y != newBufferSize.Y) {
 			Log("Failed to resize window. Retrying.");
 		}
