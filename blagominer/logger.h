@@ -8,7 +8,6 @@
 
 
 //logger variables
-extern bool use_log;
 extern FILE * fp_Log;
 extern std::mutex mLog;
 extern std::list<std::string> loggingQueue;
@@ -29,6 +28,9 @@ void Csv_Submitted(Coins coin, const unsigned long long height, const unsigned l
 template<typename ... Args>
 void Log(const std::string& format, Args ... args)
 {
+	if (!loggingConfig.enableLogging) {
+		return;
+	}
 	size_t size = snprintf(nullptr, 0, format.c_str(), args ...) + 1; // Extra space for '\0'
 	std::unique_ptr<char[]> buf(new char[size]);
 	snprintf(buf.get(), size, format.c_str(), args ...);

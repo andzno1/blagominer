@@ -75,6 +75,7 @@ struct t_directory_info {
 };
 
 struct t_logging {
+	bool enableLogging;
 	bool logAllGetMiningInfos;				// Prevent spamming the log file by only outputting
 											// GMI when there is a change in the GMI
 };

@@ -67,6 +67,7 @@ void init_mining_info() {
 }
 
 void init_logging_config() {
+	loggingConfig.enableLogging = true;
 	loggingConfig.logAllGetMiningInfos = false;
 }
 
@@ -125,7 +126,18 @@ int load_config(char const *const filename)
 	if (document.IsObject())
 	{	// Document is a JSON value represents the root of DOM. Root can be either an object or array.
 
-		if (document.HasMember("UseLog") && (document["UseLog"].IsBool()))	use_log = document["UseLog"].GetBool();
+		if (document.HasMember("Logging") && document["Logging"].IsObject())
+		{
+			Log("### Loading configuration for Logging ###");
+
+			const Value& logging = document["Logging"];
+
+			if (logging.HasMember("logAllGetMiningInfos") && (logging["logAllGetMiningInfos"].IsBool()))	loggingConfig.logAllGetMiningInfos = logging["logAllGetMiningInfos"].GetBool();
+			Log("logAllGetMiningInfos: %d", loggingConfig.logAllGetMiningInfos);
+
+			if (logging.HasMember("UseLog") && (logging["UseLog"].IsBool()))	loggingConfig.enableLogging = logging["UseLog"].GetBool();
+			Log("UseLog: %d", loggingConfig.enableLogging);
+		}
 
 		Log_init();
 
@@ -328,16 +340,6 @@ int load_config(char const *const filename)
 				if (settingsBhd.HasMember("POC2StartBlock") && (settingsBhd["POC2StartBlock"].IsUint64())) bhd->mining->POC2StartBlock = settingsBhd["POC2StartBlock"].GetUint64();
 				Log("POC2StartBlock: %llu", bhd->mining->POC2StartBlock);
 			}
-		}
-
-		if (document.HasMember("Logging") && document["Logging"].IsObject())
-		{
-			Log("### Loading configuration for Logging ###");
-
-			const Value& logging = document["Logging"];
-
-			if (logging.HasMember("logAllGetMiningInfos") && (logging["logAllGetMiningInfos"].IsBool()))	loggingConfig.logAllGetMiningInfos = logging["logAllGetMiningInfos"].GetBool();
-			Log("logAllGetMiningInfos: %d", loggingConfig.logAllGetMiningInfos);
 		}
 				
 		Log("### Loading general configuration ###");

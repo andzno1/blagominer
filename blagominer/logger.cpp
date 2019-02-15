@@ -6,8 +6,6 @@ const std::string csvFailBhd = "fail-" + std::string(coinNames[BHD]) + ".csv";
 const std::string csvSubmittedBurst = "stat-" + std::string(coinNames[BURST]) + ".csv";
 const std::string csvSubmittedBhd = "stat-" + std::string(coinNames[BHD]) + ".csv";
 
-bool use_log = true;
-
 std::mutex mLog;
 std::mutex mCsvFailBurst;
 std::mutex mCsvFailBhd;
@@ -207,7 +205,7 @@ void Csv_Submitted(Coins coin, const unsigned long long height, const unsigned l
 
 void Log_init(void)
 {
-	if (use_log)
+	if (loggingConfig.enableLogging)
 	{
 		std::stringstream ss;
 		if (CreateDirectory(L"Logs", nullptr) == ERROR_PATH_NOT_FOUND)
@@ -215,7 +213,7 @@ void Log_init(void)
 			bm_wattron(12);
 			bm_wprintw("CreateDirectory failed (%d)\n", GetLastError(), 0);
 			bm_wattroff(12);
-			use_log = false;
+			loggingConfig.enableLogging = false;
 			return;
 		}
 		std::time_t rawtime = std::time(nullptr);
@@ -229,7 +227,7 @@ void Log_init(void)
 			bm_wattron(12);
 			bm_wprintw("LOG: file openinig error\n", 0);
 			bm_wattroff(12);
-			use_log = false;
+			loggingConfig.enableLogging = false;
 		}
 		else {
 			writer = std::thread(_writer);
@@ -257,7 +255,7 @@ void Log_end(void)
 const char* Log_server(char const *const strLog)
 {
 	size_t len_str = strlen(strLog);
-	if ((len_str> 0) && use_log)
+	if ((len_str> 0) && loggingConfig.enableLogging)
 	{
 		char * Msg_log = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, len_str * 2 + 1);
 		if (Msg_log == nullptr)	ShowMemErrorExit();
