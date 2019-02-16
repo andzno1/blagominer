@@ -128,8 +128,6 @@ struct t_network_info {
 	std::string nodeport;
 	std::string updateraddr;
 	std::string updaterport;
-	std::string infoaddr;
-	std::string infoport;
 	bool enable_proxy;						// enable client/server functionality
 	std::string proxyport;
 	size_t send_interval;

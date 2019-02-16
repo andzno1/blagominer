@@ -218,18 +218,6 @@ int load_config(char const *const filename)
 				}
 				Log("Updater port: %s", burst->network->updaterport.c_str());
 
-				if (settingsBurst.HasMember("InfoAddr") && settingsBurst["InfoAddr"].IsString())	burst->network->infoaddr = settingsBurst["InfoAddr"].GetString();
-				else burst->network->infoaddr = burst->network->updateraddr;
-				Log("Info address: %s", burst->network->infoaddr.c_str());
-
-				if (settingsBurst.HasMember("InfoPort"))
-				{
-					if (settingsBurst["InfoPort"].IsString())	burst->network->infoport = settingsBurst["InfoPort"].GetString();
-					else if (settingsBurst["InfoPort"].IsUint())	burst->network->infoport = std::to_string(settingsBurst["InfoPort"].GetUint());
-				}
-				else burst->network->infoport = burst->network->updaterport;
-				Log("Info port: %s", burst->network->infoport.c_str());
-
 				if (settingsBurst.HasMember("SendInterval") && (settingsBurst["SendInterval"].IsUint())) burst->network->send_interval = (size_t)settingsBurst["SendInterval"].GetUint();
 				Log("SendInterval: %zu", burst->network->send_interval);
 
@@ -311,18 +299,6 @@ int load_config(char const *const filename)
 				}
 				Log("Updater port: %s", bhd->network->updaterport.c_str());
 
-				if (settingsBhd.HasMember("InfoAddr") && settingsBhd["InfoAddr"].IsString())	bhd->network->infoaddr = settingsBhd["InfoAddr"].GetString();
-				else bhd->network->infoaddr = bhd->network->updateraddr;
-				Log("Info address: %s", bhd->network->infoaddr.c_str());
-
-				if (settingsBhd.HasMember("InfoPort"))
-				{
-					if (settingsBhd["InfoPort"].IsString())	bhd->network->infoport = settingsBhd["InfoPort"].GetString();
-					else if (settingsBhd["InfoPort"].IsUint())	bhd->network->infoport = std::to_string(settingsBhd["InfoPort"].GetUint());
-				}
-				else bhd->network->infoport = bhd->network->updaterport;
-				Log("Info port: ", bhd->network->infoport.c_str());
-				
 				if (settingsBhd.HasMember("SendInterval") && (settingsBhd["SendInterval"].IsUint())) bhd->network->send_interval = (size_t)settingsBhd["SendInterval"].GetUint();
 				Log("SendInterval: %zu", bhd->network->send_interval);
 
@@ -1125,9 +1101,7 @@ int main(int argc, char **argv) {
 		if (updateripBhd == nullptr) ShowMemErrorExit();
 		char* nodeipBhd = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
 		if (nodeipBhd == nullptr) ShowMemErrorExit();
-		char* infoipBhd = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
-		if (infoipBhd == nullptr) ShowMemErrorExit();	bm_wattron(11);
-
+		
 		hostname_to_ip(bhd->network->nodeaddr.c_str(), nodeipBhd);
 		bm_wprintw("BHD pool address    %s (ip %s:%s)\n", bhd->network->nodeaddr.c_str(), nodeipBhd, bhd->network->nodeport.c_str(), 0);
 

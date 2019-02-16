@@ -18,8 +18,6 @@ void init_network_info() {
 	burst->network->nodeport = "8125";
 	burst->network->updateraddr = "localhost";
 	burst->network->updaterport = "8125";
-	burst->network->infoaddr = "localhost";
-	burst->network->infoport = "8125";
 	burst->network->enable_proxy = false;
 	burst->network->proxyport = "8125";
 	burst->network->send_interval = 100;
@@ -33,8 +31,6 @@ void init_network_info() {
 	bhd->network->nodeport = "8732";
 	bhd->network->updateraddr = "localhost";
 	bhd->network->updaterport = "8732";
-	bhd->network->infoaddr = "localhost";
-	bhd->network->infoport = "8732";
 	bhd->network->enable_proxy = false;
 	bhd->network->proxyport = "8732";
 	bhd->network->send_interval = 100;
