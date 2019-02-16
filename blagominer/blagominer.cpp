@@ -44,7 +44,6 @@ void init_mining_info() {
 	burst->mining->deadline = 0;
 	burst->mining->scoop = 0;
 	burst->mining->enable = true;
-	burst->mining->show_winner = false;
 	burst->mining->my_target_deadline = MAXDWORD; // 4294967295;
 	burst->mining->POC2StartBlock = 502000;
 	burst->mining->dirs = std::vector<std::shared_ptr<t_directory_info>>();
@@ -60,7 +59,6 @@ void init_mining_info() {
 	bhd->mining->deadline = 0;
 	bhd->mining->scoop = 0;
 	bhd->mining->enable = false;
-	bhd->mining->show_winner = false;
 	bhd->mining->my_target_deadline = MAXDWORD; // 4294967295;
 	bhd->mining->POC2StartBlock = 0;
 	bhd->mining->dirs = std::vector<std::shared_ptr<t_directory_info>>();
@@ -243,9 +241,6 @@ int load_config(char const *const filename)
 
 				if (settingsBurst.HasMember("POC2StartBlock") && (settingsBurst["POC2StartBlock"].IsUint64())) burst->mining->POC2StartBlock = settingsBurst["POC2StartBlock"].GetUint64();
 				Log("POC2StartBlock: %llu", burst->mining->POC2StartBlock);
-
-				if (settingsBurst.HasMember("ShowWinner") && (settingsBurst["ShowWinner"].IsBool()))	burst->mining->show_winner = settingsBurst["ShowWinner"].GetBool();
-				Log("ShowWinner:  %d", burst->mining->show_winner);
 			}
 		}
 
@@ -1108,11 +1103,6 @@ int main(int argc, char **argv) {
 		if (burst->network->updateraddr.length() > 3) hostname_to_ip(burst->network->updateraddr.c_str(), updateripBurst);
 		bm_wprintw("BURST updater address %s (ip %s:%s)\n", burst->network->updateraddr.c_str(), updateripBurst, burst->network->updaterport.c_str(), 0);
 
-		if (burst->mining->show_winner) {
-			if (burst->network->infoaddr.length() > 3) hostname_to_ip(burst->network->infoaddr.c_str(), infoipBurst);
-			bm_wprintw("BURST Info address    %s (ip %s:%s)\n", burst->network->infoaddr.c_str(), infoipBurst, burst->network->infoport.c_str(), 0);
-		}
-		
 		HeapFree(hHeap, 0, updateripBurst);
 		HeapFree(hHeap, 0, nodeipBurst);
 
@@ -1598,12 +1588,6 @@ int main(int argc, char **argv) {
 
 			//prepare for next round if not yet done
 			if (miningCoin->mining->state != DONE) memcpy(&local_32, &global_32, sizeof(global_32));
-			//show winner of last round
-			if (miningCoin->coin == BURST && miningCoin->mining->show_winner && !exit_flag) {
-				if (showWinnerBurst.joinable()) showWinnerBurst.join();
-				showWinnerBurst = std::thread(ShowWinner, miningCoin, miningCoin->mining->currentHeight);
-			}
-
 		}
 	}
 		

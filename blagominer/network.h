@@ -15,13 +15,8 @@ extern std::map <u_long, unsigned long long> satellite_size; // Структура с объе
 
 const int maxSubmissionRetries = 3;
 
-extern std::thread showWinnerBurst;
-
 void init_network_info();
 
-char* GetJSON(std::shared_ptr<t_coin_info> coinInfo, char const *const req);
-
-void ShowWinner(std::shared_ptr<t_coin_info> coinInfo, unsigned long long const num_block);
 bool pollLocal(std::shared_ptr<t_coin_info> coinInfo);
 
 void hostname_to_ip(char const *const  in_addr, char* out_addr);
