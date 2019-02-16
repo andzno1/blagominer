@@ -2,7 +2,7 @@
 
 const unsigned int versionMajor = 1;
 const unsigned int versionMinor = 190216;
-const unsigned int versionRevision = 0;
+const unsigned int versionRevision = 1;
 
 // blago version
 #ifdef __AVX512F__
