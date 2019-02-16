@@ -1,7 +1,7 @@
 #include "common.h"
 
 const unsigned int versionMajor = 1;
-const unsigned int versionMinor = 190214;
+const unsigned int versionMinor = 190216;
 const unsigned int versionRevision = 0;
 
 // blago version
