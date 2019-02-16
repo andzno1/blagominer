@@ -28,4 +28,4 @@ Due to the new dual mining ability some fields in the configuration file have be
 | `"Burst"."ProxyUpdateInterval"` and `"BHD"."ProxyUpdateInterval"` | Interval in milliseconds for the proxy checking for new client requests.  |
 | `ShowCorruptedPlotFiles`  | If you want to see possibly corrupted plot files in the console windows, set this to `true`, `false` otherwise.  |
 | `CheckForUpdateIntervalInDays`  | Check for new versions every x days. Set it to `0` to disable update check.  |
-| `"Logging"."logAllGetMiningInfos"`  | Set it to `false` if you want to log every received mining information, even if there is no new information. This increases the log file size quite fast. Set it to `true` otherwise. |
+| `"Logging"."logAllGetMiningInfos"`  | Set it to `false` if you want to log every received mining information and all updates sent by the proxies, even if there is no new information. This increases the log file size quite fast. Set it to `true` otherwise. |
