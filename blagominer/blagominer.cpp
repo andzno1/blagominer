@@ -1070,9 +1070,7 @@ int main(int argc, char **argv) {
 		if (updateripBurst == nullptr) ShowMemErrorExit();
 		char* nodeipBurst = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
 		if (nodeipBurst == nullptr) ShowMemErrorExit();
-		char* infoipBurst = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
-		if (infoipBurst == nullptr) ShowMemErrorExit();	bm_wattron(11);
-
+		
 		hostname_to_ip(burst->network->nodeaddr.c_str(), nodeipBurst);
 		bm_wprintw("BURST pool address    %s (ip %s:%s)\n", burst->network->nodeaddr.c_str(), nodeipBurst, burst->network->nodeport.c_str(), 0);
 
