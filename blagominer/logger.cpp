@@ -253,7 +253,7 @@ void Log_end(void)
 	}
 }
 
-const char* Log_server(char const *const strLog)
+std::string Log_server(char const *const strLog)
 {
 	size_t len_str = strlen(strLog);
 	if ((len_str> 0) && loggingConfig.enableLogging)
@@ -285,7 +285,9 @@ const char* Log_server(char const *const strLog)
 					}
 					else Msg_log[j] = strLog[i];
 		}
-		return Msg_log;
+		std::string ret(Msg_log);
+		HeapFree(hHeap, 0, Msg_log);
+		return ret;
 	}
 	return "";
 }

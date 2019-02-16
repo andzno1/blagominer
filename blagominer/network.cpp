@@ -738,7 +738,7 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 					else {
 						increaseNetworkQuality(coinInfo);
 						if (loggingConfig.logAllGetMiningInfos) {
-							Log("* GMI %s: Received: %s", updaterName, Log_server(buffer));
+							Log("* GMI %s: Received: %s", updaterName, Log_server(buffer).c_str());
 						}
 
 						// locate HTTP header
@@ -749,7 +749,7 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 							if (loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(find).HasParseError())
 								Log("*! GMI %s: error parsing JSON message from pool", updaterName);
 							else if (!loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(find).HasParseError())
-								Log("*! GMI %s: error parsing JSON message from pool: %s", updaterName, Log_server(buffer));
+								Log("*! GMI %s: error parsing JSON message from pool: %s", updaterName, Log_server(buffer).c_str());
 							else {
 								if (gmi.IsObject())
 								{
@@ -777,13 +777,13 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 										bool sigDiffer = signaturesDiffer(coinInfo, sig);
 										
 										if (sigLen <= 1) {
-											Log("*! GMI %s: Node response: Error decoding generationsignature: %s", updaterName, Log_server(buffer));
+											Log("*! GMI %s: Node response: Error decoding generationsignature: %s", updaterName, Log_server(buffer).c_str());
 										}
 										else if (sigDiffer) {
 											newBlock = true;
 											setSignature(coinInfo, sig);
 											if (!loggingConfig.logAllGetMiningInfos) {
-												Log("* GMI %s: Received new mining info: %s", updaterName, Log_server(buffer));
+												Log("* GMI %s: Received new mining info: %s", updaterName, Log_server(buffer).c_str());
 											}
 										}
 									}

@@ -15,7 +15,7 @@ extern std::list<std::string> loggingQueue;
 //logger functions
 void Log_init(void);
 void Log_end(void);
-const char* Log_server(char const *const strLog);
+std::string Log_server(char const *const strLog);
 
 // CSV functions
 void Csv_Init();
