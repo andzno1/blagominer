@@ -25,9 +25,7 @@ void _writer()
 				str = loggingQueue.front();
 				loggingQueue.pop_front();
 			}
-			SYSTEMTIME cur_time;
-			GetLocalTime(&cur_time);
-			fprintf_s(fp_Log, "%02d:%02d:%02d %s\n", cur_time.wHour, cur_time.wMinute, cur_time.wSecond, str.c_str());
+			fprintf_s(fp_Log, "%s\n", str.c_str());
 			fflush(fp_Log);
 		}
 		else {
