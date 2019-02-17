@@ -75,6 +75,9 @@
     <ClInclude Include="updateChecker.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
+    <ClInclude Include="loggerCsv.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -129,6 +132,9 @@
       <Filter>Quelldateien</Filter>
     </ClCompile>
     <ClCompile Include="updateChecker.cpp">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+    <ClCompile Include="loggerCsv.cpp">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>

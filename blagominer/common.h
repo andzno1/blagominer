@@ -5,6 +5,7 @@
 #include <vector>
 #include <ctime>
 #include <math.h>
+#include "logger.h"
 
 // blago version
 extern const unsigned int versionMajor;

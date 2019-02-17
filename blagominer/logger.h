@@ -1,6 +1,5 @@
 #pragma once
 #include "error.h"
-#include "common.h"
 #include <mutex>
 #include <list>
 #include <ctime>
@@ -12,23 +11,17 @@ extern FILE * fp_Log;
 extern std::mutex mLog;
 extern std::list<std::string> loggingQueue;
 
+extern bool loggingInitialized;
+
 //logger functions
 void Log_init(void);
 void Log_end(void);
 std::string Log_server(char const *const strLog);
 
-// CSV functions
-void Csv_Init();
-void Csv_Fail(Coins coin, const unsigned long long height, const std::string& file, const unsigned long long baseTarget,
-	const unsigned long long netDiff, const unsigned long long nonce, const unsigned long long deadlineSent,
-	const unsigned long long deadlineConfirmed, const std::string& response);
-void Csv_Submitted(Coins coin, const unsigned long long height, const unsigned long long baseTarget,
-	const unsigned long long netDiff, const double roundTime, const bool completedRound, const unsigned long long deadline);
-
 template<typename ... Args>
 void Log(const std::string& format, Args ... args)
 {
-	if (!loggingConfig.enableLogging) {
+	if (!loggingInitialized) {
 		return;
 	}
 	SYSTEMTIME cur_time;

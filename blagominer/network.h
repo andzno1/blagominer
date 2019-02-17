@@ -1,6 +1,7 @@
 #pragma once
 #include "stdafx.h"
 #include "logger.h"
+#include "loggerCsv.h"
 #include "error.h"
 #include "accounts.h"
 #include "common.h"

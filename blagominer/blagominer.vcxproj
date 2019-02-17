@@ -657,6 +657,7 @@
     <ClInclude Include="filemonitor.h" />
     <ClInclude Include="InstructionSet.h" />
     <ClInclude Include="logger.h" />
+    <ClInclude Include="loggerCsv.h" />
     <ClInclude Include="mshabal.h" />
     <ClInclude Include="picohttpparser.h" />
     <ClInclude Include="shabal.h" />
@@ -676,6 +677,7 @@
     <ClCompile Include="common.cpp" />
     <ClCompile Include="filemonitor.cpp" />
     <ClCompile Include="logger.cpp" />
+    <ClCompile Include="loggerCsv.cpp" />
     <ClCompile Include="mshabal_256.c" />
     <ClCompile Include="mshabal_128.c" />
     <ClCompile Include="inout.cpp" />

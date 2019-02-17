@@ -760,6 +760,10 @@ bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& allC
 	std::shared_ptr<t_coin_info > coinCurrentlyMining,
 	std::vector<std::shared_ptr<t_coin_info>>& currentQueue) {
 	if (getNewMiningInfo(allCoins, coinCurrentlyMining, currentQueue)) {
+		if (currentQueue.empty()) {
+			Log("CRITICAL: Current queue is empty. This should not happen.");
+			return false;
+		}
 		// Checking only the first element, since it has already the highest priority (but lowest value).
 		if (currentQueue.front()->mining->enable) {
 			if (currentQueue.front()->mining->priority < coinCurrentlyMining->mining->priority) {
