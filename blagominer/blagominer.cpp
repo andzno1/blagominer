@@ -66,6 +66,7 @@ void init_mining_info() {
 
 void init_logging_config() {
 	loggingConfig.enableLogging = true;
+	loggingConfig.enableCsv = true;
 	loggingConfig.logAllGetMiningInfos = false;
 }
 
@@ -135,6 +136,9 @@ int load_config(char const *const filename)
 
 			if (logging.HasMember("UseLog") && (logging["UseLog"].IsBool()))	loggingConfig.enableLogging = logging["UseLog"].GetBool();
 			Log("UseLog: %d", loggingConfig.enableLogging);
+
+			if (logging.HasMember("EnableCsv") && (logging["EnableCsv"].IsBool()))	loggingConfig.enableCsv = logging["EnableCsv"].GetBool();
+			Log("EnableCsv: %d", loggingConfig.enableCsv);
 		}
 
 		Log_init();
