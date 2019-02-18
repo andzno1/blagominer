@@ -116,7 +116,7 @@ int load_config(char const *const filename)
 	fclose(pFile);
 
 	Document document;	// Default template parameter uses UTF8 and MemoryPoolAllocator.
-	if (document.Parse<0>(json_).HasParseError()) {
+	if (document.Parse<kParseCommentsFlag>(json_).HasParseError()) {
 		fprintf(stderr, "\nJSON format error (offset %u) check miner.conf\n%s\n", (unsigned)document.GetErrorOffset(), GetParseError_En(document.GetParseError())); //(offset %s  %s", (unsigned)document.GetErrorOffset(), (char*)document.GetParseError());
 		system("pause");
 		exit(-1);
@@ -311,9 +311,6 @@ int load_config(char const *const filename)
 
 				if (settingsBhd.HasMember("TargetDeadline") && (settingsBhd["TargetDeadline"].IsInt64()))	bhd->mining->my_target_deadline = settingsBhd["TargetDeadline"].GetUint64();
 				Log("TargetDeadline: %llu", bhd->mining->my_target_deadline);
-
-				if (settingsBhd.HasMember("POC2StartBlock") && (settingsBhd["POC2StartBlock"].IsUint64())) bhd->mining->POC2StartBlock = settingsBhd["POC2StartBlock"].GetUint64();
-				Log("POC2StartBlock: %llu", bhd->mining->POC2StartBlock);
 			}
 		}
 				
