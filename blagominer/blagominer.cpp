@@ -357,6 +357,9 @@ int load_config(char const *const filename)
 		if (win_size_y < 20) win_size_y = 20;
 		Log("WinSizeY: %hi", win_size_y);
 
+		if (document.HasMember("LockWindowSize") && (document["LockWindowSize"].IsBool())) lockWindowSize = document["LockWindowSize"].GetBool();
+		Log("LockWindowSize: %d", lockWindowSize);
+
 #ifdef GPU_ON_C
 		if (document.HasMember("GPU_Platform") && (document["GPU_Platform"].IsInt())) gpu_devices.use_gpu_platform = (size_t)document["GPU_Platform"].GetUint();
 		Log("GPU_Platform: %u", gpu_devices.use_gpu_platform);
@@ -917,8 +920,10 @@ static void resizeConsole(SHORT newColumns, SHORT newRows) {
 		bSuccess = MoveWindow(consoleWindow, wSize.left, monitorInfo.rcWork.top, wSize.right - wSize.left, wSize.bottom - wSize.top, true);
 		handleReturn(bSuccess);
 
-		//Prevent resizing. Source: https://stackoverflow.com/a/47359526
-		SetWindowLong(consoleWindow, GWL_STYLE, GetWindowLong(consoleWindow, GWL_STYLE) & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX);
+		if (lockWindowSize) {
+			//Prevent resizing. Source: https://stackoverflow.com/a/47359526
+			SetWindowLong(consoleWindow, GWL_STYLE, GetWindowLong(consoleWindow, GWL_STYLE) & ~WS_MAXIMIZEBOX & ~WS_SIZEBOX);
+		}
 
 		Log("GetConsoleScreenBufferInfo");
 		bSuccess = GetConsoleScreenBufferInfo(hConsole, &csbi);

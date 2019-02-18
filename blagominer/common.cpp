@@ -21,6 +21,7 @@ std::string versionSuffix = "_SSE";
 #endif 
 std::string version = std::to_string(versionMajor) + "." + std::to_string(versionMinor) + "." + std::to_string(versionRevision) + versionSuffix;
 
+extern bool lockWindowSize = true;
 double checkForUpdateInterval = 1;
 bool exit_flag = false;
 

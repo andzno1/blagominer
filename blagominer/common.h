@@ -13,6 +13,7 @@ extern const unsigned int versionMinor;
 extern const unsigned int versionRevision;
 extern std::string version;
 
+extern bool lockWindowSize;
 extern double checkForUpdateInterval;
 extern bool exit_flag;							// true if miner is to be exited
 
