@@ -132,14 +132,14 @@ int load_config(char const *const filename)
 			const Value& logging = document["Logging"];
 
 			if (logging.HasMember("logAllGetMiningInfos") && (logging["logAllGetMiningInfos"].IsBool()))	loggingConfig.logAllGetMiningInfos = logging["logAllGetMiningInfos"].GetBool();
-			Log("logAllGetMiningInfos: %d", loggingConfig.logAllGetMiningInfos);
-
+			
 			if (logging.HasMember("UseLog") && (logging["UseLog"].IsBool()))	loggingConfig.enableLogging = logging["UseLog"].GetBool();
-			Log("UseLog: %d", loggingConfig.enableLogging);
-
+			
 			if (logging.HasMember("EnableCsv") && (logging["EnableCsv"].IsBool()))	loggingConfig.enableCsv = logging["EnableCsv"].GetBool();
-			Log("EnableCsv: %d", loggingConfig.enableCsv);
 		}
+		Log("logAllGetMiningInfos: %d", loggingConfig.logAllGetMiningInfos);
+		Log("UseLog: %d", loggingConfig.enableLogging);
+		Log("EnableCsv: %d", loggingConfig.enableCsv);
 
 		Log_init();
 
@@ -427,6 +427,7 @@ void GetCPUInfo(void)
 
 void GetPass(char const *const p_strFolderPath)
 {
+	Log("Reading passphrase.");
 	FILE * pFile;
 	unsigned char * buffer;
 	size_t len_pass;
@@ -752,6 +753,7 @@ bool getNewMiningInfo(const std::vector<std::shared_ptr<t_coin_info>>& allCoins,
 				// Setting interrupted to false in case the coin with changed signature has been
 				// scheduled for continuing.
 				pt->mining->state = QUEUED;
+				Log("Inserting %s into queue.", coinNames[pt->coin]);
 				insertIntoQueue(currentQueue, pt, coinCurrentlyMining);
 				newInfoAvailable = true;
 			}
@@ -765,7 +767,7 @@ bool needToInterruptMining(const std::vector<std::shared_ptr<t_coin_info>>& allC
 	std::vector<std::shared_ptr<t_coin_info>>& currentQueue) {
 	if (getNewMiningInfo(allCoins, coinCurrentlyMining, currentQueue)) {
 		if (currentQueue.empty()) {
-			Log("CRITICAL: Current queue is empty. This should not happen.");
+			Log("CRITICAL ERROR: Current queue is empty. This should not happen.");
 			return false;
 		}
 		// Checking only the first element, since it has already the highest priority (but lowest value).

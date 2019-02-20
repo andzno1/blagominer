@@ -20,6 +20,7 @@ void Csv_Init()
 	if (!loggingConfig.enableCsv) {
 		return;
 	}
+	Log("Initializing csv logging.");
 	const char* headersFail = "Timestamp epoch;Timestamp local;Height;File;baseTarget;Network difficulty;Nonce;Deadline sent;Deadline confirmed;Response\n";
 	const char* headersSubmitted = "Timestamp epoch;Timestamp local;Height;baseTarget;Network difficulty;Round time;Completed round; Deadline\n";
 	if ((burst->mining->enable || burst->network->enable_proxy) && !existsFile(csvFailBurst))

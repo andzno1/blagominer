@@ -69,7 +69,7 @@ void checkForUpdate() {
 								showNewVersion(releaseVersion);
 							}
 							else {
-								Log("UPDATE CHECKER: The miner is up to date (%i.%i)", versionMajor, versionMinor);
+								Log("UPDATE CHECKER: The miner is up to date (%i.%i.%i)", versionMajor, versionMinor, versionRevision);
 							}
 						}
 						else {
