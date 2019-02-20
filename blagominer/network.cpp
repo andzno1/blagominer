@@ -751,7 +751,7 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 
 						// locate HTTP header
 						char *find = strstr(buffer, "\r\n\r\n");
-						if (find == nullptr)	Log("*! GMI %s: error message from pool", updaterName);
+						if (find == nullptr)	Log("*! GMI %s: error message from pool: %s", updaterName, Log_server(buffer).c_str());
 						else {
 							rapidjson::Document gmi;
 							if (loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(find).HasParseError())
@@ -791,7 +791,7 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 											newBlock = true;
 											setSignature(coinInfo, sig);
 											if (!loggingConfig.logAllGetMiningInfos) {
-												Log("* GMI %s: Received new mining info: %s", updaterName, Log_server(buffer).c_str());
+												Log("*! GMI %s: Received new mining info: %s", updaterName, Log_server(buffer).c_str());
 											}
 										}
 									}
@@ -804,19 +804,19 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 											newTargetDeadlineInfo = gmi["targetDeadline"].GetInt64();
 										}
 										if (loggingConfig.logAllGetMiningInfos || newBlock) {
-											Log("%s: newTargetDeadlineInfo: %llu", updaterName, newTargetDeadlineInfo);
-											Log("%s: my_target_deadline: %llu", updaterName, coinInfo->mining->my_target_deadline);
+											Log("*! GMI %s: newTargetDeadlineInfo: %llu", updaterName, newTargetDeadlineInfo);
+											Log("*! GMI %s: my_target_deadline: %llu", updaterName, coinInfo->mining->my_target_deadline);
 										}
 										if ((newTargetDeadlineInfo > 0) && (newTargetDeadlineInfo < coinInfo->mining->my_target_deadline)) {
 											setTargetDeadlineInfo(coinInfo, newTargetDeadlineInfo);
 											if (loggingConfig.logAllGetMiningInfos || newBlock) {
-												Log("%s: Target deadline from pool is lower than deadline set in the configuration. Updating targetDeadline: %llu", updaterName, newTargetDeadlineInfo);
+												Log("*! GMI %s: Target deadline from pool is lower than deadline set in the configuration. Updating targetDeadline: %llu", updaterName, newTargetDeadlineInfo);
 											}
 										}
 										else {
 											setTargetDeadlineInfo(coinInfo, coinInfo->mining->my_target_deadline);
 											if (loggingConfig.logAllGetMiningInfos || newBlock) {
-												Log("%s: Using target deadline from configuration: %llu", updaterName, coinInfo->mining->my_target_deadline);
+												Log("*! GMI %s: Using target deadline from configuration: %llu", updaterName, coinInfo->mining->my_target_deadline);
 											}
 										}
 									}
