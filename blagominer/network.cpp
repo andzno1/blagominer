@@ -291,8 +291,12 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 		std::this_thread::yield();
 		std::this_thread::sleep_for(std::chrono::milliseconds(coinInfo->network->proxy_update_interval));
 	}
-	HeapFree(hHeap, 0, buffer);
-	HeapFree(hHeap, 0, tmp_buffer);
+	if (buffer != nullptr) {
+		HeapFree(hHeap, 0, buffer);
+	}
+	if (tmp_buffer != nullptr) {
+		HeapFree(hHeap, 0, tmp_buffer);
+	}
 }
 
 void decreaseNetworkQuality(std::shared_ptr<t_coin_info> coin) {
@@ -333,7 +337,9 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 	{
 		if (coinInfo->network->stopSender == 1)
 		{
-			HeapFree(hHeap, 0, buffer);
+			if (buffer != nullptr) {
+				HeapFree(hHeap, 0, buffer);
+			}
 			return;
 		}
 
@@ -654,7 +660,9 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 		std::this_thread::yield();
 		std::this_thread::sleep_for(std::chrono::milliseconds(coinInfo->network->send_interval));
 	}
-	HeapFree(hHeap, 0, buffer);
+	if (buffer != nullptr) {
+		HeapFree(hHeap, 0, buffer);
+	}
 	return;
 }
 
@@ -822,7 +830,9 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 		}
 		freeaddrinfo(result);
 	}
-	HeapFree(hHeap, 0, buffer);
+	if (buffer != nullptr) {
+		HeapFree(hHeap, 0, buffer);
+	}
 	return newBlock;
 }
 

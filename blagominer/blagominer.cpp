@@ -375,7 +375,9 @@ int load_config(char const *const filename)
 	}
 
 	Log("=== Config loaded ===");
-	HeapFree(hHeap, 0, json_);
+	if (json_ != nullptr) {
+		HeapFree(hHeap, 0, json_);
+	}
 	return 1;
 }
 
@@ -449,7 +451,9 @@ void GetPass(char const *const p_strFolderPath)
 		system("pause");
 		exit(-1);
 	}
-	HeapFree(hHeap, 0, filename);
+	if (filename != nullptr) {
+		HeapFree(hHeap, 0, filename);
+	}
 	_fseeki64(pFile, 0, SEEK_END);
 	size_t const lSize = _ftelli64(pFile);
 	_fseeki64(pFile, 0, SEEK_SET);
@@ -477,7 +481,9 @@ void GetPass(char const *const p_strFolderPath)
 				else memcpy(&pass[j], &buffer[i], 1);
 	}
 	//printf_s("\n%s\n",pass);
-	HeapFree(hHeap, 0, buffer);
+	if (buffer != nullptr) {
+		HeapFree(hHeap, 0, buffer);
+	}
 }
 
 
@@ -1011,7 +1017,9 @@ int main(int argc, char **argv) {
 
 	//load config
 	load_config(conf_filename);
-	HeapFree(hHeap, 0, conf_filename);
+	if (conf_filename != nullptr) {
+		HeapFree(hHeap, 0, conf_filename);
+	}
 
 	if (burst->network->enable_proxy && bhd->network->enable_proxy &&
 		burst->network->proxyport == bhd->network->proxyport) {
@@ -1092,8 +1100,12 @@ int main(int argc, char **argv) {
 		if (burst->network->updateraddr.length() > 3) hostname_to_ip(burst->network->updateraddr.c_str(), updateripBurst);
 		bm_wprintw("BURST updater address %s (ip %s:%s)\n", burst->network->updateraddr.c_str(), updateripBurst, burst->network->updaterport.c_str(), 0);
 
-		HeapFree(hHeap, 0, updateripBurst);
-		HeapFree(hHeap, 0, nodeipBurst);
+		if (updateripBurst != nullptr) {
+			HeapFree(hHeap, 0, updateripBurst);
+		}
+		if (nodeipBurst != nullptr) {
+			HeapFree(hHeap, 0, nodeipBurst);
+		}
 
 		RtlSecureZeroMemory(burst->mining->oldSignature, 33);
 		RtlSecureZeroMemory(burst->mining->signature, 33);
@@ -1121,8 +1133,12 @@ int main(int argc, char **argv) {
 		if (bhd->network->updateraddr.length() > 3) hostname_to_ip(bhd->network->updateraddr.c_str(), updateripBhd);
 		bm_wprintw("BHD updater address %s (ip %s:%s)\n", bhd->network->updateraddr.c_str(), updateripBhd, bhd->network->updaterport.c_str(), 0);
 		
-		HeapFree(hHeap, 0, updateripBhd);
-		HeapFree(hHeap, 0, nodeipBhd);
+		if (updateripBhd != nullptr) {
+			HeapFree(hHeap, 0, updateripBhd);
+		}
+		if (nodeipBhd != nullptr) {
+			HeapFree(hHeap, 0, nodeipBhd);
+		}
 
 		RtlSecureZeroMemory(bhd->mining->oldSignature, 33);
 		RtlSecureZeroMemory(bhd->mining->signature, 33);
@@ -1609,7 +1625,9 @@ int main(int argc, char **argv) {
 		DeleteCriticalSection(&bhd->locks->sharesLock);
 		DeleteCriticalSection(&bhd->locks->bestsLock);
 	}
-	HeapFree(hHeap, 0, p_minerPath);
+	if (p_minerPath != nullptr) {
+		HeapFree(hHeap, 0, p_minerPath);
+	}
 
 	WSACleanup();
 	Log("exit");

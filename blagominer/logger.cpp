@@ -113,7 +113,9 @@ std::string Log_server(char const *const strLog)
 					else Msg_log[j] = strLog[i];
 		}
 		std::string ret(Msg_log);
-		HeapFree(hHeap, 0, Msg_log);
+		if (Msg_log != nullptr) {
+			HeapFree(hHeap, 0, Msg_log);
+		}
 		return ret;
 	}
 	return "";
