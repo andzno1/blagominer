@@ -572,8 +572,8 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 									{
 										const char* answString = docToString(answ).c_str();
 										Log("Sender %s: Calculated and confirmed deadlines don't match. Fast block or corrupted file? Response: %s", senderName, answString);
-										std::thread{ Csv_Fail, coinInfo->coin, coinInfo->mining->currentHeight, iter->body.file_name, coinInfo->mining->currentBaseTarget, 4398046511104 / 240 / coinInfo->mining->currentBaseTarget, iter->body.nonce, iter->deadline,
-											ndeadline, answString }.detach();
+										std::thread{ Csv_Fail, coinInfo->coin, coinInfo->mining->currentHeight, iter->body.file_name, coinInfo->mining->currentBaseTarget,
+											4398046511104 / 240 / coinInfo->mining->currentBaseTarget, iter->body.nonce, iter->deadline, ndeadline, answString }.detach();
 										std::thread{ increaseConflictingDeadline, iter->body.file_name }.detach();
 										bm_wattron(6);
 										bm_wprintw("----Fast block or corrupted file?----\n%s sent deadline:\t%llu\nServer's deadline:\t%llu \n----\n", senderName, iter->deadline, ndeadline, 0); //shares[i].file_name.c_str());
@@ -585,8 +585,8 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 										const char* answString = docToString(answ).c_str();
 										Log("Sender %s: Deadline %llu sent with error: %s", senderName, iter->deadline, answString);
 										if (iter->body.retryCount < 1) {
-											std::thread{ Csv_Fail, coinInfo->coin, coinInfo->mining->currentHeight, iter->body.file_name, coinInfo->mining->currentBaseTarget, 4398046511104 / 240 / coinInfo->mining->currentBaseTarget, iter->body.nonce, iter->deadline,
-												0, answString }.detach();
+											std::thread{ Csv_Fail, coinInfo->coin, coinInfo->mining->currentHeight, iter->body.file_name, coinInfo->mining->currentBaseTarget,
+												4398046511104 / 240 / coinInfo->mining->currentBaseTarget, iter->body.nonce, iter->deadline, 0, answString }.detach();
 											std::thread{ increaseConflictingDeadline, iter->body.file_name }.detach();
 										}
 										if (iter->deadline <= targetDeadlineInfo && iter->body.retryCount < maxSubmissionRetries) {
