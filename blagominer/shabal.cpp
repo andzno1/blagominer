@@ -654,7 +654,7 @@ void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long
 					char tbuffer[9];
 					_strtime_s(tbuffer);
 					bm_wattron(2);
-					bm_wprintw("%s [%20llu|%-10s|Worker] DL found:     %s\n", tbuffer, coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11), 0);
+					bm_wprintw("%s [%20llu|%-10s|Worker] DL found:     %s\n", tbuffer, coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str(), 0);
 					bm_wattroff(2);
 				}
 			}
