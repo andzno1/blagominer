@@ -1587,7 +1587,7 @@ int main(int argc, char **argv) {
 
 			Log("Interrupt Sender.");
 			if (miningCoin->network->sender.joinable()) miningCoin->network->sender.join();
-			std::thread{ Csv_Submitted,  miningCoin->coin, miningCoin->mining->currentHeight, miningCoin->mining->currentBaseTarget, 4398046511104 / 240 / miningCoin->mining->currentBaseTarget, thread_time, miningCoin->mining->state != INTERRUPTED, miningCoin->mining->deadline }.detach();
+			std::thread{ Csv_Submitted,  miningCoin->coin, miningCoin->mining->currentHeight, miningCoin->mining->currentBaseTarget, 4398046511104 / 240 / miningCoin->mining->currentBaseTarget, thread_time, miningCoin->mining->state == DONE, miningCoin->mining->deadline }.detach();
 
 			//prepare for next round if not yet done
 			if (miningCoin->mining->state != DONE) memcpy(&local_32, &global_32, sizeof(global_32));
