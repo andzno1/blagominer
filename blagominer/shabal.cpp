@@ -47,11 +47,8 @@ void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long n
 				LeaveCriticalSection(&coin->locks->sharesLock);
 				if (use_debug)
 				{
-					char tbuffer[9];
-					_strtime_s(tbuffer);
-					bm_wattron(2);
-					bm_wprintw("%s [%20llu|%-10s|Worker] DL found:     %s\n", tbuffer, coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str(), 0);
-					bm_wattroff(2);
+					printToConsole(MAIN, 2, true, false, false, "[%20llu|%-10s|Worker] DL found:     %s\n",
+						coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str());
 				}
 			}
 		}
@@ -153,11 +150,8 @@ void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 				LeaveCriticalSection(&coin->locks->sharesLock);
 				if (use_debug)
 				{
-					char tbuffer[9];
-					_strtime_s(tbuffer);
-					bm_wattron(2);
-					bm_wprintw("%s [%20llu|%-10s|Worker] DL found:     %s\n", tbuffer, coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str(), 0);
-					bm_wattroff(2);
+					printToConsole(MAIN, 2, true, false, false, "[%20llu|%-10s|Worker] DL found:     %s\n",
+						coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str());
 				}
 			}
 		}
@@ -259,11 +253,8 @@ void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 				LeaveCriticalSection(&coin->locks->sharesLock);
 				if (use_debug)
 				{
-					char tbuffer[9];
-					_strtime_s(tbuffer);
-					bm_wattron(2);
-					bm_wprintw("%s [%20llu|%-10s|Worker] DL found:     %s\n", tbuffer, coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str(), 0);
-					bm_wattroff(2);
+					printToConsole(MAIN, 2, true, false, false, "[%20llu|%-10s|Worker] DL found:     %s\n",
+						coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str());
 				}
 			}
 		}
@@ -412,11 +403,8 @@ void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long c
 				LeaveCriticalSection(&coin->locks->sharesLock);
 				if (use_debug)
 				{
-					char tbuffer[9];
-					_strtime_s(tbuffer);
-					bm_wattron(2);
-					bm_wprintw("%s [%20llu|%-10s|Worker] DL found:     %s\n", tbuffer, coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str(), 0);
-					bm_wattroff(2);
+					printToConsole(MAIN, 2, true, false, false, "[%20llu|%-10s|Worker] DL found:     %s\n",
+						coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str());
 				}
 			}
 		}
@@ -651,11 +639,8 @@ void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long
 				LeaveCriticalSection(&coin->locks->sharesLock);
 				if (use_debug)
 				{
-					char tbuffer[9];
-					_strtime_s(tbuffer);
-					bm_wattron(2);
-					bm_wprintw("%s [%20llu|%-10s|Worker] DL found:     %s\n", tbuffer, coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str(), 0);
-					bm_wattroff(2);
+					printToConsole(MAIN, 2, true, false, false, "[%20llu|%-10s|Worker] DL found:     %s\n",
+						coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str());
 				}
 			}
 		}

@@ -1,6 +1,6 @@
 #include "filemonitor.h"
 
-std::mutex m;
+std::mutex mFileStats;
 
 std::map<std::string, t_file_stats> fileStats = std::map<std::string, t_file_stats>();
 bool showCorruptedPlotFiles = true;
@@ -11,7 +11,7 @@ void increaseMatchingDeadline(std::string file) {
 	if (!showCorruptedPlotFiles) {
 		return;
 	}
-	std::lock_guard<std::mutex> lockGuard(m);
+	std::lock_guard<std::mutex> lockGuard(mFileStats);
 	++fileStats[file].matchingDeadlines;
 }
 
@@ -19,7 +19,7 @@ void increaseConflictingDeadline(std::string file) {
 	if (!showCorruptedPlotFiles) {
 		return;
 	}
-	std::lock_guard<std::mutex> lockGuard(m);
+	std::lock_guard<std::mutex> lockGuard(mFileStats);
 	++fileStats[file].conflictingDeadlines;
 }
 
@@ -27,7 +27,7 @@ void increaseReadError(std::string file) {
 	if (!showCorruptedPlotFiles) {
 		return;
 	}
-	std::lock_guard<std::mutex> lockGuard(m);
+	std::lock_guard<std::mutex> lockGuard(mFileStats);
 	++fileStats[file].readErrors;
 }
 
@@ -35,7 +35,7 @@ void resetFileStats() {
 	if (!showCorruptedPlotFiles || !currentlyDisplayingCorruptedPlotFiles()) {
 		return;
 	}
-	std::lock_guard<std::mutex> lockGuard(m);
+	std::lock_guard<std::mutex> lockGuard(mFileStats);
 	fileStats.clear();
 }
 
@@ -43,7 +43,9 @@ void printFileStats() {
 	if (!showCorruptedPlotFiles) {
 		return;
 	}
-	std::lock_guard<std::mutex> lockGuard(m);
+	std::lock_guard<std::mutex> lockGuardFileStats(mFileStats);
+	std::lock_guard<std::mutex> lockGuardConsoleWindow(mConsoleWindow);
+	
 	int lineCount = 0;
 	for (auto& element : fileStats) {
 		if (element.second.conflictingDeadlines > 0 || element.second.readErrors > 0) {

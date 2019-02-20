@@ -14,49 +14,81 @@ WINDOW * win_progress;
 WINDOW * win_corrupted;
 WINDOW * win_new_version;
 
-//Turn on color attribute
-int bm_wattron(int color) {
-	return wattron(win_main, COLOR_PAIR(color));
-}
+std::mutex mConsoleQueue;
+std::mutex mConsoleWindow;
+std::list<ConsoleOutput> consoleQueue;
+std::thread consoleWriter;
+bool interruptConsoleWriter = false;
 
-//Turn off color attribute
-int bm_wattroff(int color) {
-	return wattroff(win_main, COLOR_PAIR(color));
-}
+void _consoleWriter()
+{
+	while (!interruptConsoleWriter) {
+		if (!consoleQueue.empty()) {
+			ConsoleOutput consoleOutput;
+			{
+				std::lock_guard<std::mutex> lockGuard(mConsoleQueue);
+				consoleOutput = consoleQueue.front();
+				consoleQueue.pop_front();
+			}
+			
+			{
+				std::lock_guard<std::mutex> lockGuard(mConsoleWindow);
+				WINDOW* win;
+				switch (consoleOutput.window)
+				{
+				case VERSION:
+					win = win_new_version;
+					break;
+				case MAIN:
+					win = win_main;
+					break;
+				case PROGRESS:
+					win = win_progress;
+					wclear(win);
+					wmove(win, 1, 1);
+					box(win_progress, 0, 0);
+					break;
+				default:
+					Log("Uncovered window case.");
+					continue;
+					break;
+				}
+			
+				if (consoleOutput.colorPair >= 0) {
+					wattron(win, COLOR_PAIR(consoleOutput.colorPair));
+				}
+				if (consoleOutput.leadingNewLine) {
+					waddstr(win, "\n");
+				}
+				waddstr(win, consoleOutput.message.c_str());
+				if (consoleOutput.fillLine) {
+					int y;
+					int x;
+					getyx(win, y, x);
+					const int remaining = COLS - x;
 
-//print
-int bm_wprintw(const char * output, ...) {
-	va_list args;
-	va_start(args, output);
-	return vw_printw(win_main, output, args);
-	va_end(args);
-}
-
-// Print and fill the rest of the line
-int bm_wprintwFill(const char * output, ...) {
-	int result;
-	
-	va_list args;
-	va_start(args, output);
-	result = vw_printw(win_main, output, args);
-	va_end(args);
-
-	int y;
-	int x;
-	getyx(win_main, y, x);
-	const int remaining = COLS - x;
-
-	if (remaining > 0) {
-		result = waddstr(win_main, std::string(remaining, ' ').c_str()) || result;
-		int newY;
-		int newX;
-		getyx(win_main, newY, newX);
-		if (newX != 0) {
-			result = waddstr(win_main, std::string("\n").c_str()) || result;
+					if (remaining > 0) {
+						waddstr(win, std::string(remaining, ' ').c_str());
+						int newY;
+						int newX;
+						getyx(win, newY, newX);
+						if (newX != 0) {
+							waddstr(win, std::string("\n").c_str());
+						}
+					}
+				}
+				if (consoleOutput.colorPair >= 0) {
+					wattroff(win, COLOR_PAIR(consoleOutput.colorPair));
+				}
+				wrefresh(win);
+			}
+			
+		}
+		else {
+			std::this_thread::yield();
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
 		}
 	}
-
-	return result;
 }
 
 bool currentlyDisplayingCorruptedPlotFiles() {
@@ -72,16 +104,6 @@ int bm_wgetchMain() {
 }
 
 //Turn on color attribute
-int bm_wattronP(int color) {
-	return wattron(win_progress, COLOR_PAIR(color));
-}
-
-//Turn off color attribute
-int bm_wattroffP(int color) {
-	return wattroff(win_progress, COLOR_PAIR(color));
-}
-
-//Turn on color attribute
 int bm_wattronC(int color) {
 	return wattron(win_corrupted, COLOR_PAIR(color));
 }
@@ -89,14 +111,6 @@ int bm_wattronC(int color) {
 //Turn off color attribute
 int bm_wattroffC(int color) {
 	return wattroff(win_corrupted, COLOR_PAIR(color));
-}
-
-//print
-int bm_wprintwP(const char * output,...) {
-	va_list args;
-	va_start(args, output);
-	return vw_printw(win_progress, output, args);
-	va_end(args);
 }
 
 int bm_wprintwC(const char * output, ...) {
@@ -140,20 +154,30 @@ void bm_init() {
 	leaveok(win_corrupted, true);
 	win_new_version = newwin(new_version_lines, COLS, -1, 0);
 	leaveok(win_corrupted, true);
+
+	consoleWriter = std::thread(_consoleWriter);
+}
+
+void bm_end() {
+	interruptConsoleWriter = true;
+	if (consoleWriter.joinable())
+	{
+		consoleWriter.join();
+	}
 }
 
 void refreshMain(){
 	wrefresh(win_main);
 }
-void refreshProgress(){
-	wrefresh(win_progress);
-}
+
 void refreshCorrupted() {
 	if (currentlyDisplayingCorruptedPlotFiles()) {
 		wrefresh(win_corrupted);
 	}
 }
+
 void showNewVersion(std::string version) {
+	std::lock_guard<std::mutex> lockGuardConsoleWindow(mConsoleWindow);
 	version = "New version available: " + version;
 	if (!currentlyDisplayingNewVersion()) {
 		mvwin(win_new_version, 0, 0);
@@ -261,16 +285,10 @@ void hideCorrupted() {
 	}
 }
 
-void bm_wmoveP() {
-	wmove(win_progress, 1, 1);
-};
 int bm_wmoveC(int line, int column) {
 	return wmove(win_corrupted, line, column);
 };
 
-void boxProgress() {
-	box(win_progress, 0, 0);
-}
 void boxCorrupted() {
 	wattron(win_corrupted, COLOR_PAIR(4));
 	box(win_corrupted, 0, 0);

@@ -7,7 +7,6 @@
 
 
 //logger variables
-extern FILE * fp_Log;
 extern std::mutex mLog;
 extern std::list<std::string> loggingQueue;
 

@@ -4,10 +4,7 @@
 void ShowMemErrorExit(void)
 {
 	Log("!!! Error allocating memory");
-	bm_wattron(12);
-	bm_wprintw("\nError allocating memory\n", 0);
-	bm_wattroff(12);
-	refreshMain();
-	system("pause");
+	printToConsole(MAIN, 12, false, true, false, "Error allocating memory\n");
+	system("pause > nul");
 	exit(-1);
 }

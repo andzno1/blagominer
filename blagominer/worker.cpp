@@ -66,9 +66,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 			Log("File %s (%s) wrong stagger?", iter->Name.c_str(), iter->Path.c_str());
-			bm_wattron(12);
-			bm_wprintw("File %s wrong stagger?\n", iter->Name.c_str(), 0);
-			bm_wattroff(12);
+			printToConsole(MAIN, 12, true, false, false, "File %s wrong stagger?\n", iter->Name.c_str());
 		}
 
 		const unsigned int scoop = coinInfo->mining->scoop;
@@ -78,17 +76,13 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 			Log("File %s (%s) name/size mismatch.", iter->Name.c_str(), iter->Path.c_str());
-			bm_wattron(12);
-			bm_wprintw("file \"%s\" name/size mismatch\n", iter->Name.c_str(), 0);
-			bm_wattroff(12);
+			printToConsole(MAIN, 12, true, false, false, "File \"%s\" name/size mismatch\n", iter->Name.c_str());
 			if (nonces != stagger)
 				nonces = (((iter->Size) / (4096 * 64)) / stagger) * stagger; //обрезаем плот по размеру и стаггеру
 			else {
 				if (scoop > (iter->Size) / (stagger * 64)) //если номер скупа попадает в поврежденный смерженный плот, то пропускаем
 				{
-					bm_wattron(12);
-					bm_wprintw("skipped\n", 0);
-					bm_wattroff(12);
+					printToConsole(MAIN, 12, true, false, false, "Skipped\n");
 					continue;
 				}
 			}
@@ -98,9 +92,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if (!bfs) {
 			if (!GetDiskFreeSpaceA((iter->Path).c_str(), &sectorsPerCluster, &bytesPerSector, &numberOfFreeClusters, &totalNumberOfClusters))
 			{
-				bm_wattron(12);
-				bm_wprintw("GetDiskFreeSpace failed\n", 0); //BFS
-				bm_wattroff(12);
+				printToConsole(MAIN, 12, true, false, false, "GetDiskFreeSpace failed\n"); //BFS
 				continue;
 			}
 		}
@@ -114,9 +106,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 			Log("File %s (%s): Stagger (%llu) must be >= %llu", iter->Name.c_str(), iter->Path.c_str(), stagger, bytesPerSector / 64);
-			bm_wattron(12);
-			bm_wprintw("stagger (%llu) must be >= %llu\n", stagger, bytesPerSector / 64, 0);
-			bm_wattroff(12);
+			printToConsole(MAIN, 12, true, false, false, "Stagger (%llu) must be >= %llu\n", stagger, bytesPerSector / 64);
 			continue;
 		}
 
@@ -125,9 +115,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 			Log("File %s (%s): Nonces(%llu) must be >= %llu", iter->Name.c_str(), iter->Path.c_str(), nonces, bytesPerSector / 64);
-			bm_wattron(12);
-			bm_wprintw("nonces (%llu) must be >= %llu\n", nonces, bytesPerSector / 64, 0);
-			bm_wattroff(12);
+			printToConsole(MAIN, 12, true, false, false, "Nonces (%llu) must be >= %llu\n", nonces, bytesPerSector / 64);
 			continue;
 		}
 
@@ -136,10 +124,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 			Log("File %s (%s): Stagger (%llu) must be a multiple of %llu", iter->Name.c_str(), iter->Path.c_str(), stagger, bytesPerSector / 64);
-			bm_wattron(12);
-			bm_wprintw("stagger (%llu) must be a multiple of %llu\n", stagger, bytesPerSector / 64, 0);
-			bm_wattroff(12);
-
+			printToConsole(MAIN, 12, true, false, false, "Stagger (%llu) must be a multiple of %llu\n", stagger, bytesPerSector / 64);
 			continue;
 		}
 
@@ -199,9 +184,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 			Log("File %s (%s): Error opening. code = %llu", iter->Name.c_str(), iter->Path.c_str(), GetLastError());
-			bm_wattron(12);
-			bm_wprintw("File \"%s\\%s\" error opening. code = %llu\n", iter->Path.c_str(), iter->Name.c_str(), GetLastError(), 0);
-			bm_wattroff(12);
+			printToConsole(MAIN, 12, true, false, false, "File \"%s\\%s\" error opening. code = %llu\n", iter->Path.c_str(), iter->Name.c_str(), GetLastError());
 			VirtualFree(cache, 0, MEM_RELEASE);
 			VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
 			if (p2 != POC2) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
@@ -253,9 +236,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				{
 					std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 					Log("File %s (%s): Unexpected end of file.", iter->Name.c_str(), iter->Path.c_str());
-					bm_wattron(12);
-					bm_wprintw("Unexpected end of file %s\n", iter->Name.c_str(), 0);
-					bm_wattroff(12);
+					printToConsole(MAIN, 12, true, false, false, "Unexpected end of file %s\n", iter->Name.c_str());
 					err = true;
 					break;
 				}
@@ -298,9 +279,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				{
 					std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 					Log("Unexpected end of file %s (%s)", iter->Name.c_str(), path_loc_str.c_str());
-					bm_wattron(12);
-					bm_wprintw("Unexpected end of file %s\n", iter->Name.c_str(), 0);
-					bm_wattroff(12);
+					printToConsole(MAIN, 12, true, false, false, "Unexpected end of file %s\n", iter->Name.c_str());
 					err = true;
 				}
 			}
@@ -324,9 +303,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			{
 				std::thread{ increaseReadError, iter->Name.c_str() }.detach();
 				Log("BFS seek optimisation: error SetFilePointerEx. code = %llu. File: %s (%s)", GetLastError(), iter->Name.c_str(), path_loc_str.c_str());
-				bm_wattron(12);
-				bm_wprintw("BFS seek optimisation: error SetFilePointerEx. code = %llu\n", GetLastError(), 0);
-				bm_wattroff(12);
+				printToConsole(MAIN, 12, true, false, false, "BFS seek optimisation: error SetFilePointerEx. code = %llu\n", GetLastError());
 			}
 		}
 		iter->done = true;
@@ -346,22 +323,24 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 	double thread_time = (double)(end_work_time - start_work_time) / pcFreq;
 	if (use_debug)
 	{
-		char tbuffer[9];
-		_strtime_s(tbuffer);
-		bm_wattron(7);
 		if (isbfs) {
-			bm_wprintw("%s Thread \"%s\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (BFS)\n", tbuffer, path_loc_str.c_str(), thread_time, (double)(files_size_per_thread) / thread_time / 1024 / 1024 / 4096, sum_time_proc / pcFreq * 100 / thread_time, 0);
+			printToConsole(MAIN, 7, true, false, false, "Thread \"%s\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (BFS)\n",
+				path_loc_str.c_str(), thread_time, (double)(files_size_per_thread) / thread_time / 1024 / 1024 / 4096,
+				sum_time_proc / pcFreq * 100 / thread_time);
 		}
 		else
 		{
 			if (converted) {
-				bm_wprintw("%s Thread \"%s\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (POC1<>POC2)\n", tbuffer, path_loc_str.c_str(), thread_time, (double)(files_size_per_thread) / thread_time / 1024 / 1024 / 4096, sum_time_proc / pcFreq * 100 / thread_time, 0);
+				printToConsole(MAIN, 7, true, false, false, "Thread \"%s\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (POC1<>POC2)\n",
+					path_loc_str.c_str(), thread_time, (double)(files_size_per_thread) / thread_time / 1024 / 1024 / 4096,
+					sum_time_proc / pcFreq * 100 / thread_time);
 			}
 			else {
-				bm_wprintw("%s Thread \"%s\" @ %.1f sec (%.1f MB/s) CPU %.2f%%\n", tbuffer, path_loc_str.c_str(), thread_time, (double)(files_size_per_thread) / thread_time / 1024 / 1024 / 4096, sum_time_proc / pcFreq * 100 / thread_time, 0);
+				printToConsole(MAIN, 7, true, false, false, "Thread \"%s\" @ %.1f sec (%.1f MB/s) CPU %.2f%%\n",
+					path_loc_str.c_str(), thread_time, (double)(files_size_per_thread) / thread_time / 1024 / 1024 / 4096,
+					sum_time_proc / pcFreq * 100 / thread_time);
 			}
 		}
-		bm_wattroff(7);
 	}
 	directory->done = true;
 	Log("[%zu] Finished directory %s.", local_num, path_loc_str.c_str());
@@ -376,25 +355,19 @@ void th_read(HANDLE ifile, unsigned long long const start, unsigned long long co
 #ifdef __AVX512F__
 		if (*cache_size_local < 16)
 		{
-			bm_wattron(12);
-			bm_wprintw("WARNING: %llu\n", *cache_size_local);
-			bm_wattroff(12);
+			printToConsole(MAIN, 12, false, false, false, "WARNING: %llu\n", *cache_size_local);
 		}
 #else
 #ifdef __AVX2__
 		if (*cache_size_local < 8)
 		{
-			bm_wattron(12);
-			bm_wprintw("WARNING: %llu\n", *cache_size_local);
-			bm_wattroff(12);
+			printToConsole(MAIN, 12, false, false, false, "WARNING: %llu\n", *cache_size_local);
 		}
 #else
 #ifdef __AVX__
 		if (*cache_size_local < 4)
 		{
-			bm_wattron(12);
-			bm_wprintw("WARNING: %llu\n", *cache_size_local);
-			bm_wattroff(12);
+			printToConsole(MAIN, 12, false, false, false, "WARNING: %llu\n", *cache_size_local);
 		}
 #endif
 #endif
@@ -417,18 +390,14 @@ poc1read:
 	liDistanceToMove.QuadPart = start + i * 64;
 	if (!SetFilePointerEx(ifile, liDistanceToMove, nullptr, FILE_BEGIN))
 	{
-		bm_wattron(12);
-		bm_wprintw("error SetFilePointerEx. code = %llu\n", GetLastError(), 0);
-		bm_wattroff(12);
+		printToConsole(MAIN, 12, false, false, false, "Error SetFilePointerEx. code = %llu\n", GetLastError());
 		*cont = true;
 		return;
 	}
 	do {
 		if (!ReadFile(ifile, &cache[*bytes], (DWORD)(min(readChunkSize, *cache_size_local - *bytes / 64) * 64), &b, NULL))
 		{
-			bm_wattron(12);
-			bm_wprintw("error P1 ReadFile. code = %llu\n", GetLastError(), 0);
-			bm_wattroff(12);
+			printToConsole(MAIN, 12, false, false, false, "Error P1 ReadFile. code = %llu\n", GetLastError());
 			break;
 		}
 		*bytes += b;
@@ -444,18 +413,14 @@ poc2read:
 		MirrorliDistanceToMove.QuadPart = MirrorStart + i * 64;
 		if (!SetFilePointerEx(ifile, MirrorliDistanceToMove, nullptr, FILE_BEGIN))
 		{
-			bm_wattron(12);
-			bm_wprintw("error SetFilePointerEx. code = %llu\n", GetLastError(), 0);
-			bm_wattroff(12);
+			printToConsole(MAIN, 12, false, false, false, "Error SetFilePointerEx. code = %llu\n", GetLastError());
 			*cont = true;
 			return;
 		}
 		do {
 			if (!ReadFile(ifile, &MirrorCache[*bytes], (DWORD)(min(readChunkSize, *cache_size_local - *bytes / 64) * 64), &Mirrorb, NULL))
 			{
-				bm_wattron(12);
-				bm_wprintw("error P2 ReadFile. code = %llu\n", GetLastError(), 0);
-				bm_wattroff(12);
+				printToConsole(MAIN, 12, false, false, false, "Error P2 ReadFile. code = %llu\n", GetLastError());
 				break;
 			}
 			*bytes += Mirrorb;

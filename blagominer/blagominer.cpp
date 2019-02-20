@@ -98,7 +98,7 @@ int load_config(char const *const filename)
 	if (pFile == nullptr)
 	{
 		fprintf(stderr, "\nError. config file %s not found\n", filename);
-		system("pause");
+		system("pause > nul");
 		exit(-1);
 	}
 
@@ -109,7 +109,7 @@ int load_config(char const *const filename)
 	if (json_ == nullptr)
 	{
 		fprintf(stderr, "\nError allocating memory\n");
-		system("pause");
+		system("pause > nul");
 		exit(-1);
 	}
 	fread_s(json_, size, 1, size - 1, pFile);
@@ -118,7 +118,7 @@ int load_config(char const *const filename)
 	Document document;	// Default template parameter uses UTF8 and MemoryPoolAllocator.
 	if (document.Parse<kParseCommentsFlag>(json_).HasParseError()) {
 		fprintf(stderr, "\nJSON format error (offset %u) check miner.conf\n%s\n", (unsigned)document.GetErrorOffset(), GetParseError_En(document.GetParseError())); //(offset %s  %s", (unsigned)document.GetErrorOffset(), (char*)document.GetParseError());
-		system("pause");
+		system("pause > nul");
 		exit(-1);
 	}
 
@@ -386,15 +386,15 @@ void GetCPUInfo(void)
 {
 	ULONGLONG  TotalMemoryInKilobytes = 0;
 
-	bm_wprintw("CPU support: ");
-	if (InstructionSet::AES())   bm_wprintw(" AES ", 0);
-	if (InstructionSet::SSE())   bm_wprintw(" SSE ", 0);
-	if (InstructionSet::SSE2())  bm_wprintw(" SSE2 ", 0);
-	if (InstructionSet::SSE3())  bm_wprintw(" SSE3 ", 0);
-	if (InstructionSet::SSE42()) bm_wprintw(" SSE4.2 ", 0);
-	if (InstructionSet::AVX())   bm_wprintw(" AVX ", 0);
-	if (InstructionSet::AVX2())  bm_wprintw(" AVX2 ", 0);
-	if (InstructionSet::AVX512F())  bm_wprintw(" AVX512F ", 0);
+	printToConsole(MAIN, -1, false, false, false, "CPU support: ");
+	if (InstructionSet::AES())   printToConsole(MAIN, -1, false, false, false, " AES ");
+	if (InstructionSet::SSE())   printToConsole(MAIN, -1, false, false, false, " SSE ");
+	if (InstructionSet::SSE2())  printToConsole(MAIN, -1, false, false, false, " SSE2 ");
+	if (InstructionSet::SSE3())  printToConsole(MAIN, -1, false, false, false, " SSE3 ");
+	if (InstructionSet::SSE42()) printToConsole(MAIN, -1, false, false, false, " SSE4.2 ");
+	if (InstructionSet::AVX())   printToConsole(MAIN, -1, false, false, false, " AVX ");
+	if (InstructionSet::AVX2())  printToConsole(MAIN, -1, false, false, false, " AVX2 ");
+	if (InstructionSet::AVX512F())  printToConsole(MAIN, -1, false, false, false, " AVX512F ");
 
 #ifndef __AVX__
 	// Checking for AVX requires 3 things:
@@ -414,19 +414,19 @@ void GetCPUInfo(void)
 		unsigned long long xcrFeatureMask = _xgetbv(_XCR_XFEATURE_ENABLED_MASK);
 		avxSupported = (xcrFeatureMask & 0x6) == 0x6;
 	}
-	if (avxSupported)	bm_wprintw("     [recomend use AVX]", 0);
+	if (avxSupported)	printToConsole(MAIN, -1, false, false, false, "     [recomend use AVX]", 0);
 #endif
-	if (InstructionSet::AVX2()) bm_wprintw("     [recomend use AVX2]", 0);
-	if (InstructionSet::AVX512F()) bm_wprintw("     [recomend use AVX512F]", 0);
+	if (InstructionSet::AVX2()) printToConsole(MAIN, -1, false, false, false, "     [recomend use AVX2]", 0);
+	if (InstructionSet::AVX512F()) printToConsole(MAIN, -1, false, false, false, "     [recomend use AVX512F]", 0);
 	SYSTEM_INFO sysinfo;
 	GetSystemInfo(&sysinfo);
-	bm_wprintw("\n%s", InstructionSet::Vendor().c_str(), 0);
-	bm_wprintw(" %s  [%u cores]", InstructionSet::Brand().c_str(), sysinfo.dwNumberOfProcessors);
+	printToConsole(MAIN, -1, false, true, false, "%s", InstructionSet::Vendor().c_str());
+	printToConsole(MAIN, -1, false, false, false, " %s [%u cores]", InstructionSet::Brand().c_str(), sysinfo.dwNumberOfProcessors);
 
 	if (GetPhysicallyInstalledSystemMemory(&TotalMemoryInKilobytes))
-		bm_wprintw("\nRAM: %llu Mb", (unsigned long long)TotalMemoryInKilobytes / 1024, 0);
+		printToConsole(MAIN, -1, false, true, false, "RAM: %llu Mb", (unsigned long long)TotalMemoryInKilobytes / 1024, 0);
 
-	bm_wprintw("\n", 0);
+	printToConsole(MAIN, -1, false, false, false, "\n");
 }
 
 
@@ -444,11 +444,8 @@ void GetPass(char const *const p_strFolderPath)
 	fopen_s(&pFile, filename, "rt");
 	if (pFile == nullptr)
 	{
-		bm_wattron(12);
-		bm_wprintw("Error: passphrases.txt not found. File is needed for solo mining.\n", 0);
-		refreshMain();
-		bm_wattroff(12);
-		system("pause");
+		printToConsole(MAIN, 12, false, false, false, "Error: passphrases.txt not found. File is needed for solo mining.\n");
+		system("pause > nul");
 		exit(-1);
 	}
 	if (filename != nullptr) {
@@ -660,12 +657,8 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, st
 			Log("Coin %s already in queue. No action needed", coinNames[newCoin->coin]);
 			inserted = true;
 			if (coinCurrentlyMining && coinCurrentlyMining->mining->state == MINING) {
-				char tbuffer[9];
-				_strtime_s(tbuffer);
-				bm_wattron(5);
-				bm_wprintwFill("\n%s [#%s|%s|Info    ] New block has been added to the queue.",
-					tbuffer, toStr(newCoin->mining->height, 7).c_str(), toStr(coinNames[newCoin->coin], 10).c_str(), 0);
-				bm_wattroff(5);
+				printToConsole(MAIN, 5, true, false, true, "[#%s|%s|Info    ] New block has been added to the queue.",
+					toStr(newCoin->mining->height, 7).c_str(), toStr(coinNames[newCoin->coin], 10).c_str(), 0);
 			}
 			break;
 		}
@@ -675,12 +668,8 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, st
 		if (coinCurrentlyMining && coinCurrentlyMining->mining->state == MINING &&
 			newCoin->coin != coinCurrentlyMining->coin &&
 			newCoin->mining->priority >= coinCurrentlyMining->mining->priority) {
-			char tbuffer[9];
-			_strtime_s(tbuffer);
-			bm_wattron(5);
-			bm_wprintwFill("\n%s [#%s|%s|Info    ] New block has been added to the end of the queue.",
-				tbuffer, toStr(newCoin->mining->height, 7).c_str(), toStr(coinNames[newCoin->coin], 10).c_str(), 0);
-			bm_wattroff(5);
+			printToConsole(MAIN, 5, true, false, true, "[#%s|%s|Info    ] New block has been added to the end of the queue.",
+				toStr(newCoin->mining->height, 7).c_str(), toStr(coinNames[newCoin->coin], 10).c_str(), 0);
 		}
 		currentQueue.push_back(newCoin);
 	}
@@ -726,12 +715,8 @@ void handleProxyOnly(std::shared_ptr<t_coin_info> coin) {
 			Log("Signature for %s changed.", coinNames[coin->coin]);
 			Log("Won't add %s to the queue. Proxy only.", coinNames[coin->coin]);
 			updateOldSignature(coin);
-			char tbuffer[9];
-			_strtime_s(tbuffer);
-			bm_wattron(5);
-			bm_wprintwFill("\n%s [#%s|%s|Info    ] New block.",
-				tbuffer, toStr(coin->mining->height, 7).c_str(), toStr(coinNames[coin->coin], 10).c_str(), 0);
-			bm_wattroff(5);
+			printToConsole(MAIN, 5, true, true, true, "[#%s|%s|Info    ] New block.",
+				toStr(coin->mining->height, 7).c_str(), toStr(coinNames[coin->coin], 10).c_str(), 0);
 			coin->network->stopSender = true;
 			if (coin->network->sender.joinable()) {
 				coin->network->sender.join();
@@ -813,7 +798,8 @@ unsigned long long getPlotFilesSize(std::vector<std::string>& directories, bool 
 			all_files.push_back(*it);
 		}
 		if (log) {
-			bm_wprintw("%s\tfiles: %2Iu\t size: %4llu GiB\n", (char*)iter->c_str(), (unsigned)files.size(), tot_size / 1024 / 1024 / 1024, 0);
+			printToConsole(MAIN, -1, false, false, false, "%s\tfiles: %4u\t size: %7llu GiB\n",
+				(char*)iter->c_str(), (unsigned)files.size(), tot_size / 1024 / 1024 / 1024, 0);
 		}
 		size += tot_size;
 	}
@@ -980,7 +966,6 @@ int main(int argc, char **argv) {
 	std::thread proxyOnlyBhd;
 	std::vector<std::thread> generator;
 
-	char tbuffer[9];
 	unsigned long long bytesRead = 0;
 
 	//get application path
@@ -989,7 +974,7 @@ int main(int argc, char **argv) {
 	if (p_minerPath == nullptr)
 	{
 		fprintf(stderr, "\nError allocating memory\n");
-		system("pause");
+		system("pause > nul");
 		exit(-1);
 	}
 	GetCurrentDirectoryA(DWORD(cwdsz), LPSTR(p_minerPath));
@@ -1000,7 +985,7 @@ int main(int argc, char **argv) {
 	if (conf_filename == nullptr)
 	{
 		fprintf(stderr, "\nError allocating memory\n");
-		system("pause");
+		system("pause > nul");
 		exit(-1);
 	}
 
@@ -1024,19 +1009,8 @@ int main(int argc, char **argv) {
 	if (burst->network->enable_proxy && bhd->network->enable_proxy &&
 		burst->network->proxyport == bhd->network->proxyport) {
 		fprintf(stderr, "\nError. Ports for multiple proxies should not be the same. Please check your configuration.\n");
-		system("pause");
+		system("pause > nul");
 		exit(-1);
-	}
-
-	proxyOnly = !burst->mining->enable && !bhd->mining->enable &&
-		(burst->network->enable_proxy || bhd->network->enable_proxy);
-
-	if (proxyOnly) {
-		Log("Running as proxy only.");
-		bm_wattron(8);
-		bm_wprintw("\nRunnin as proxy only.", 0);
-		refreshMain();
-		bm_wattroff(8);
 	}
 
 	Csv_Init();
@@ -1046,28 +1020,18 @@ int main(int argc, char **argv) {
 	resizeConsole(win_size_x, win_size_y);
 	
 	bm_init();
-	bm_wattron(12);
-	bm_wprintw("BURST/BHD miner, %s", version.c_str(), 0);
-	bm_wattroff(12);
-	bm_wattron(4);
-	bm_wprintw("\nProgramming: dcct (Linux) & Blago (Windows)\n", 0);
-	bm_wprintw("POC2 mod: Quibus & Johnny (5/2018)\n", 0);
-	bm_wprintw("Dual mining mod: andz (2/2019)\n", 0);
-	bm_wattroff(4);
+	printToConsole(MAIN, 12, false, false, false, "BURST/BHD miner, %s\n", version.c_str());
+	printToConsole(MAIN, 4, false, false, false, "Programming: dcct (Linux) & Blago (Windows)\n");
+	printToConsole(MAIN, 4, false, false, false, "POC2 mod: Quibus & Johnny (5/2018)\n");
+	printToConsole(MAIN, 4, false, false, false, "Dual mining mod: andz (2/2019)\n");
 
 	GetCPUInfo();
 
 	if (!burst->mining->enable && !burst->network->enable_proxy && !bhd->mining->enable && !bhd->network->enable_proxy) {
-		bm_wattron(12);
-		bm_wprintw("Mining and proxies are disabled for all coins. Please check your configuration.\n", 0);
-		bm_wattroff(12);
-		refreshMain();
-		system("pause");
-		exit(0);
+		printToConsole(MAIN, 12, false, false, false, "Mining and proxies are disabled for all coins. Please check your configuration.\n");
+		system("pause > nul");
+		exit(-1);
 	}
-
-	refreshMain();
-	refreshProgress();
 
 	if ((burst->mining->enable && burst->mining->miner_mode == 0)) GetPass(p_minerPath);
 
@@ -1076,7 +1040,8 @@ int main(int argc, char **argv) {
 	WSADATA wsaData;
 
 	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-		bm_wprintw("WSAStartup failed\n", 0);
+		printToConsole(MAIN, -1, false, false, false, "WSAStartup failed\n");
+		system("pause > nul");
 		exit(-1);
 	}
 
@@ -1095,10 +1060,12 @@ int main(int argc, char **argv) {
 		if (nodeipBurst == nullptr) ShowMemErrorExit();
 		
 		hostname_to_ip(burst->network->nodeaddr.c_str(), nodeipBurst);
-		bm_wprintw("BURST pool address    %s (ip %s:%s)\n", burst->network->nodeaddr.c_str(), nodeipBurst, burst->network->nodeport.c_str(), 0);
+		printToConsole(MAIN, -1, false, false, false, "BURST pool address    %s (ip %s:%s)\n",
+			burst->network->nodeaddr.c_str(), nodeipBurst, burst->network->nodeport.c_str());
 
 		if (burst->network->updateraddr.length() > 3) hostname_to_ip(burst->network->updateraddr.c_str(), updateripBurst);
-		bm_wprintw("BURST updater address %s (ip %s:%s)\n", burst->network->updateraddr.c_str(), updateripBurst, burst->network->updaterport.c_str(), 0);
+		printToConsole(MAIN, -1, false, false, false, "BURST updater address %s (ip %s:%s)\n",
+			burst->network->updateraddr.c_str(), updateripBurst, burst->network->updaterport.c_str());
 
 		if (updateripBurst != nullptr) {
 			HeapFree(hHeap, 0, updateripBurst);
@@ -1128,10 +1095,12 @@ int main(int argc, char **argv) {
 		if (nodeipBhd == nullptr) ShowMemErrorExit();
 		
 		hostname_to_ip(bhd->network->nodeaddr.c_str(), nodeipBhd);
-		bm_wprintw("BHD pool address    %s (ip %s:%s)\n", bhd->network->nodeaddr.c_str(), nodeipBhd, bhd->network->nodeport.c_str(), 0);
+		printToConsole(MAIN, -1, false, false, false, "BHD pool address    %s (ip %s:%s)\n",
+			bhd->network->nodeaddr.c_str(), nodeipBhd, bhd->network->nodeport.c_str());
 
 		if (bhd->network->updateraddr.length() > 3) hostname_to_ip(bhd->network->updateraddr.c_str(), updateripBhd);
-		bm_wprintw("BHD updater address %s (ip %s:%s)\n", bhd->network->updateraddr.c_str(), updateripBhd, bhd->network->updaterport.c_str(), 0);
+		printToConsole(MAIN, -1, false, false, false, "BHD updater address %s (ip %s:%s)\n",
+			bhd->network->updateraddr.c_str(), updateripBhd, bhd->network->updaterport.c_str());
 		
 		if (updateripBhd != nullptr) {
 			HeapFree(hHeap, 0, updateripBhd);
@@ -1147,32 +1116,22 @@ int main(int argc, char **argv) {
 		RtlSecureZeroMemory(bhd->mining->current_str_signature, 65);
 	}
 	
-	bm_wattroff(11);
-	
 	// Инфа по файлам
-	bm_wattron(15);
-	bm_wprintw("Using plots:\n", 0);
-	bm_wattroff(15);
-
+	printToConsole(MAIN, 15, false, false, false, "Using plots:\n");
+	
 	std::vector<t_files> all_files;
 	total_size = getPlotFilesSize(paths_dir, true, all_files);
-	bm_wattron(15);
-	bm_wprintw("TOTAL: %llu GiB (%llu TiB)\n", total_size / 1024 / 1024 / 1024, total_size / 1024 / 1024 / 1024 / 1024, 0);
-	bm_wattroff(15);
-
+	printToConsole(MAIN, 15, false, false, false, "TOTAL: %llu GiB (%llu TiB)\n",
+		total_size / 1024 / 1024 / 1024, total_size / 1024 / 1024 / 1024 / 1024);
+	
 	if (total_size == 0 && (burst->mining->enable || bhd->mining->enable)) {
-		bm_wattron(12);
-		bm_wprintw("\n Plot files not found...please check the \"PATHS\" parameter in your config file.\n Press any key for exit...");
-		bm_wattroff(12);
-		refreshMain();
-		system("pause");
-		exit(0);
+		printToConsole(MAIN, 12, false, true, false,
+			"Plot files not found...please check the \"PATHS\" parameter in your config file.\n Press any key for exit...\n");
+		system("pause > nul");
+		exit(-1);
 	}
 	else if (total_size == 0) {
-		bm_wattron(12);
-		bm_wprintw("\nNo plot files found.\n");
-		bm_wattroff(12);
-		refreshMain();
+		printToConsole(MAIN, 12, false, true, false, "\nNo plot files found.\n");
 	}
 
 	// Check overlapped plots
@@ -1181,36 +1140,37 @@ int main(int argc, char **argv) {
 			if (all_files[cy].Key == all_files[cx].Key)
 				if (all_files[cy].StartNonce >= all_files[cx].StartNonce) {
 					if (all_files[cy].StartNonce < all_files[cx].StartNonce + all_files[cx].Nonces) {
-						bm_wattron(12);
-						bm_wprintw("\nWARNING: %s%s and \n%s%s are overlapped\n", all_files[cx].Path.c_str(), all_files[cx].Name.c_str(), all_files[cy].Path.c_str(), all_files[cy].Name.c_str(), 0);
-						bm_wattroff(12);
+						printToConsole(MAIN, 12, false, true, false, "WARNING: %s%s and \n%s%s are overlapped\n",
+							all_files[cx].Path.c_str(), all_files[cx].Name.c_str(), all_files[cy].Path.c_str(), all_files[cy].Name.c_str());
 					}
 				}
 				else
 					if (all_files[cy].StartNonce + all_files[cy].Nonces > all_files[cx].StartNonce) {
-						bm_wattron(12);
-						bm_wprintw("\nWARNING: %s%s and \n%s%s are overlapped\n", all_files[cx].Path.c_str(), all_files[cx].Name.c_str(), all_files[cy].Path.c_str(), all_files[cy].Name.c_str(), 0);
-						bm_wattroff(12);
+						printToConsole(MAIN, 12, false, true, false, "WARNING: %s%s and \n%s%s are overlapped\n",
+							all_files[cx].Path.c_str(), all_files[cx].Name.c_str(), all_files[cy].Path.c_str(), all_files[cy].Name.c_str());
 					}
 		}
 	}
 	//all_files.~vector();   // ???
 
+	proxyOnly = !burst->mining->enable && !bhd->mining->enable &&
+		(burst->network->enable_proxy || bhd->network->enable_proxy);
+	if (proxyOnly) {
+		Log("Running as proxy only.");
+		printToConsole(MAIN, 8, false, true, true, "Running as proxy only.");
+	}
+
 	// Run Proxy
 	if (burst->network->enable_proxy)
 	{
 		proxyBurst = std::thread(proxy_i, burst);
-		bm_wattron(25);
-		bm_wprintw("\nBurstcoin proxy thread started\n", 0);
-		bm_wattroff(25);
+		printToConsole(MAIN, 25, false, false, true, "Burstcoin proxy thread started");
 	}
 
 	if (bhd->network->enable_proxy)
 	{
 		proxyBhd = std::thread(proxy_i, bhd);
-		bm_wattron(25);
-		bm_wprintw("\nBitcoin HD proxy thread started\n", 0);
-		bm_wattroff(25);
+		printToConsole(MAIN, 25, false, false, true, "Bitcoin HD proxy thread started");
 	}
 
 	if (checkForUpdateInterval > 0) {
@@ -1233,8 +1193,6 @@ int main(int argc, char **argv) {
 
 	std::vector<std::shared_ptr<t_coin_info>> queue;
 
-	refreshMain();
-
 	if (!burst->mining->enable && burst->network->enable_proxy) {
 		proxyOnlyBurst = std::thread(handleProxyOnly, burst);
 	}
@@ -1243,6 +1201,7 @@ int main(int argc, char **argv) {
 	}
 
 	if (proxyOnly) {
+		const std::string trailingSpace = "                                                                         ";
 		while (!exit_flag)
 		{
 			
@@ -1252,25 +1211,19 @@ int main(int argc, char **argv) {
 				exit_flag = true;
 				break;
 			}
-
-			clearProgress();
-			bm_wmoveP();
-			bm_wattronP(14);
-			bm_wprintwP("                                                                         ");
+			
 			if (burst->network->enable_proxy && bhd->network->enable_proxy) {
-				bm_wprintwP("Connection: %3i%%|%3i%%", getNetworkQuality(burst), getNetworkQuality(bhd), 0);
+				printToConsole(PROGRESS, 14, false, false, false, "%sConnection: %3i%%|%3i%%",
+					trailingSpace.c_str(), getNetworkQuality(burst), getNetworkQuality(bhd));
 			}
 			else if (burst->network->enable_proxy) {
-				bm_wprintwP("Connection:      %3i%%", getNetworkQuality(burst), 0);
+				printToConsole(PROGRESS, 14, false, false, false, "%sConnection:      %3i%%",
+					trailingSpace.c_str(), getNetworkQuality(burst));
 			}
 			else if (bhd->network->enable_proxy) {
-				bm_wprintwP("Connection:      %3i%%", getNetworkQuality(bhd), 0);
+				printToConsole(PROGRESS, 14, false, false, false, "%sConnection:      %3i%%",
+					trailingSpace.c_str(), getNetworkQuality(bhd));
 			}
-			bm_wattroffP(14);
-
-			refreshMain();
-			boxProgress();
-			refreshProgress();
 
 			std::this_thread::yield();
 			std::this_thread::sleep_for(std::chrono::milliseconds(50));
@@ -1364,22 +1317,23 @@ int main(int argc, char **argv) {
 
 			newRound(miningCoin);
 
-			_strtime_s(tbuffer);
 			if (miningCoin->mining->enable && miningCoin->mining->state == INTERRUPTED) {
 				Log("------------------------    Continuing %s block: %llu", coinNames[miningCoin->coin], miningCoin->mining->currentHeight);
-				bm_wattron(5);
-				bm_wprintwFill("\n%s [#%s|%s|Continue] Base Target %s %c Net Diff %s TiB %c PoC%i",
-					tbuffer, toStr(miningCoin->mining->currentHeight, 7).c_str(), toStr(coinNames[miningCoin->coin], 10).c_str(), toStr(miningCoin->mining->currentBaseTarget, 7).c_str(),
-					250, toStr(4398046511104 / 240 / miningCoin->mining->currentBaseTarget, 8).c_str(), 250, POC2 ? 2 : 1, 0);
-				bm_wattroff(5);
+				printToConsole(MAIN, 5, true, true, true, "[#%s|%s|Continue] Base Target %s %c Net Diff %s TiB %c PoC%i",
+					toStr(miningCoin->mining->currentHeight, 7).c_str(),
+					toStr(coinNames[miningCoin->coin], 10).c_str(),
+					toStr(miningCoin->mining->currentBaseTarget, 7).c_str(), 250,
+					toStr(4398046511104 / 240 / miningCoin->mining->currentBaseTarget, 8).c_str(), 250,
+					POC2 ? 2 : 1);
 			}
 			else if (miningCoin->mining->enable) {
 				Log("------------------------    New %s block: %llu", coinNames[miningCoin->coin], miningCoin->mining->currentHeight);
-				bm_wattron(25);
-				bm_wprintwFill("\n%s [#%s|%s|Start   ] Base Target %s %c Net Diff %s TiB %c PoC%i",
-					tbuffer, toStr(miningCoin->mining->currentHeight, 7).c_str(), toStr(coinNames[miningCoin->coin], 10).c_str(), toStr(miningCoin->mining->currentBaseTarget, 7).c_str(),
-					250, toStr(4398046511104 / 240 / miningCoin->mining->currentBaseTarget, 8).c_str(), 250, POC2 ? 2 : 1, 0);
-				bm_wattroff(25);
+				printToConsole(MAIN, 25, true, true, true, "[#%s|%s|Start   ] Base Target %s %c Net Diff %s TiB %c PoC%i",
+					toStr(miningCoin->mining->currentHeight, 7).c_str(),
+					toStr(coinNames[miningCoin->coin], 10).c_str(),
+					toStr(miningCoin->mining->currentBaseTarget, 7).c_str(), 250,
+					toStr(4398046511104 / 240 / miningCoin->mining->currentBaseTarget, 8).c_str(), 250,
+					POC2 ? 2 : 1);
 			}
 
 			QueryPerformanceCounter((LARGE_INTEGER*)&start_threads_time);
@@ -1465,11 +1419,7 @@ int main(int argc, char **argv) {
 							Log("Total round time: %.1f seconds", thread_time);
 							if (use_debug)
 							{
-								char tbuffer[9];
-								_strtime_s(tbuffer);
-								bm_wattron(7);
-								bm_wprintw("%s Total round time: %.1f sec\n", tbuffer, thread_time, 0);
-								bm_wattroff(7);
+								printToConsole(MAIN, 7, true, false, false, "Total round time: %.1f sec\n", thread_time);
 							}
 						}
 						//prepare
@@ -1489,45 +1439,51 @@ int main(int argc, char **argv) {
 							for (size_t i = 0; i < paths_dir.size(); i++)		GetFiles(paths_dir[i], &tmp_files);
 							if (use_debug)
 							{
-								char tbuffer[9];
-								_strtime_s(tbuffer);
-								bm_wattron(7);
-								bm_wprintw("%s HDD, WAKE UP !\n", tbuffer, 0);
-								bm_wattroff(7);
+								printToConsole(MAIN, 7, true, false, false, "HDD, WAKE UP !\n");
 							}
 							end_threads_time = curr_time;
 						}
 					}
 				}
 
-				clearProgress();
-				bm_wmoveP();
-				bm_wattronP(14);
 				if (miningCoin->mining->enable && round_size > 0) {
-					bm_wprintwP("%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c ",
-						(bytesRead * 4096 * 100 / round_size), 250,
-						(((double)bytesRead) / (256 * 1024 * 1024)), 250,
-						thread_time, 250,
-						threads_speed, 250,
-						(miningCoin->mining->deadline == 0) ? "          -" : toStr(miningCoin->mining->deadline, 11).c_str(), 250, 0);
+					if (burst->mining->enable && bhd->mining->enable) {
+						printToConsole(PROGRESS, 14, false, false, false,
+							"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c Connection: %3i%%|%3i%%",
+							(bytesRead * 4096 * 100 / round_size), 250,
+							(((double)bytesRead) / (256 * 1024 * 1024)), 250,
+							thread_time, 250,
+							threads_speed, 250,
+							(miningCoin->mining->deadline == 0) ? "          -" : toStr(miningCoin->mining->deadline, 11).c_str(), 250,
+							getNetworkQuality(burst),
+							getNetworkQuality(bhd));
+					}
+					else {
+						printToConsole(PROGRESS, 14, false, false, false,
+							"%3llu%% %c %11.2f TiB %c %4.0f s %c %6.0f MiB/s %c Deadline: %s %c Connection:      %3i%%",
+							(bytesRead * 4096 * 100 / round_size), 250,
+							(((double)bytesRead) / (256 * 1024 * 1024)), 250,
+							thread_time, 250,
+							threads_speed, 250,
+							(miningCoin->mining->deadline == 0) ? "          -" : toStr(miningCoin->mining->deadline, 11).c_str(), 250,
+							getNetworkQuality(miningCoin));
+					}
 				}
 				else {
-					bm_wprintwP("                                                                         ");
+					if (burst->mining->enable && bhd->mining->enable) {
+						printToConsole(PROGRESS, 14, false, false, false,
+							"                                                                         Connection: %3i%%|%3i%%",
+							getNetworkQuality(burst), getNetworkQuality(bhd), 0);
+					}
+					else {
+						printToConsole(PROGRESS, 14, false, false, false,
+							"                                                                         Connection:      %3i%%",
+							getNetworkQuality(miningCoin), 0);
+					}
 				}
-
-				if (burst->mining->enable && bhd->mining->enable) {
-					bm_wprintwP("Connection: %3i%%|%3i%%", getNetworkQuality(burst), getNetworkQuality(bhd), 0);
-				}
-				else {
-					bm_wprintwP("Connection:      %3i%%", getNetworkQuality(miningCoin), 0);
-				}
-				bm_wattroffP(14);
-
+				
 				printFileStats();
-				refreshMain();
-				boxProgress();
-				refreshProgress();
-
+				
 				std::this_thread::yield();
 				std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			}
@@ -1559,11 +1515,7 @@ int main(int argc, char **argv) {
 						Log("Total round time: %.1f seconds", thread_time);
 						if (use_debug)
 						{
-							char tbuffer[9];
-							_strtime_s(tbuffer);
-							bm_wattron(7);
-							bm_wprintw("%s Total round time: %.1f sec\n", tbuffer, thread_time, 0);
-							bm_wattroff(7);
+							printToConsole(MAIN, 7, true, false, false, "Total round time: %.1f sec\n", thread_time);
 						}
 					}
 					//prepare
@@ -1572,11 +1524,8 @@ int main(int argc, char **argv) {
 				else {
 					miningCoin->mining->state = INTERRUPTED;
 					Log("Mining %s has been interrupted by a coin with higher priority.", coinNames[miningCoin->coin]);
-					_strtime_s(tbuffer);
-					bm_wattron(8);
-					bm_wprintwFill("%s [#%s|%s|Info    ] Mining has been interrupted by another coin.",
-						tbuffer, toStr(miningCoin->mining->currentHeight, 7).c_str(), toStr(coinNames[miningCoin->coin], 10).c_str(), 0);
-					bm_wattroff(8);
+					printToConsole(MAIN, 8, true, false, true, "[#%s|%s|Info    ] Mining has been interrupted by another coin.",
+						toStr(miningCoin->mining->currentHeight, 7).c_str(), toStr(coinNames[miningCoin->coin], 10).c_str());
 					// Queuing the interrupted coin.
 					insertIntoQueue(queue, miningCoin, miningCoin);
 				}
@@ -1632,5 +1581,6 @@ int main(int argc, char **argv) {
 	WSACleanup();
 	Log("exit");
 	Log_end();
+	bm_end();
 	return 0;
 }

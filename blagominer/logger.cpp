@@ -36,9 +36,7 @@ void Log_init(void)
 		std::stringstream ss;
 		if (CreateDirectory(L"Logs", nullptr) == ERROR_PATH_NOT_FOUND)
 		{
-			bm_wattron(12);
-			bm_wprintw("CreateDirectory failed (%d)\n", GetLastError(), 0);
-			bm_wattroff(12);
+			printToConsole(MAIN, 12, false, false, false, "CreateDirectory failed (%d)\n", GetLastError());
 			loggingInitialized = false;
 			loggingConfig.enableLogging = false;
 			return;
@@ -51,9 +49,7 @@ void Log_init(void)
 		std::string filename = ss.str();
 		if ((fp_Log = _fsopen(filename.c_str(), "wt", _SH_DENYNO)) == NULL)
 		{
-			bm_wattron(12);
-			bm_wprintw("LOG: file openinig error\n", 0);
-			bm_wattroff(12);
+			printToConsole(MAIN, 12, false, false, false, "LOG: file openinig error\n");
 			loggingInitialized = false;
 			loggingConfig.enableLogging = false;
 		}
@@ -67,9 +63,9 @@ void Log_init(void)
 
 void Log_end(void)
 {
+	interruptWriter = true;
 	if (writer.joinable())
 	{
-		interruptWriter = true;
 		writer.join();
 	}
 	if (fp_Log != nullptr)

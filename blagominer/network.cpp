@@ -84,7 +84,6 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 	if (buffer == nullptr) ShowMemErrorExit();
 	char* tmp_buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
 	if (tmp_buffer == nullptr) ShowMemErrorExit();
-	char tbuffer[9];
 	SOCKET ServerSocket = INVALID_SOCKET;
 	SOCKET ClientSocket = INVALID_SOCKET;
 	struct addrinfo *result = nullptr;
@@ -98,24 +97,18 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 
 	iResult = getaddrinfo(nullptr, coinInfo->network->proxyport.c_str(), &hints, &result);
 	if (iResult != 0) {
-		bm_wattron(12);
-		bm_wprintw("PROXY %s: getaddrinfo failed with error: %d\n", proxyName, iResult, 0);
-		bm_wattroff(12);
+		printToConsole(MAIN, 12, true, false, false, "PROXY %s: getaddrinfo failed with error: %d\n", proxyName, iResult);
 	}
 
 	ServerSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 	if (ServerSocket == INVALID_SOCKET) {
-		bm_wattron(12);
-		bm_wprintw("PROXY %s: socket failed with error: %ld\n", proxyName, WSAGetLastError(), 0);
-		bm_wattroff(12);
+		printToConsole(MAIN, 12, true, false, false, "PROXY %s: socket failed with error: %ld\n", proxyName, WSAGetLastError());
 		freeaddrinfo(result);
 	}
 
 	iResult = bind(ServerSocket, result->ai_addr, (int)result->ai_addrlen);
 	if (iResult == SOCKET_ERROR) {
-		bm_wattron(12);
-		bm_wprintw("PROXY %s: bind failed with error: %d\n", proxyName, WSAGetLastError(), 0);
-		bm_wattroff(12);
+		printToConsole(MAIN, 12, true, false, false, "PROXY %s: bind failed with error: %d\n", proxyName, WSAGetLastError());
 		freeaddrinfo(result);
 		closesocket(ServerSocket);
 	}
@@ -125,16 +118,12 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 	if (iResult == SOCKET_ERROR)
 	{
 		Log("Proxy %s: ! Error ioctlsocket's: %i", proxyName, WSAGetLastError());
-		bm_wattron(12);
-		bm_wprintw("PROXY %s: ioctlsocket failed: %ld\n", proxyName, WSAGetLastError(), 0);
-		bm_wattroff(12);
+		printToConsole(MAIN, 12, true, false, false, "PROXY %s: ioctlsocket failed: %ld\n", proxyName, WSAGetLastError());
 	}
 
 	iResult = listen(ServerSocket, 8);
 	if (iResult == SOCKET_ERROR) {
-		bm_wattron(12);
-		bm_wprintw("PROXY %s: listen failed with error: %d\n", proxyName, WSAGetLastError(), 0);
-		bm_wattroff(12);
+		printToConsole(MAIN, 12, true, false, false, "PROXY %s: listen failed with error: %d\n", proxyName, WSAGetLastError());
 		closesocket(ServerSocket);
 	}
 	Log("Proxy %s thread started", proxyName);
@@ -153,9 +142,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 			if (WSAGetLastError() != WSAEWOULDBLOCK)
 			{
 				Log("Proxy %s:! Error Proxy's accept: %i", proxyName, WSAGetLastError());
-				bm_wattron(12);
-				bm_wprintw("PROXY %s: can't accept. Error: %ld\n", proxyName, WSAGetLastError(), 0);
-				bm_wattroff(12);
+				printToConsole(MAIN, 12, true, false, false, "PROXY %s: can't accept. Error: %ld\n", proxyName, WSAGetLastError());
 			}
 		}
 		else
@@ -215,11 +202,8 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 							coinInfo->mining->shares.push_back({ client_address_str, get_accountId, get_deadline, get_nonce });
 							LeaveCriticalSection(&coinInfo->locks->sharesLock);
 
-							_strtime_s(tbuffer);
-							bm_wattron(2);
-							bm_wprintw("%s [%20llu|%-10s|Proxy ] DL found     : %s {%s}\n", tbuffer, get_accountId, proxyName,
-								toStr(get_deadline / coinInfo->mining->currentBaseTarget, 11).c_str(), client_address_str, 0);
-							bm_wattroff(2);
+							printToConsole(MAIN, 2, true, false, false, "[%20llu|%-10s|Proxy ] DL found     : %s {%s}\n", get_accountId, proxyName,
+								toStr(get_deadline / coinInfo->mining->currentBaseTarget, 11).c_str(), client_address_str);
 							Log("Proxy %s: received DL %llu from %s", proxyName, get_deadline, client_address_str);
 							
 							//Подтверждаем
@@ -230,18 +214,14 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 							if (iResult == SOCKET_ERROR)
 							{
 								Log("Proxy %s: ! Error sending to client: %i", proxyName, WSAGetLastError());
-								bm_wattron(12);
-								bm_wprintw("PROXY %s: failed sending to client: %ld\n", proxyName, WSAGetLastError(), 0);
-								bm_wattroff(12);
+								printToConsole(MAIN, 12, true, false, false, "PROXY %s: failed sending to client: %ld\n", proxyName, WSAGetLastError());
 							}
 							else
 							{
 								if (use_debug)
 								{
-									_strtime_s(tbuffer);
-									bm_wattron(9);
-									bm_wprintw("%s [%20llu|%-10s|Proxy ] DL confirmed to            %s\n", tbuffer, get_accountId, proxyName, client_address_str, 0);
-									bm_wattroff(9);
+									printToConsole(MAIN, 9, true, false, false, "[%20llu|%-10s|Proxy ] DL confirmed to            %s\n",
+										get_accountId, proxyName, client_address_str);
 								}
 								Log("Proxy %s: sent confirmation to %s", proxyName, client_address_str);
 							}
@@ -261,9 +241,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 						if (iResult == SOCKET_ERROR)
 						{
 							Log("Proxy %s: ! Error sending to client: %i", proxyName, WSAGetLastError());
-							bm_wattron(12);
-							bm_wprintw("PROXY %s: failed sending to client: %ld\n", proxyName, WSAGetLastError(), 0);
-							bm_wattroff(12);
+							printToConsole(MAIN, 12, true, false, false, "PROXY %s: failed sending to client: %ld\n", proxyName, WSAGetLastError());
 						}
 						else if (loggingConfig.logAllGetMiningInfos)
 						{
@@ -279,9 +257,8 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 						else
 						{
 							find[0] = 0;
-							bm_wattron(15);
-							bm_wprintw("PROXY %s: %s\n", proxyName, buffer, 0);//You can crash the miner when the proxy is enabled and you open the address in a browser.  wprintw("PROXY: %s\n", "Error", 0);
-							bm_wattroff(15);
+							//You can crash the miner when the proxy is enabled and you open the address in a browser.  wprintw("PROXY: %s\n", "Error", 0);
+							printToConsole(MAIN, 15, true, false, false, "PROXY %s: %s\n", proxyName, buffer);
 						}
 					}
 				}
@@ -328,8 +305,6 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 	char* buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
 	if (buffer == nullptr) ShowMemErrorExit();
 
-	char tbuffer[9];
-
 	struct addrinfo *result = nullptr;
 	struct addrinfo hints;
 
@@ -352,11 +327,9 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 			{
 				if (use_debug)
 				{
-					_strtime_s(tbuffer);
-					bm_wattron(2);
-					bm_wprintw("%s [%20llu|%-10s|Sender] DL discarded : %s > %s\n", tbuffer, iter->account_id, senderName,
-						toStr(iter->best / coinInfo->mining->currentBaseTarget, 11).c_str(), toStr(coinInfo->mining->bests[Get_index_acc(iter->account_id, coinInfo, targetDeadlineInfo)].targetDeadline, 11).c_str(), 0);
-					bm_wattroff(2);
+					printToConsole(MAIN, 2, true, false, false, "[%20llu|%-10s|Sender] DL discarded : %s > %s\n",
+						iter->account_id, senderName, toStr(iter->best / coinInfo->mining->currentBaseTarget, 11).c_str(),
+						toStr(coinInfo->mining->bests[Get_index_acc(iter->account_id, coinInfo, targetDeadlineInfo)].targetDeadline, 11).c_str());
 				}
 				EnterCriticalSection(&coinInfo->locks->sharesLock);
 				iter = coinInfo->mining->shares.erase(iter);
@@ -372,18 +345,13 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 			iResult = getaddrinfo(coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), &hints, &result);
 			if (iResult != 0) {
 				decreaseNetworkQuality(coinInfo);
-				_strtime_s(tbuffer);
-				bm_wattron(12);
-				bm_wprintw("%s [%20llu|%-10s|Sender] getaddrinfo failed with error: %d\n", tbuffer, iter->account_id, senderName, iResult, 0);
-				bm_wattroff(12);
+				printToConsole(MAIN, 12, true, false, false, "[%20llu|%-10s|Sender] getaddrinfo failed with error: %d\n", iter->account_id, senderName, iResult);
 				continue;
 			}
 			ConnectSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 			if (ConnectSocket == INVALID_SOCKET) {
 				decreaseNetworkQuality(coinInfo);
-				bm_wattron(12);
-				bm_wprintw("SENDER %s: socket failed with error: %ld\n", senderName, WSAGetLastError(), 0);
-				bm_wattroff(12);
+				printToConsole(MAIN, 12, true, false, false, "SENDER %s: socket failed with error: %ld\n", senderName, WSAGetLastError());
 				freeaddrinfo(result);
 				continue;
 			}
@@ -394,10 +362,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 			{
 				decreaseNetworkQuality(coinInfo);
 				Log("\nSender %s:! Error Sender's connect: %i", senderName, WSAGetLastError());
-				bm_wattron(12);
-				_strtime_s(tbuffer);
-				bm_wprintw("%s SENDER %s: can't connect. Error: %ld\n", senderName, tbuffer, WSAGetLastError(), 0);
-				bm_wattroff(12);
+				printToConsole(MAIN, 12, true, false, false, "SENDER %s: can't connect. Error: %ld\n", senderName, WSAGetLastError());
 				freeaddrinfo(result);
 				continue;
 			}
@@ -424,22 +389,18 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 				{
 					decreaseNetworkQuality(coinInfo);
 					Log("Sender %s: ! Error deadline's sending: %i", senderName, WSAGetLastError());
-					bm_wattron(12);
-					bm_wprintw("SENDER %s: send failed: %ld\n", senderName, WSAGetLastError(), 0);
-					bm_wattroff(12);
+					printToConsole(MAIN, 12, true, false, false, "SENDER %s: send failed: %ld\n", senderName, WSAGetLastError());
 					continue;
 				}
 				else
 				{
 					unsigned long long dl = iter->best / coinInfo->mining->currentBaseTarget;
-					_strtime_s(tbuffer);
 					increaseNetworkQuality(coinInfo);
-					Log("[%20llu] %s sent DL: %15llu %5llud %02llu:%02llu:%02llu", iter->account_id, senderName, dl, (dl) / (24 * 60 * 60), (dl % (24 * 60 * 60)) / (60 * 60), (dl % (60 * 60)) / 60, dl % 60, 0);
-					bm_wattron(9);
-					bm_wprintw("%s [%20llu|%-10s|Sender] DL sent      : %s %sd %02llu:%02llu:%02llu\n", tbuffer, iter->account_id, senderName,
-						toStr(dl, 11).c_str(), toStr((dl) / (24 * 60 * 60), 7).c_str(), (dl % (24 * 60 * 60)) / (60 * 60), (dl % (60 * 60)) / 60, dl % 60, 0);
-					bm_wattroff(9);
-
+					Log("[%20llu] %s sent DL: %15llu %5llud %02llu:%02llu:%02llu", iter->account_id, senderName, dl,
+						(dl) / (24 * 60 * 60), (dl % (24 * 60 * 60)) / (60 * 60), (dl % (60 * 60)) / 60, dl % 60, 0);
+					printToConsole(MAIN, 9, true, false, false, "[%20llu|%-10s|Sender] DL sent      : %s %sd %02llu:%02llu:%02llu\n", iter->account_id, senderName,
+						toStr(dl, 11).c_str(), toStr((dl) / (24 * 60 * 60), 7).c_str(), (dl % (24 * 60 * 60)) / (60 * 60), (dl % (60 * 60)) / 60, dl % 60);
+					
 					EnterCriticalSection(&coinInfo->locks->sessionsLock);
 					//sessions.push_back({ ConnectSocket, iter->account_id, dl, iter->best, iter->nonce });
 					coinInfo->network->sessions.push_back({ ConnectSocket, dl, *iter });
@@ -468,9 +429,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 				{
 					decreaseNetworkQuality(coinInfo);
 					Log("\nSender %s: ! Error ioctlsocket's: %i", senderName, WSAGetLastError());
-					bm_wattron(12);
-					bm_wprintw("SENDER %s: ioctlsocket failed: %ld\n", senderName, WSAGetLastError(), 0);
-					bm_wattroff(12);
+					printToConsole(MAIN, 12, true, false, false, "SENDER %s: ioctlsocket failed: %ld\n", senderName, WSAGetLastError());
 					continue;
 				}
 				RtlSecureZeroMemory(buffer, buffer_size);
@@ -486,9 +445,6 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 					if (WSAGetLastError() != WSAEWOULDBLOCK) //разрыв соединения, молча переотправляем дедлайн
 					{
 						decreaseNetworkQuality(coinInfo);
-						//wattron(6);
-						//wprintw("%s [%20llu] not confirmed DL %10llu\n", tbuffer, iter->body.account_id, iter->deadline, 0);
-						//wattroff(6);
 						Log("Sender %s: ! Error getting confirmation for DL: %llu  code: %i", senderName, iter->deadline, WSAGetLastError());
 						iter = coinInfo->network->sessions.erase(iter);
 						coinInfo->mining->shares.push_back({ iter->body.file_name, iter->body.account_id, iter->body.best, iter->body.nonce });
@@ -546,26 +502,26 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 									unsigned hours = (ndeadline % (24 * 60 * 60)) / (60 * 60);
 									unsigned min = (ndeadline % (60 * 60)) / 60;
 									unsigned sec = ndeadline % 60;
-									_strtime_s(tbuffer);
-									bm_wattron(10);
 									if ((naccountId != 0) && (ntargetDeadline != 0))
 									{
 										EnterCriticalSection(&coinInfo->locks->bestsLock);
 										coinInfo->mining->bests[Get_index_acc(naccountId, coinInfo, targetDeadlineInfo)].targetDeadline = ntargetDeadline;
 										LeaveCriticalSection(&coinInfo->locks->bestsLock);
 										
-										
-										bm_wprintw("%s [%20llu|%-10s|Sender] DL confirmed : %s %sd %02llu:%02llu:%02llu\n", tbuffer, naccountId, senderName,
-											toStr(ndeadline, 11).c_str(), toStr(days, 7).c_str(), hours, min, sec, 0);
-										Log("[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", naccountId, senderName, ndeadline, days, hours, min, sec, 0);
+										printToConsole(MAIN, 10, true, false, false, "[%20llu|%-10s|Sender] DL confirmed : %s %sd %02u:%02u:%02u\n",
+											naccountId, senderName, toStr(ndeadline, 11).c_str(), toStr(days, 7).c_str(), hours, min, sec);
+										Log("[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", naccountId, senderName, ndeadline, days, hours, min, sec);
 										Log("[%20llu] %s set targetDL: %10llu", naccountId, senderName, ntargetDeadline);
 										if (use_debug) {
-											bm_wprintw("%s [%20llu|%-10s|Sender] Set target DL: %s\n", tbuffer, naccountId, toStr(ntargetDeadline, 11).c_str(), 0);
+											printToConsole(MAIN, 10, true, false, false, "[%20llu|%-10s|Sender] Set target DL: %s\n",
+												naccountId, toStr(ntargetDeadline, 11).c_str());
 										}
 									}
-									else bm_wprintw("%s [%20llu|%-10s|Sender] DL confirmed : %s %sd %02llu:%02llu:%02llu\n", tbuffer, iter->body.account_id, senderName,
-										toStr(ndeadline, 11).c_str(), toStr(days, 7).c_str(), hours, min, sec, 0);
-									bm_wattroff(10);
+									else {
+										printToConsole(MAIN, 10, true, false, false, "[%20llu|%-10s|Sender] DL confirmed : %s %sd %02u:%02u:%02u\n",
+											iter->body.account_id, senderName, toStr(ndeadline, 11).c_str(), toStr(days, 7).c_str(), hours, min, sec);
+										Log("[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", iter->body.account_id, senderName, ndeadline, days, hours, min, sec);
+									}
 									if (ndeadline < coinInfo->mining->deadline || coinInfo->mining->deadline == 0)  coinInfo->mining->deadline = ndeadline;
 
 									if (ndeadline != iter->deadline)
@@ -575,9 +531,9 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 										std::thread{ Csv_Fail, coinInfo->coin, coinInfo->mining->currentHeight, iter->body.file_name, coinInfo->mining->currentBaseTarget,
 											4398046511104 / 240 / coinInfo->mining->currentBaseTarget, iter->body.nonce, iter->deadline, ndeadline, answString }.detach();
 										std::thread{ increaseConflictingDeadline, iter->body.file_name }.detach();
-										bm_wattron(6);
-										bm_wprintw("----Fast block or corrupted file?----\n%s sent deadline:\t%llu\nServer's deadline:\t%llu \n----\n", senderName, iter->deadline, ndeadline, 0); //shares[i].file_name.c_str());
-										bm_wattroff(6);
+										printToConsole(MAIN, 6, false, false, false,
+											"----Fast block or corrupted file?----\n%s sent deadline:\t%llu\nServer's deadline:\t%llu \n----\n",
+											senderName, iter->deadline, ndeadline); //shares[i].file_name.c_str());
 									}
 								}
 								else {
@@ -593,17 +549,13 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 											Log("Sender %s: Deadline should have been accepted (%llu <= %llu). Retry #%i.", senderName, iter->deadline, targetDeadlineInfo, iter->body.retryCount + 1);
 											coinInfo->mining->shares.push_back({ iter->body.file_name, iter->body.account_id, iter->body.best, iter->body.nonce, iter->body.retryCount + 1 });
 										}
-										bm_wattron(15);
-										bm_wprintw("[ERROR %i] %s: %s\n", answ["errorCode"].GetInt(), senderName, answ["errorDescription"].GetString(), 0);
-										bm_wattroff(15);
-										bm_wattron(12);
-										if (answ["errorCode"].GetInt() == 1004) bm_wprintw("%s: You need change reward assignment and wait 4 blocks (~16 minutes)\n", senderName); //error 1004
-										bm_wattroff(12);
+										printToConsole(MAIN, 15, true, false, false, "[ERROR %i] %s: %s\n", answ["errorCode"].GetInt(), senderName, answ["errorDescription"].GetString());
+										if (answ["errorCode"].GetInt() == 1004) {
+											printToConsole(MAIN, 12, true, false, false, "%s: You need change reward assignment and wait 4 blocks (~16 minutes)\n", senderName); //error 1004
+										}
 									}
 									else {
-										bm_wattron(15);
-										bm_wprintw("%s: %s\n", senderName, find);
-										bm_wattroff(15);
+										printToConsole(MAIN, 15, true, false, false, "%s: %s\n", senderName, find);
 									}
 								}
 							}
@@ -612,13 +564,11 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 						{
 							if (strstr(find, "Received share") != nullptr)
 							{
-								_strtime_s(tbuffer);
 								coinInfo->mining->deadline = coinInfo->mining->bests[Get_index_acc(iter->body.account_id, coinInfo, targetDeadlineInfo)].DL; //может лучше iter->deadline ?
 																						   // if(deadline > iter->deadline) deadline = iter->deadline;
 								std::thread{ increaseMatchingDeadline, iter->body.file_name }.detach();
-								bm_wattron(10);
-								bm_wprintw("%s [%20llu|%-10s|Sender] DL confirmed : %s\n", tbuffer, iter->body.account_id, senderName, toStr(iter->deadline, 11).c_str(), 0);
-								bm_wattroff(10);
+								printToConsole(MAIN, 10, true, false, false, "[%20llu|%-10s|Sender] DL confirmed : %s\n",
+									iter->body.account_id, senderName, toStr(iter->deadline, 11).c_str());
 							}
 							else //получили нераспознанный ответ
 							{
@@ -632,19 +582,14 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 
 								if (status != 0)
 								{
-									bm_wattron(6);
-									//wprintw("%s [%20llu] NOT confirmed DL %10llu\n", tbuffer, iter->body.account_id, iter->deadline, 0);
 									std::string error_str(msg, msg_len);
-									bm_wprintw("%s: Server error: %d %s\n", senderName, status, error_str.c_str());
-									bm_wattroff(6);
+									printToConsole(MAIN, 6, true, false, false, "%s: Server error: %d %s\n", senderName, status, error_str.c_str());
 									Log("Sender %s: server error for DL: %llu", senderName, iter->deadline);
 									coinInfo->mining->shares.push_back({ iter->body.file_name, iter->body.account_id, iter->body.best, iter->body.nonce });
 								}
 								else //получили непонятно что
 								{
-									bm_wattron(7);
-									bm_wprintw("%s: %s\n", senderName, buffer);
-									bm_wattroff(7);
+									printToConsole(MAIN, 7, true, false, false, "%s: %s\n", senderName, buffer);
 								}
 							}
 						}
