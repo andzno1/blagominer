@@ -416,7 +416,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 			}
 		}
 
-		if (!coinInfo->network->sessions.empty())
+		if (!coinInfo->network->sessions.empty() && !exit_flag && !coinInfo->network->stopSender)
 		{
 			EnterCriticalSection(&coinInfo->locks->sessionsLock);
 			for (auto iter = coinInfo->network->sessions.begin(); iter != coinInfo->network->sessions.end() &&
