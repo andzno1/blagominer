@@ -26,9 +26,9 @@ Due to the new dual mining ability some fields in the configuration file have be
 | `"Burst"."Enable"` and `"BHD"."Enable"` | `true` enables the mining of the corresponding coin, `false` disables it.  |
 | `"Burst"."Priority"` and `"BHD"."Priority"` | A higher priority coin (lower value) interrupts the mining process of a coin with lower priority (higher value). This value must be `>= 0`. If both coins have the same priority, there won't be any interruptions and there will be a mining queue.  |
 | `"Burst"."ProxyUpdateInterval"` and `"BHD"."ProxyUpdateInterval"` | Interval in milliseconds for the proxy checking for new client requests.  |
-| `ShowCorruptedPlotFiles`  | If you want to see possibly corrupted plot files in the console windows, set this to `true`, `false` otherwise.  |
-| `IgnoreSuspectedFastBlocks`  | If you don't want to count mismatching deadlines while tracking possibly corrupted plot files if the cause may have been a fast block, set this to `true`, `false` otherwise.  |
-| `CheckForUpdateIntervalInDays`  | Check for new versions every x days. Set it to `0` to disable update check.  |
+| `"ShowCorruptedPlotFiles"`  | If you want to see possibly corrupted plot files in the console windows, set this to `true`, `false` otherwise.  |
+| `"IgnoreSuspectedFastBlocks"`  | If you don't want to count mismatching deadlines while tracking possibly corrupted plot files if the cause may have been a fast block, set this to `true`, `false` otherwise.  |
+| `"CheckForUpdateIntervalInDays"`  | Check for new versions every x days. Set it to `0` to disable update check.  |
 | `"Logging"."logAllGetMiningInfos"`  | Set it to `false` if you want to log every received mining information and all updates sent by the proxies, even if there is no new information. This increases the log file size quite fast. Set it to `true` otherwise. |
 | `"Logging"."EnableCsv"`  | Set it to `true` if you want to enable logging of mining statistics to csv files. Set it to `false` otherwise. |
 | `"LockWindowSize"`  | Set it to `false` if you want to be able to resize the miner window. Set it to `true` otherwise. |
