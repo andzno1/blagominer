@@ -334,6 +334,10 @@ int load_config(char const *const filename)
 		if (document.HasMember("ShowCorruptedPlotFiles") && (document["ShowCorruptedPlotFiles"].IsBool())) showCorruptedPlotFiles = document["ShowCorruptedPlotFiles"].GetBool();
 		Log("ShowCorruptedPlotFiles: %d", showCorruptedPlotFiles);
 
+		if (document.HasMember("IgnoreSuspectedFastBlocks") && (document["IgnoreSuspectedFastBlocks"].IsBool()))
+			ignoreSuspectedFastBlocks = document["IgnoreSuspectedFastBlocks"].GetBool();
+		Log("IgnoreSuspectedFastBlocks: %d", ignoreSuspectedFastBlocks);
+
 		if (document.HasMember("hddWakeUpTimer") && (document["hddWakeUpTimer"].IsUint())) hddWakeUpTimer = document["hddWakeUpTimer"].GetUint();
 		Log("hddWakeUpTimer: %u", hddWakeUpTimer);
 

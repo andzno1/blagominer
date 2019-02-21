@@ -15,12 +15,28 @@ void increaseMatchingDeadline(std::string file) {
 	++fileStats[file].matchingDeadlines;
 }
 
-void increaseConflictingDeadline(std::string file) {
+void increaseConflictingDeadline(std::shared_ptr<t_coin_info> coin, unsigned long long height, std::string file) {
 	if (!showCorruptedPlotFiles) {
 		return;
 	}
-	std::lock_guard<std::mutex> lockGuard(mFileStats);
-	++fileStats[file].conflictingDeadlines;
+
+	bool log = true;
+	if (ignoreSuspectedFastBlocks) {
+		// Wait to see if there is a new block incoming.
+		std::this_thread::yield();
+		std::this_thread::sleep_for(std::chrono::seconds(5));
+
+		if (height != coin->mining->currentHeight) {
+			Log("increaseConflictingDeadline %s: Not counting this conflicting deadline, as the cause is most probably a fast block. ",
+				coinNames[coin->coin]);
+			log = false;
+		}
+
+	}
+	if (log) {
+		std::lock_guard<std::mutex> lockGuard(mFileStats);
+		++fileStats[file].conflictingDeadlines;
+	}
 }
 
 void increaseReadError(std::string file) {

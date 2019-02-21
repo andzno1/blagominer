@@ -531,7 +531,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 										Log("Sender %s: Calculated and confirmed deadlines don't match. Fast block or corrupted file? Response: %s", senderName, answString);
 										std::thread{ Csv_Fail, coinInfo->coin, coinInfo->mining->currentHeight, iter->body.file_name, coinInfo->mining->currentBaseTarget,
 											4398046511104 / 240 / coinInfo->mining->currentBaseTarget, iter->body.nonce, iter->deadline, ndeadline, answString }.detach();
-										std::thread{ increaseConflictingDeadline, iter->body.file_name }.detach();
+										std::thread{ increaseConflictingDeadline, coinInfo, coinInfo->mining->currentHeight, iter->body.file_name }.detach();
 										printToConsole(MAIN, 6, false, false, false,
 											"----Fast block or corrupted file?----\n%s sent deadline:\t%llu\nServer's deadline:\t%llu \n----\n",
 											senderName, iter->deadline, ndeadline); //shares[i].file_name.c_str());
@@ -544,7 +544,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 										if (iter->body.retryCount < 1) {
 											std::thread{ Csv_Fail, coinInfo->coin, coinInfo->mining->currentHeight, iter->body.file_name, coinInfo->mining->currentBaseTarget,
 												4398046511104 / 240 / coinInfo->mining->currentBaseTarget, iter->body.nonce, iter->deadline, 0, answString }.detach();
-											std::thread{ increaseConflictingDeadline, iter->body.file_name }.detach();
+											std::thread{ increaseConflictingDeadline, coinInfo, coinInfo->mining->currentHeight, iter->body.file_name }.detach();
 										}
 										if (iter->deadline <= targetDeadlineInfo && iter->body.retryCount < maxSubmissionRetries) {
 											Log("Sender %s: Deadline should have been accepted (%llu <= %llu). Retry #%i.", senderName, iter->deadline, targetDeadlineInfo, iter->body.retryCount + 1);

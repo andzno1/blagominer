@@ -23,6 +23,7 @@ std::string version = std::to_string(versionMajor) + "." + std::to_string(versio
 
 extern bool lockWindowSize = true;
 double checkForUpdateInterval = 1;
+bool ignoreSuspectedFastBlocks = true;
 bool exit_flag = false;
 
 HANDLE hHeap;
