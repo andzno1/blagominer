@@ -1,8 +1,8 @@
 #include "common.h"
 
 const unsigned int versionMajor = 1;
-const unsigned int versionMinor = 190216;
-const unsigned int versionRevision = 1;
+const unsigned int versionMinor = 190221;
+const unsigned int versionRevision = 0;
 
 // blago version
 #ifdef __AVX512F__
