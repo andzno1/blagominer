@@ -1130,7 +1130,7 @@ int main(int argc, char **argv) {
 	
 	if (total_size == 0 && (burst->mining->enable || bhd->mining->enable)) {
 		printToConsole(MAIN, 12, false, true, false,
-			"Plot files not found...please check the \"PATHS\" parameter in your config file.\n Press any key for exit...\n");
+			"Plot files not found...please check the \"PATHS\" parameter in your config file.\n");
 		system("pause > nul");
 		exit(-1);
 	}
