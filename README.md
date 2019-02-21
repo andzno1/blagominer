@@ -31,4 +31,4 @@ Due to the new dual mining ability some fields in the configuration file have be
 | `CheckForUpdateIntervalInDays`  | Check for new versions every x days. Set it to `0` to disable update check.  |
 | `"Logging"."logAllGetMiningInfos"`  | Set it to `false` if you want to log every received mining information and all updates sent by the proxies, even if there is no new information. This increases the log file size quite fast. Set it to `true` otherwise. |
 | `"Logging"."EnableCsv"`  | Set it to `true` if you want to enable logging of mining statistics to csv files. Set it to `false` otherwise. |
-| `LockWindowSize"`  | Set it to `false` if you want to be able to resize the miner window. Set it to `true` otherwise. |
+| `"LockWindowSize"`  | Set it to `false` if you want to be able to resize the miner window. Set it to `true` otherwise. |
