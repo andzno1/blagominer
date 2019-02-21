@@ -1488,7 +1488,9 @@ int main(int argc, char **argv) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(50));
 			}
 
+			Log("Interrupting worker threads.");
 			stopThreads = true;   // Tell all threads to stop
+			Log("Interrupt Sender.");
 			miningCoin->network->stopSender = true;
 			
 			Log("Waiting for worker threads to shut down.");

@@ -315,6 +315,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 			if (buffer != nullptr) {
 				HeapFree(hHeap, 0, buffer);
 			}
+			Log("Sender %s: Shutting down.", senderName);
 			return;
 		}
 
@@ -608,6 +609,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 	if (buffer != nullptr) {
 		HeapFree(hHeap, 0, buffer);
 	}
+	Log("Sender %s: All work done, shutting down.", senderName);
 	return;
 }
 
