@@ -20,6 +20,7 @@ void increaseConflictingDeadline(std::shared_ptr<t_coin_info> coin, unsigned lon
 		return;
 	}
 
+	Log("increaseConflictingDeadline %s", coinNames[coin->coin]);
 	bool log = true;
 	if (ignoreSuspectedFastBlocks) {
 		// Wait to see if there is a new block incoming.

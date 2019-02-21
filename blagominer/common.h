@@ -39,7 +39,6 @@ struct t_shares {
 	unsigned long long account_id;// = 0;
 	unsigned long long best;// = 0;
 	unsigned long long nonce;// = 0;
-	int retryCount;
 };
 
 struct t_best {
@@ -51,6 +50,7 @@ struct t_best {
 };
 
 struct t_session {
+	t_session(SOCKET Socket, unsigned long long deadline, t_shares body) : Socket(Socket), deadline(deadline), body(body) {}
 	SOCKET Socket;
 	unsigned long long deadline;
 	t_shares body;
@@ -138,9 +138,9 @@ struct t_network_info {
 	size_t update_interval;
 	size_t proxy_update_interval;
 	int network_quality;
-	std::vector<t_session> sessions;
+	std::vector<std::shared_ptr<t_session>> sessions;
 	std::thread sender;
-	volatile bool stopSender;
+	std::thread confirmer;
 };
 
 struct t_coin_info {

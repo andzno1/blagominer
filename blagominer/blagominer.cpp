@@ -16,7 +16,6 @@ char *p_minerPath = nullptr;
 char *pass = nullptr;
 unsigned long long total_size = 0;
 bool POC2 = false;
-volatile bool stopSender = false;
 volatile bool stopThreads = false;
 bool use_wakeup = false;						// wakeup HDDs if true
 unsigned int hddWakeUpTimer = 180;              // HDD wakeup timer in seconds
@@ -688,7 +687,7 @@ void newRound(std::shared_ptr<t_coin_info > coinCurrentlyMining) {
 	Log("New round for %s.", coinName);
 	EnterCriticalSection(&coinCurrentlyMining->locks->sessionsLock);
 	for (auto it = coinCurrentlyMining->network->sessions.begin(); it != coinCurrentlyMining->network->sessions.end(); ++it) {
-		closesocket(it->Socket);
+		closesocket((*it)->Socket);
 	}
 	coinCurrentlyMining->network->sessions.clear();
 	LeaveCriticalSection(&coinCurrentlyMining->locks->sessionsLock);
@@ -708,8 +707,14 @@ void newRound(std::shared_ptr<t_coin_info > coinCurrentlyMining) {
 		resetDirs(coinCurrentlyMining);
 	}
 
-	coinCurrentlyMining->network->stopSender = false;
-	coinCurrentlyMining->network->sender = std::thread(send_i, coinCurrentlyMining);
+	// We need only one instance of sender
+	if (!coinCurrentlyMining->network->sender.joinable()) {
+		coinCurrentlyMining->network->sender = std::thread(send_i, coinCurrentlyMining);
+	}
+	// We need only one instance of confirmer
+	if (!coinCurrentlyMining->network->confirmer.joinable()) {
+		coinCurrentlyMining->network->confirmer = std::thread(confirm_i, coinCurrentlyMining);
+	}
 }
 
 void handleProxyOnly(std::shared_ptr<t_coin_info> coin) {
@@ -721,10 +726,7 @@ void handleProxyOnly(std::shared_ptr<t_coin_info> coin) {
 			updateOldSignature(coin);
 			printToConsole(MAIN, 5, true, true, true, "[#%s|%s|Info    ] New block.",
 				toStr(coin->mining->height, 7).c_str(), toStr(coinNames[coin->coin], 10).c_str(), 0);
-			coin->network->stopSender = true;
-			if (coin->network->sender.joinable()) {
-				coin->network->sender.join();
-			}
+			
 			if (coin->mining->currentBaseTarget != 0) {
 				std::thread{ Csv_Submitted,  coin->coin, coin->mining->currentHeight,
 					coin->mining->currentBaseTarget, 4398046511104 / 240 / coin->mining->currentBaseTarget,
@@ -1494,8 +1496,6 @@ int main(int argc, char **argv) {
 
 			Log("Interrupting worker threads.");
 			stopThreads = true;   // Tell all threads to stop
-			Log("Interrupt Sender.");
-			miningCoin->network->stopSender = true;
 			
 			Log("Waiting for worker threads to shut down.");
 			for (auto it = worker.begin(); it != worker.end(); ++it)
@@ -1540,8 +1540,6 @@ int main(int argc, char **argv) {
 				Log("New block, no mining has been interrupted.");
 			}
 
-			Log("Interrupt Sender.");
-			if (miningCoin->network->sender.joinable()) miningCoin->network->sender.join();
 			std::thread{ Csv_Submitted,  miningCoin->coin, miningCoin->mining->currentHeight, miningCoin->mining->currentBaseTarget, 4398046511104 / 240 / miningCoin->mining->currentBaseTarget, thread_time, miningCoin->mining->state == DONE, miningCoin->mining->deadline }.detach();
 
 			//prepare for next round if not yet done
@@ -1561,6 +1559,9 @@ int main(int argc, char **argv) {
 	if (proxyOnlyBurst.joinable()) proxyOnlyBurst.join();
 	if (proxyOnlyBhd.joinable()) proxyOnlyBhd.join();
 	if (updateChecker.joinable()) updateChecker.join();
+	if (burst->network->sender.joinable()) burst->network->sender.join();
+	if (bhd->network->sender.joinable()) bhd->network->sender.join();
+	
 	worker.~map();
 	worker_progress.~map();
 	paths_dir.~vector();
