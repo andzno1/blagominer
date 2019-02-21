@@ -260,5 +260,5 @@ paket-files/
 __pycache__/
 *.pyc
 /blagominer/miner.confo
-/blagominer/stat.csv
-/blagominer/miner.conf
+/blagominer/*.csv
+Logs/
