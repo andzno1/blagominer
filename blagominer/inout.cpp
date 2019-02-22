@@ -7,7 +7,6 @@ short win_size_x = 96;
 short win_size_y = 60;
 int minimumWinMainHeight = 5;
 const short progress_lines = 3;
-const short corrupted_lines = 2;
 const short new_version_lines = 3;
 WINDOW * win_main;
 WINDOW * win_progress;
@@ -15,72 +14,88 @@ WINDOW * win_corrupted;
 WINDOW * win_new_version;
 
 std::mutex mConsoleQueue;
+std::mutex mProgressQueue;
 std::mutex mConsoleWindow;
 std::list<ConsoleOutput> consoleQueue;
+std::list<std::string> progressQueue;
 std::thread consoleWriter;
+std::thread progressWriter;
 bool interruptConsoleWriter = false;
 
-void _consoleWriter()
-{
+void _progressWriter() {
+	while (!interruptConsoleWriter) {
+		if (!progressQueue.empty()) {
+
+			std::string message;
+
+			{
+				std::lock_guard<std::mutex> lockGuard(mProgressQueue);
+				message = progressQueue.front();
+				progressQueue.pop_front();
+			}
+
+			wclear(win_progress);
+			wmove(win_progress, 1, 1);
+			box(win_progress, 0, 0);
+			wattron(win_progress, COLOR_PAIR(14));
+			waddstr(win_progress, message.c_str());
+			wattroff(win_progress, COLOR_PAIR(14));
+			wrefresh(win_progress);
+		}
+		else {
+			std::this_thread::yield();
+			std::this_thread::sleep_for(std::chrono::milliseconds(10));
+		}
+	}
+}
+
+void _consoleWriter() {
 	while (!interruptConsoleWriter) {
 		if (!consoleQueue.empty()) {
 			ConsoleOutput consoleOutput;
 			{
 				std::lock_guard<std::mutex> lockGuard(mConsoleQueue);
+				
+				if (consoleQueue.size() == 1 && consoleQueue.front().message == "\n") {
+					std::this_thread::yield();
+					std::this_thread::sleep_for(std::chrono::milliseconds(10));
+					continue;
+				}
+				
 				consoleOutput = consoleQueue.front();
 				consoleQueue.pop_front();
 			}
 			
 			{
 				std::lock_guard<std::mutex> lockGuard(mConsoleWindow);
-				WINDOW* win;
-				switch (consoleOutput.window)
-				{
-				case VERSION:
-					win = win_new_version;
-					break;
-				case MAIN:
-					win = win_main;
-					break;
-				case PROGRESS:
-					win = win_progress;
-					wclear(win);
-					wmove(win, 1, 1);
-					box(win_progress, 0, 0);
-					break;
-				default:
-					Log("Uncovered window case.");
-					continue;
-					break;
-				}
-			
+				
 				if (consoleOutput.colorPair >= 0) {
-					wattron(win, COLOR_PAIR(consoleOutput.colorPair));
+					wattron(win_main, COLOR_PAIR(consoleOutput.colorPair));
 				}
 				if (consoleOutput.leadingNewLine) {
-					waddstr(win, "\n");
+					waddstr(win_main, "\n");
 				}
-				waddstr(win, consoleOutput.message.c_str());
+				waddstr(win_main, consoleOutput.message.c_str());
 				if (consoleOutput.fillLine) {
 					int y;
 					int x;
-					getyx(win, y, x);
+					getyx(win_main, y, x);
 					const int remaining = COLS - x;
 
 					if (remaining > 0) {
-						waddstr(win, std::string(remaining, ' ').c_str());
+						waddstr(win_main, std::string(remaining, ' ').c_str());
 						int newY;
 						int newX;
-						getyx(win, newY, newX);
+						getyx(win_main, newY, newX);
 						if (newX != 0) {
-							waddstr(win, std::string("\n").c_str());
+							waddstr(win_main, std::string("\n").c_str());
 						}
 					}
 				}
 				if (consoleOutput.colorPair >= 0) {
-					wattroff(win, COLOR_PAIR(consoleOutput.colorPair));
+					wattroff(win_main, COLOR_PAIR(consoleOutput.colorPair));
 				}
-				wrefresh(win);
+				wrefresh(win_main);
 			}
 			
 		}
@@ -144,18 +159,19 @@ void bm_init() {
 	init_pair(15, 15, COLOR_BLACK);
 	init_pair(25, 15, COLOR_BLUE);
 
-	win_main = newwin(LINES - 2, COLS, 0, 0);
+	win_main = newwin(LINES - progress_lines, COLS, 0, 0);
 	scrollok(win_main, true);
 	keypad(win_main, true);
 	nodelay(win_main, true);
 	win_progress = newwin(progress_lines, COLS, LINES - progress_lines, 0);
 	leaveok(win_progress, true);
-	win_corrupted = newwin(corrupted_lines, COLS, -1, 0);
+	win_corrupted = newwin(1, COLS, -1, 0);
 	leaveok(win_corrupted, true);
 	win_new_version = newwin(new_version_lines, COLS, -1, 0);
 	leaveok(win_corrupted, true);
 
 	consoleWriter = std::thread(_consoleWriter);
+	progressWriter = std::thread(_progressWriter);
 }
 
 void bm_end() {
@@ -164,10 +180,10 @@ void bm_end() {
 	{
 		consoleWriter.join();
 	}
-}
-
-void refreshMain(){
-	wrefresh(win_main);
+	if (progressWriter.joinable())
+	{
+		progressWriter.join();
+	}
 }
 
 void refreshCorrupted() {
@@ -188,10 +204,10 @@ void showNewVersion(std::string version) {
 		winMainRow -= new_version_lines;
 
 		if (currentlyDisplayingCorruptedPlotFiles()) {
-			int totalSpaceNeeded = new_version_lines + corrupted_lines + getRowsCorrupted() + progress_lines + minimumWinMainHeight + 3;
+			int totalSpaceNeeded = new_version_lines + getRowsCorrupted() + progress_lines + minimumWinMainHeight + 3;
 			if (totalSpaceNeeded > LINES) {
 				Log("Terminal too small to output everything (%i).", totalSpaceNeeded);
-				int corruptedLineCount = LINES - new_version_lines - corrupted_lines - progress_lines - minimumWinMainHeight - 3 + 2;
+				int corruptedLineCount = LINES - new_version_lines - progress_lines - minimumWinMainHeight - 3 + 2;
 				Log("Setting corrupted linecount to %i", corruptedLineCount);
 				resizeCorrupted(corruptedLineCount);
 			}
@@ -218,43 +234,35 @@ void showNewVersion(std::string version) {
 
 	wrefresh(win_new_version);
 	refreshCorrupted();
-	refreshMain();
+	wrefresh(win_main);
 }
 
 void resizeCorrupted(int lineCount) {
 	
-	int extraSpace = progress_lines - 1;
-
 	int winVerRow = 0;
 	if (currentlyDisplayingNewVersion()) {
 		winVerRow = getmaxy(win_new_version);
-		if (lineCount == 0) {
-			extraSpace++;
-		}
 	}
 		
 	if (lineCount > 0) {
-		extraSpace++;
 		if (!currentlyDisplayingCorruptedPlotFiles()) {
 			mvwin(win_corrupted, winVerRow, 0);
 		}
 		
-		int totalSpaceNeeded = lineCount + corrupted_lines + winVerRow + extraSpace + minimumWinMainHeight;
+		int totalSpaceNeeded = winVerRow + lineCount + minimumWinMainHeight + progress_lines;
 		if (totalSpaceNeeded > LINES) {
 			Log("Terminal too small to output everything (lineCount: %i).", lineCount);
-			lineCount = LINES - winVerRow - extraSpace - corrupted_lines - minimumWinMainHeight;
+			lineCount = LINES - winVerRow - minimumWinMainHeight - progress_lines;
 			Log("Setting linecount to %i", lineCount);
 		}
 		
-		wresize(win_main, LINES - extraSpace - corrupted_lines - lineCount - winVerRow, COLS);
-		mvwin(win_main, corrupted_lines + lineCount + winVerRow, 0);
-				
-
-		wresize(win_corrupted, corrupted_lines + lineCount, COLS);
+		wresize(win_main, LINES - winVerRow - lineCount - progress_lines, COLS);
+		mvwin(win_main, lineCount + winVerRow, 0);
+		wresize(win_corrupted, lineCount, COLS);
 	}
 	else if (lineCount == 0) {
 		mvwin(win_main, winVerRow, 0);
-		wresize(win_main, LINES - extraSpace - winVerRow, COLS);
+		wresize(win_main, LINES - winVerRow - progress_lines, COLS);
 	}
 }
 
@@ -262,9 +270,6 @@ int getRowsCorrupted() {
 	return getmaxy(win_corrupted);
 }
 
-void clearProgress(){
-	wclear(win_progress);
-}
 void clearCorrupted() {
 	if (currentlyDisplayingCorruptedPlotFiles()) {
 		mvwin(win_corrupted, -1, 0);
@@ -280,7 +285,7 @@ void clearNewVersion() {
 
 void hideCorrupted() {
 	if (currentlyDisplayingCorruptedPlotFiles()) {
-		win_corrupted = newwin(corrupted_lines, COLS, -1, 0);
+		win_corrupted = newwin(1, COLS, -1, 0);
 		leaveok(win_corrupted, true);
 	}
 }

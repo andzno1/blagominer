@@ -45,7 +45,7 @@ void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long n
 				EnterCriticalSection(&coin->locks->sharesLock);
 				coin->mining->shares.push_back({ file_name, coin->mining->bests[acc].account_id, coin->mining->bests[acc].best, coin->mining->bests[acc].nonce });
 				LeaveCriticalSection(&coin->locks->sharesLock);
-				printToConsole(MAIN, 2, true, false, false, "[%20llu|%-10s|Worker] DL found     : %s\n",
+				printToConsole(2, true, false, true, false, "[%20llu|%-10s|Worker] DL found     : %s",
 					coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str());
 			}
 		}
@@ -145,7 +145,7 @@ void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 				EnterCriticalSection(&coin->locks->sharesLock);
 				coin->mining->shares.push_back({ file_name, coin->mining->bests[acc].account_id, coin->mining->bests[acc].best, coin->mining->bests[acc].nonce });
 				LeaveCriticalSection(&coin->locks->sharesLock);
-				printToConsole(MAIN, 2, true, false, false, "[%20llu|%-10s|Worker] DL found     : %s\n",
+				printToConsole(2, true, false, true, false, "[%20llu|%-10s|Worker] DL found     : %s",
 					coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str());
 			}
 		}
@@ -245,7 +245,7 @@ void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 				EnterCriticalSection(&coin->locks->sharesLock);
 				coin->mining->shares.push_back({ file_name, coin->mining->bests[acc].account_id, coin->mining->bests[acc].best, coin->mining->bests[acc].nonce });
 				LeaveCriticalSection(&coin->locks->sharesLock);
-				printToConsole(MAIN, 2, true, false, false, "[%20llu|%-10s|Worker] DL found     : %s\n",
+				printToConsole(2, true, false, true, false, "[%20llu|%-10s|Worker] DL found     : %s",
 					coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str());
 			}
 		}
@@ -392,7 +392,7 @@ void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long c
 				EnterCriticalSection(&coin->locks->sharesLock);
 				coin->mining->shares.push_back({ file_name, coin->mining->bests[acc].account_id, coin->mining->bests[acc].best, coin->mining->bests[acc].nonce });
 				LeaveCriticalSection(&coin->locks->sharesLock);
-				printToConsole(MAIN, 2, true, false, false, "[%20llu|%-10s|Worker] DL found     : %s\n",
+				printToConsole(2, true, false, true, false, "[%20llu|%-10s|Worker] DL found     : %s",
 					coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str());
 			}
 		}
@@ -625,7 +625,7 @@ void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long
 				EnterCriticalSection(&coin->locks->sharesLock);
 				coin->mining->shares.push_back({ file_name, coin->mining->bests[acc].account_id, coin->mining->bests[acc].best, coin->mining->bests[acc].nonce });
 				LeaveCriticalSection(&coin->locks->sharesLock);
-				printToConsole(MAIN, 2, true, false, false, "[%20llu|%-10s|Worker] DL found     : %s\n",
+				printToConsole(2, true, false, true, false, "[%20llu|%-10s|Worker] DL found     : %s",
 					coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str());
 			}
 		}

@@ -4,7 +4,7 @@
 void ShowMemErrorExit(void)
 {
 	Log("!!! Error allocating memory");
-	printToConsole(MAIN, 12, false, true, false, "Error allocating memory\n");
+	printToConsole(12, false, true, true, false, "Error allocating memory");
 	system("pause > nul");
 	exit(-1);
 }

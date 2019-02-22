@@ -80,8 +80,8 @@ void printFileStats() {
 		return;
 	}
 
-	// Increase for header and for clear message.
-	lineCount += 2;
+	// Increase for header, border and for clear message.
+	lineCount += 4;
 
 	if (lineCount != oldLineCount) {
 		clearCorrupted();

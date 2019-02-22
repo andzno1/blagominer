@@ -113,7 +113,6 @@ bool haveReceivedNewMiningInfo(const std::vector<std::shared_ptr<t_coin_info>>& 
 	for (auto& e : coins) {
 		std::lock_guard<std::mutex> lockGuard(e->locks->mNewMiningInfoReceived);
 		if (e->mining->newMiningInfoReceived) {
-			Log("%s has received new mining information.", coinNames[e->coin]);
 			return true;
 		}
 	}

@@ -11,15 +11,7 @@ extern short win_size_y;
 
 //void printToConsole(int foregroundColor, int backgroundColor, bool fillLine, const char * output, ...);
 
-enum ConsoleWindow {
-	VERSION,
-	CORRUPTED,
-	MAIN,
-	PROGRESS
-};
-
 struct ConsoleOutput {
-	ConsoleWindow window;
 	int colorPair;
 	bool leadingNewLine;
 	bool fillLine;
@@ -28,12 +20,14 @@ struct ConsoleOutput {
 
 
 extern std::mutex mConsoleQueue;
+extern std::mutex mProgressQueue;
 extern std::mutex mConsoleWindow;
 extern std::list<ConsoleOutput> consoleQueue;
+extern std::list<std::string> progressQueue;
 
 template<typename ... Args>
-void printToConsole(ConsoleWindow window, int colorPair, bool printTimestamp, bool leadingNewLine,
-	bool fillLine, const char * format, Args ... args)
+void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
+	bool trailingNewLine, bool fillLine, const char * format, Args ... args)
 {
 	std::string message;
 	if (printTimestamp) {
@@ -52,11 +46,32 @@ void printToConsole(ConsoleWindow window, int colorPair, bool printTimestamp, bo
 	{
 		std::lock_guard<std::mutex> lockGuard(mConsoleQueue);
 		consoleQueue.push_back({
-			window,
 			colorPair,
 			leadingNewLine,
 			fillLine,
 			message });
+		if (trailingNewLine) {
+			consoleQueue.push_back({
+			colorPair,
+			false,
+			false,
+			"\n" });
+		}
+	}
+};
+
+template<typename ... Args>
+void printToProgress(const char * format, Args ... args)
+{
+	std::string message;
+	
+	size_t size = snprintf(nullptr, 0, format, args ...) + 1; // Extra space for '\0'
+	std::unique_ptr<char[]> buf(new char[size]);
+	snprintf(buf.get(), size, format, args ...);
+	message += std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
+	{
+		std::lock_guard<std::mutex> lockGuard(mProgressQueue);
+		progressQueue.push_back(message);
 	}
 };
 
@@ -73,7 +88,6 @@ int bm_wattronC(int color);
 int bm_wattroffC(int color);
 int bm_wprintwC(const char * output, ...);
 
-void refreshMain();
 void refreshCorrupted();
 void showNewVersion(std::string version);
 

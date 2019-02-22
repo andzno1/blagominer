@@ -87,18 +87,18 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 
 	iResult = getaddrinfo(nullptr, coinInfo->network->proxyport.c_str(), &hints, &result);
 	if (iResult != 0) {
-		printToConsole(MAIN, 12, true, false, false, "PROXY %s: getaddrinfo failed with error: %d\n", proxyName, iResult);
+		printToConsole(12, true, false, true, false, "PROXY %s: getaddrinfo failed with error: %i", proxyName, iResult);
 	}
 
 	ServerSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 	if (ServerSocket == INVALID_SOCKET) {
-		printToConsole(MAIN, 12, true, false, false, "PROXY %s: socket failed with error: %ld\n", proxyName, WSAGetLastError());
+		printToConsole(12, true, false, true, false, "PROXY %s: socket failed with error: %i", proxyName, WSAGetLastError());
 		freeaddrinfo(result);
 	}
 
 	iResult = bind(ServerSocket, result->ai_addr, (int)result->ai_addrlen);
 	if (iResult == SOCKET_ERROR) {
-		printToConsole(MAIN, 12, true, false, false, "PROXY %s: bind failed with error: %d\n", proxyName, WSAGetLastError());
+		printToConsole(12, true, false, true, false, "PROXY %s: bind failed with error: %i", proxyName, WSAGetLastError());
 		freeaddrinfo(result);
 		closesocket(ServerSocket);
 	}
@@ -108,12 +108,12 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 	if (iResult == SOCKET_ERROR)
 	{
 		Log("Proxy %s: ! Error ioctlsocket's: %i", proxyName, WSAGetLastError());
-		printToConsole(MAIN, 12, true, false, false, "PROXY %s: ioctlsocket failed: %ld\n", proxyName, WSAGetLastError());
+		printToConsole(12, true, false, true, false, "PROXY %s: ioctlsocket failed: %i", proxyName, WSAGetLastError());
 	}
 
 	iResult = listen(ServerSocket, 8);
 	if (iResult == SOCKET_ERROR) {
-		printToConsole(MAIN, 12, true, false, false, "PROXY %s: listen failed with error: %d\n", proxyName, WSAGetLastError());
+		printToConsole(12, true, false, true, false, "PROXY %s: listen failed with error: %i", proxyName, WSAGetLastError());
 		closesocket(ServerSocket);
 	}
 	Log("Proxy %s thread started", proxyName);
@@ -132,7 +132,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 			if (WSAGetLastError() != WSAEWOULDBLOCK)
 			{
 				Log("Proxy %s:! Error Proxy's accept: %i", proxyName, WSAGetLastError());
-				printToConsole(MAIN, 12, true, false, false, "PROXY %s: can't accept. Error: %ld\n", proxyName, WSAGetLastError());
+				printToConsole(12, true, false, true, false, "PROXY %s: can't accept. Error: %i", proxyName, WSAGetLastError());
 			}
 		}
 		else
@@ -192,7 +192,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 							coinInfo->mining->shares.push_back({ client_address_str, get_accountId, get_deadline, get_nonce });
 							LeaveCriticalSection(&coinInfo->locks->sharesLock);
 
-							printToConsole(MAIN, 2, true, false, false, "[%20llu|%-10s|Proxy ] DL found     : %s {%s}\n", get_accountId, proxyName,
+							printToConsole(2, true, false, true, false, "[%20llu|%-10s|Proxy ] DL found     : %s {%s}", get_accountId, proxyName,
 								toStr(get_deadline / coinInfo->mining->currentBaseTarget, 11).c_str(), client_address_str);
 							Log("Proxy %s: received DL %llu from %s", proxyName, get_deadline, client_address_str);
 							
@@ -204,13 +204,13 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 							if (iResult == SOCKET_ERROR)
 							{
 								Log("Proxy %s: ! Error sending to client: %i", proxyName, WSAGetLastError());
-								printToConsole(MAIN, 12, true, false, false, "PROXY %s: failed sending to client: %ld\n", proxyName, WSAGetLastError());
+								printToConsole(12, true, false, true, false, "PROXY %s: failed sending to client: %i", proxyName, WSAGetLastError());
 							}
 							else
 							{
 								if (use_debug)
 								{
-									printToConsole(MAIN, 9, true, false, false, "[%20llu|%-10s|Proxy ] DL confirmed to            %s\n",
+									printToConsole(9, true, false, true, false, "[%20llu|%-10s|Proxy ] DL confirmed to            %s",
 										get_accountId, proxyName, client_address_str);
 								}
 								Log("Proxy %s: sent confirmation to %s", proxyName, client_address_str);
@@ -231,7 +231,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 						if (iResult == SOCKET_ERROR)
 						{
 							Log("Proxy %s: ! Error sending to client: %i", proxyName, WSAGetLastError());
-							printToConsole(MAIN, 12, true, false, false, "PROXY %s: failed sending to client: %ld\n", proxyName, WSAGetLastError());
+							printToConsole(12, true, false, true, false, "PROXY %s: failed sending to client: %i", proxyName, WSAGetLastError());
 						}
 						else if (loggingConfig.logAllGetMiningInfos)
 						{
@@ -248,7 +248,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 						{
 							find[0] = 0;
 							//You can crash the miner when the proxy is enabled and you open the address in a browser.  wprintw("PROXY: %s\n", "Error", 0);
-							printToConsole(MAIN, 15, true, false, false, "PROXY %s: %s\n", proxyName, buffer);
+							printToConsole(15, true, false, true, false, "PROXY %s: %s", proxyName, buffer);
 						}
 					}
 				}
@@ -311,7 +311,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 			{
 				if (use_debug)
 				{
-					printToConsole(MAIN, 2, true, false, false, "[%20llu|%-10s|Sender] DL discarded : %s > %s\n",
+					printToConsole(2, true, false, true, false, "[%20llu|%-10s|Sender] DL discarded : %s > %s",
 						iter->account_id, senderName, toStr(iter->best / coinInfo->mining->currentBaseTarget, 11).c_str(),
 						toStr(coinInfo->mining->bests[Get_index_acc(iter->account_id, coinInfo, targetDeadlineInfo)].targetDeadline, 11).c_str());
 				}
@@ -329,13 +329,13 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 			iResult = getaddrinfo(coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), &hints, &result);
 			if (iResult != 0) {
 				decreaseNetworkQuality(coinInfo);
-				printToConsole(MAIN, 12, true, false, false, "[%20llu|%-10s|Sender] getaddrinfo failed with error: %d\n", iter->account_id, senderName, iResult);
+				printToConsole(12, true, false, true, false, "[%20llu|%-10s|Sender] getaddrinfo failed with error: %i", iter->account_id, senderName, iResult);
 				continue;
 			}
 			ConnectSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
 			if (ConnectSocket == INVALID_SOCKET) {
 				decreaseNetworkQuality(coinInfo);
-				printToConsole(MAIN, 12, true, false, false, "SENDER %s: socket failed with error: %ld\n", senderName, WSAGetLastError());
+				printToConsole(12, true, false, true, false, "SENDER %s: socket failed with error: %i", senderName, WSAGetLastError());
 				freeaddrinfo(result);
 				continue;
 			}
@@ -346,7 +346,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 			{
 				decreaseNetworkQuality(coinInfo);
 				Log("Sender %s:! Error Sender's connect: %i", senderName, WSAGetLastError());
-				printToConsole(MAIN, 12, true, false, false, "SENDER %s: can't connect. Error: %ld\n", senderName, WSAGetLastError());
+				printToConsole(12, true, false, true, false, "SENDER %s: can't connect. Error: %i", senderName, WSAGetLastError());
 				freeaddrinfo(result);
 				continue;
 			}
@@ -373,7 +373,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 				{
 					decreaseNetworkQuality(coinInfo);
 					Log("Sender %s: ! Error deadline's sending: %i", senderName, WSAGetLastError());
-					printToConsole(MAIN, 12, true, false, false, "SENDER %s: send failed: %ld\n", senderName, WSAGetLastError());
+					printToConsole(12, true, false, true, false, "SENDER %s: send failed: %i", senderName, WSAGetLastError());
 					continue;
 				}
 				else
@@ -382,7 +382,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 					increaseNetworkQuality(coinInfo);
 					Log("[%20llu] %s sent DL: %15llu %5llud %02llu:%02llu:%02llu", iter->account_id, senderName, dl,
 						(dl) / (24 * 60 * 60), (dl % (24 * 60 * 60)) / (60 * 60), (dl % (60 * 60)) / 60, dl % 60, 0);
-					printToConsole(MAIN, 9, true, false, false, "[%20llu|%-10s|Sender] DL sent      : %s %sd %02llu:%02llu:%02llu\n", iter->account_id, senderName,
+					printToConsole(9, true, false, true, false, "[%20llu|%-10s|Sender] DL sent      : %s %sd %02llu:%02llu:%02llu", iter->account_id, senderName,
 						toStr(dl, 11).c_str(), toStr((dl) / (24 * 60 * 60), 7).c_str(), (dl % (24 * 60 * 60)) / (60 * 60), (dl % (60 * 60)) / 60, dl % 60);
 					
 					tmpSessions.push_back(std::make_shared<t_session>(ConnectSocket, dl, *iter));
@@ -442,7 +442,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 				{
 					decreaseNetworkQuality(coinInfo);
 					Log("Confirmer %s: ! Error ioctlsocket's: %i", confirmerName, WSAGetLastError());
-					printToConsole(MAIN, 12, true, false, false, "Sender %s: ioctlsocket failed: %ld\n", confirmerName, WSAGetLastError());
+					printToConsole(12, true, false, true, false, "Sender %s: ioctlsocket failed: %i", confirmerName, WSAGetLastError());
 					continue;
 				}
 				RtlSecureZeroMemory(buffer, buffer_size);
@@ -524,17 +524,17 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 										coinInfo->mining->bests[Get_index_acc(naccountId, coinInfo, targetDeadlineInfo)].targetDeadline = ntargetDeadline;
 										LeaveCriticalSection(&coinInfo->locks->bestsLock);
 
-										printToConsole(MAIN, 10, true, false, false, "[%20llu|%-10s|Sender] DL confirmed : %s %sd %02u:%02u:%02u\n",
+										printToConsole(10, true, false, true, false, "[%20llu|%-10s|Sender] DL confirmed : %s %sd %02u:%02u:%02u",
 											naccountId, confirmerName, toStr(ndeadline, 11).c_str(), toStr(days, 7).c_str(), hours, min, sec);
 										Log("[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", naccountId, confirmerName, ndeadline, days, hours, min, sec);
 										Log("[%20llu] %s set targetDL: %10llu", naccountId, confirmerName, ntargetDeadline);
 										if (use_debug) {
-											printToConsole(MAIN, 10, true, false, false, "[%20llu|%-10s|Sender] Set target DL: %s\n",
+											printToConsole(10, true, false, true, false, "[%20llu|%-10s|Sender] Set target DL: %s",
 												naccountId, toStr(ntargetDeadline, 11).c_str());
 										}
 									}
 									else {
-										printToConsole(MAIN, 10, true, false, false, "[%20llu|%-10s|Sender] DL confirmed : %s %sd %02u:%02u:%02u\n",
+										printToConsole(10, true, false, true, false, "[%20llu|%-10s|Sender] DL confirmed : %s %sd %02u:%02u:%02u",
 											session->body.account_id, confirmerName, toStr(ndeadline, 11).c_str(), toStr(days, 7).c_str(), hours, min, sec);
 										Log("[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", session->body.account_id, confirmerName, ndeadline, days, hours, min, sec);
 									}
@@ -546,8 +546,8 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 										std::thread{ Csv_Fail, coinInfo->coin, coinInfo->mining->currentHeight, session->body.file_name, coinInfo->mining->currentBaseTarget,
 											4398046511104 / 240 / coinInfo->mining->currentBaseTarget, session->body.nonce, session->deadline, ndeadline, find }.detach();
 										std::thread{ increaseConflictingDeadline, coinInfo, coinInfo->mining->currentHeight, session->body.file_name }.detach();
-										printToConsole(MAIN, 6, false, false, false,
-											"----Fast block or corrupted file?----\n%s sent deadline:\t%llu\nServer's deadline:\t%llu \n----\n",
+										printToConsole(6, false, false, true, false,
+											"----Fast block or corrupted file?----\n%s sent deadline:\t%llu\nServer's deadline:\t%llu \n----",
 											confirmerName, session->deadline, ndeadline);
 									}
 								}
@@ -559,28 +559,28 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 										std::thread{ increaseConflictingDeadline, coinInfo, coinInfo->mining->currentHeight, session->body.file_name }.detach();
 										if (session->deadline <= targetDeadlineInfo) {
 											Log("Confirmer %s: Deadline should have been accepted (%llu <= %llu). Fast block or corrupted file?", confirmerName, session->deadline, targetDeadlineInfo);
-											printToConsole(MAIN, 6, false, false, false,
-												"----Fast block or corrupted file?----\n%s sent deadline:\t%llu\nTarget deadline:\t%llu \n----\n",
+											printToConsole(6, false, false, true, false,
+												"----Fast block or corrupted file?----\n%s sent deadline:\t%llu\nTarget deadline:\t%llu \n----",
 												confirmerName, session->deadline, targetDeadlineInfo);
 										}
 										if (answ["errorCode"].IsInt()) {
-											printToConsole(MAIN, 15, true, false, false, "[ERROR %i] %s: %s\n", answ["errorCode"].GetInt(), confirmerName, answ["errorDescription"].GetString());
+											printToConsole(15, true, false, true, false, "[ERROR %i] %s: %s", answ["errorCode"].GetInt(), confirmerName, answ["errorDescription"].GetString());
 											if (answ["errorCode"].GetInt() == 1004) {
-												printToConsole(MAIN, 12, true, false, false, "%s: You need change reward assignment and wait 4 blocks (~16 minutes)\n", confirmerName); //error 1004
+												printToConsole(12, true, false, true, false, "%s: You need change reward assignment and wait 4 blocks (~16 minutes)", confirmerName); //error 1004
 											}
 										}
 										else if (answ["errorCode"].IsString()) {
-											printToConsole(MAIN, 15, true, false, false, "[ERROR %s] %s: %s\n", answ["errorCode"].GetString(), confirmerName, answ["errorDescription"].GetString());
+											printToConsole(15, true, false, true, false, "[ERROR %s] %s: %s", answ["errorCode"].GetString(), confirmerName, answ["errorDescription"].GetString());
 											if (answ["errorCode"].GetString() == "1004") {
-												printToConsole(MAIN, 12, true, false, false, "%s: You need change reward assignment and wait 4 blocks (~16 minutes)\n", confirmerName); //error 1004
+												printToConsole(12, true, false, true, false, "%s: You need change reward assignment and wait 4 blocks (~16 minutes)", confirmerName); //error 1004
 											}
 										}
 										else {
-											printToConsole(MAIN, 15, true, false, false, "[ERROR] %s: %s\n", confirmerName, answ["errorDescription"].GetString());
+											printToConsole(15, true, false, true, false, "[ERROR] %s: %s", confirmerName, answ["errorDescription"].GetString());
 										}
 									}
 									else {
-										printToConsole(MAIN, 15, true, false, false, "%s: %s\n", confirmerName, find);
+										printToConsole(15, true, false, true, false, "%s: %s", confirmerName, find);
 									}
 								}
 							}
@@ -592,7 +592,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 								coinInfo->mining->deadline = coinInfo->mining->bests[Get_index_acc(session->body.account_id, coinInfo, targetDeadlineInfo)].DL; //может лучше iter->deadline ?
 																						   // if(deadline > iter->deadline) deadline = iter->deadline;
 								std::thread{ increaseMatchingDeadline, session->body.file_name }.detach();
-								printToConsole(MAIN, 10, true, false, false, "[%20llu|%-10s|Sender] DL confirmed : %s\n",
+								printToConsole(10, true, false, true, false, "[%20llu|%-10s|Sender] DL confirmed : %s",
 									session->body.account_id, confirmerName, toStr(session->deadline, 11).c_str());
 							}
 							else //получили нераспознанный ответ
@@ -608,7 +608,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 								if (status != 0)
 								{
 									std::string error_str(msg, msg_len);
-									printToConsole(MAIN, 6, true, false, false, "%s: Server error: %d %s\n", confirmerName, status, error_str.c_str());
+									printToConsole(6, true, false, true, false, "%s: Server error: %d %s", confirmerName, status, error_str.c_str());
 									Log("Confirmer %s: server error for DL: %llu", confirmerName, session->deadline);
 									coinInfo->mining->shares.push_back({ 
 										session->body.file_name,
@@ -618,7 +618,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 								}
 								else //получили непонятно что
 								{
-									printToConsole(MAIN, 7, true, false, false, "%s: %s\n", confirmerName, buffer);
+									printToConsole(7, true, false, true, false, "%s: %s", confirmerName, buffer);
 								}
 							}
 						}
