@@ -356,12 +356,17 @@ int load_config(char const *const filename)
 		if (document.HasMember("Debug") && (document["Debug"].IsBool()))	use_debug = document["Debug"].GetBool();
 		Log("Debug: %d", use_debug);
 
-		if (document.HasMember("CheckForUpdateIntervalInDays") && (document["CheckForUpdateIntervalInDays"].IsDouble()))
+		if (document.HasMember("CheckForUpdateIntervalInDays") && (document["CheckForUpdateIntervalInDays"].IsDouble())) {
 			checkForUpdateInterval = document["CheckForUpdateIntervalInDays"].GetDouble();
+		}
+		else if (document.HasMember("CheckForUpdateIntervalInDays") && (document["CheckForUpdateIntervalInDays"].IsInt64())) {
+			checkForUpdateInterval = (double) document["CheckForUpdateIntervalInDays"].GetInt64();
+		}
+
 		if (checkForUpdateInterval < 0) {
 			checkForUpdateInterval = 0;
 		}
-		Log("checkForUpdateInterval: %f", checkForUpdateInterval);
+		Log("CheckForUpdateIntervalInDays: %f", checkForUpdateInterval);
 				
 		if (document.HasMember("UseBoost") && (document["UseBoost"].IsBool())) use_boost = document["UseBoost"].GetBool();
 		Log("UseBoost: %d", use_boost);
