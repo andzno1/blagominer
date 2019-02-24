@@ -234,6 +234,12 @@ int load_config(char const *const filename)
 
 				if (settingsBurst.HasMember("TargetDeadline") && (settingsBurst["TargetDeadline"].IsInt64()))	burst->mining->my_target_deadline = settingsBurst["TargetDeadline"].GetUint64();
 				Log("TargetDeadline: %llu", burst->mining->my_target_deadline);
+				if (burst->mining->my_target_deadline == 0) {
+					Log("TargetDeadline has to be >0.");
+					fprintf(stderr, "TargetDeadline should be greater than 0. Please check your configuration file.");
+					system("pause > nul");
+					exit(-1);
+				}
 
 				if (settingsBurst.HasMember("POC2StartBlock") && (settingsBurst["POC2StartBlock"].IsUint64())) burst->mining->POC2StartBlock = settingsBurst["POC2StartBlock"].GetUint64();
 				Log("POC2StartBlock: %llu", burst->mining->POC2StartBlock);
@@ -320,6 +326,12 @@ int load_config(char const *const filename)
 
 				if (settingsBhd.HasMember("TargetDeadline") && (settingsBhd["TargetDeadline"].IsInt64()))	bhd->mining->my_target_deadline = settingsBhd["TargetDeadline"].GetUint64();
 				Log("TargetDeadline: %llu", bhd->mining->my_target_deadline);
+				if (bhd->mining->my_target_deadline == 0) {
+					Log("TargetDeadline has to be >0.");
+					fprintf(stderr, "TargetDeadline should be greater than 0. Please check your configuration file.");
+					system("pause > nul");
+					exit(-1);
+				}
 			}
 		}
 				

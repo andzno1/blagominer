@@ -807,6 +807,10 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 											}
 										}
 									}
+									else {
+										setTargetDeadlineInfo(coinInfo, coinInfo->mining->my_target_deadline);
+										Log("*! GMI %s: No target deadline information provided. Using target deadline from configuration: %llu", updaterName, coinInfo->mining->my_target_deadline);
+									}
 								}
 							}
 						}
