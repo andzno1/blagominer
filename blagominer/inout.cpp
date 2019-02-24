@@ -53,15 +53,22 @@ void _consoleWriter() {
 	while (!interruptConsoleWriter) {
 		if (!consoleQueue.empty()) {
 			ConsoleOutput consoleOutput;
+			bool skip = false;
+			
 			{
 				std::lock_guard<std::mutex> lockGuard(mConsoleQueue);
-				
 				if (consoleQueue.size() == 1 && consoleQueue.front().message == "\n") {
-					std::this_thread::yield();
-					std::this_thread::sleep_for(std::chrono::milliseconds(10));
-					continue;
+					skip = true;
 				}
-				
+			}
+
+			if (skip) {
+				std::this_thread::yield();
+				std::this_thread::sleep_for(std::chrono::milliseconds(10));
+				continue;
+			} 
+			else {
+				std::lock_guard<std::mutex> lockGuard(mConsoleQueue);
 				consoleOutput = consoleQueue.front();
 				consoleQueue.pop_front();
 			}
