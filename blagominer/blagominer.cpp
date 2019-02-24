@@ -211,6 +211,11 @@ int load_config(char const *const filename)
 					Log("Port %s", burst->network->nodeport.c_str());
 				}
 
+				if (settingsBurst.HasMember("SubmitTimeout") && (settingsBurst["SubmitTimeout"].IsUint())) {
+					burst->network->submitTimeout = (size_t)settingsBurst["SubmitTimeout"].GetUint();
+				}
+				Log("SubmitTimeout: %zu", burst->network->submitTimeout);
+
 				if (settingsBurst.HasMember("UpdaterAddr") && settingsBurst["UpdaterAddr"].IsString()) burst->network->updateraddr = settingsBurst["UpdaterAddr"].GetString(); //strcpy_s(updateraddr, document["UpdaterAddr"].GetString());
 				Log("Updater address: %s", burst->network->updateraddr.c_str());
 
@@ -291,6 +296,11 @@ int load_config(char const *const filename)
 					else if (settingsBhd["Port"].IsUint())	bhd->network->nodeport = std::to_string(settingsBhd["Port"].GetUint()); //_itoa_s(document["Port"].GetUint(), nodeport, INET_ADDRSTRLEN-1, 10);
 					Log("Port: %s", bhd->network->nodeport.c_str());
 				}
+
+				if (settingsBhd.HasMember("SubmitTimeout") && (settingsBhd["SubmitTimeout"].IsUint())) {
+					bhd->network->submitTimeout = (size_t)settingsBhd["SubmitTimeout"].GetUint();
+				}
+				Log("SubmitTimeout: %zu", bhd->network->submitTimeout);
 
 				if (settingsBhd.HasMember("UpdaterAddr") && settingsBhd["UpdaterAddr"].IsString()) bhd->network->updateraddr = settingsBhd["UpdaterAddr"].GetString(); //strcpy_s(updateraddr, document["UpdaterAddr"].GetString());
 				Log("Updater address: %s", bhd->network->updateraddr.c_str());
@@ -1158,6 +1168,13 @@ int main(int argc, char **argv) {
 		}
 	}
 	//all_files.~vector();   // ???
+
+	if (burst->network->submitTimeout < 1000) {
+		printToConsole(8, false, true, false, true, "Timeout for Burstcoin deadline submissions is set to %u ms, which is a low value.", burst->network->submitTimeout);
+	}
+	if (bhd->network->submitTimeout < 1000) {
+		printToConsole(8, false, true, false, true, "Timeout for Bitcoin HD deadline submissions is set to %u ms, which is a low value.", bhd->network->submitTimeout);
+	}
 
 	proxyOnly = !burst->mining->enable && !bhd->mining->enable &&
 		(burst->network->enable_proxy || bhd->network->enable_proxy);

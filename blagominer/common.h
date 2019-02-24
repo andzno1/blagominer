@@ -130,6 +130,7 @@ struct t_mining_info {
 struct t_network_info {
 	std::string nodeaddr;
 	std::string nodeport;
+	unsigned submitTimeout;
 	std::string updateraddr;
 	std::string updaterport;
 	bool enable_proxy;						// enable client/server functionality

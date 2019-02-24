@@ -25,6 +25,7 @@ Due to the new dual mining ability some fields in the configuration file have be
 | ------------- | ------------- |
 | `"Burst"."Enable"` and `"BHD"."Enable"` | `true` enables the mining of the corresponding coin, `false` disables it.  |
 | `"Burst"."Priority"` and `"BHD"."Priority"` | A higher priority coin (lower value) interrupts the mining process of a coin with lower priority (higher value). This value must be `>= 0`. If both coins have the same priority, there won't be any interruptions and there will be a mining queue.  |
+| `"Burst"."SubmitTimeout"` and `"BHD"."SubmitTimeout"` | Timeout in milliseconds after a deadline submission is regarded as failed. Increase this value if deadlines are being resent too many times.  |
 | `"Burst"."ProxyUpdateInterval"` and `"BHD"."ProxyUpdateInterval"` | Interval in milliseconds for the proxy checking for new client requests.  |
 | `"ShowCorruptedPlotFiles"`  | If you want to see possibly corrupted plot files in the console windows, set this to `true`, `false` otherwise.  |
 | `"IgnoreSuspectedFastBlocks"`  | `true`: When tracking possibly corrupted plotfiles, mismatching deadlines that may have been caused by a fast block (there is no guarantee for correct fast block detection) will be ignored. `false`: Said deadlines will not be ignored.  |

@@ -8,6 +8,7 @@ void init_network_info() {
 	burst->network = std::make_shared<t_network_info>();
 	burst->network->nodeaddr = "localhost";
 	burst->network->nodeport = "8125";
+	burst->network->submitTimeout = 1000;
 	burst->network->updateraddr = "localhost";
 	burst->network->updaterport = "8125";
 	burst->network->enable_proxy = false;
@@ -20,6 +21,7 @@ void init_network_info() {
 	bhd->network = std::make_shared<t_network_info>();
 	bhd->network->nodeaddr = "localhost";
 	bhd->network->nodeport = "8732";
+	bhd->network->submitTimeout = 1000;
 	bhd->network->updateraddr = "localhost";
 	bhd->network->updaterport = "8732";
 	bhd->network->enable_proxy = false;
@@ -339,8 +341,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 				freeaddrinfo(result);
 				continue;
 			}
-			const unsigned t = 1000;
-			setsockopt(ConnectSocket, SOL_SOCKET, SO_RCVTIMEO, (char *)&t, sizeof(unsigned));
+			setsockopt(ConnectSocket, SOL_SOCKET, SO_RCVTIMEO, (char *)&coinInfo->network->submitTimeout, sizeof(unsigned));
 			iResult = connect(ConnectSocket, result->ai_addr, (int)result->ai_addrlen);
 			if (iResult == SOCKET_ERROR)
 			{
