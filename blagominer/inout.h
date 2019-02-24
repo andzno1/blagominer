@@ -5,11 +5,10 @@
 #include <list>
 #include <ctime>
 #include <time.h>
+#include "logger.h"
 
 extern short win_size_x;
 extern short win_size_y;
-
-//void printToConsole(int foregroundColor, int backgroundColor, bool fillLine, const char * output, ...);
 
 struct ConsoleOutput {
 	int colorPair;
@@ -25,16 +24,24 @@ extern std::mutex mConsoleWindow;
 extern std::list<ConsoleOutput> consoleQueue;
 extern std::list<std::string> progressQueue;
 
+
+extern std::mutex mLog;
+extern std::list<std::string> loggingQueue;
+
+
 template<typename ... Args>
 void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
 	bool trailingNewLine, bool fillLine, const char * format, Args ... args)
 {
 	std::string message;
+	SYSTEMTIME cur_time;
+	GetLocalTime(&cur_time);
+	char timeBuff[9];
+	snprintf(timeBuff, sizeof(timeBuff), "%02d:%02d:%02d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond);
+	std::string time = timeBuff;
+
 	if (printTimestamp) {
-		SYSTEMTIME cur_time;
-		GetLocalTime(&cur_time);
-		char timeBuff[9];
-		snprintf(timeBuff, sizeof(timeBuff), "%02d:%02d:%02d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond);
+		
 		message = timeBuff;
 		message += " ";
 	}
@@ -57,6 +64,10 @@ void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
 			false,
 			"\n" });
 		}
+	}
+	{
+		std::lock_guard<std::mutex> lockGuard(mLog);
+		loggingQueue.push_back(time + " " + std::string(buf.get(), buf.get() + size - 1)); // We don't want the '\0' inside
 	}
 };
 
