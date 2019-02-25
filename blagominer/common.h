@@ -37,6 +37,7 @@ extern char *coinNames[];
 struct t_shares {
 	std::string file_name;
 	unsigned long long account_id;// = 0;
+	// This is the best Target, not Deadline.
 	unsigned long long best;// = 0;
 	unsigned long long nonce;// = 0;
 };
