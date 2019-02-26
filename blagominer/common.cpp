@@ -6,20 +6,22 @@ const unsigned int versionRevision = 0;
 
 // blago version
 #ifdef __AVX512F__
-std::string versionSuffix = "_AVX512";
+std::wstring versionSuffix = L"_AVX512";
 #else
 #ifdef __AVX2__
-std::string versionSuffix = "_AVX2";
+std::wstring versionSuffix = L"_AVX2";
 #else
 #ifdef __AVX__
-std::string versionSuffix = "_AVX";
+std::wstring versionSuffix = L"_AVX";
 #else
-std::string versionSuffix = "_SSE";
+std::wstring versionSuffix = L"_SSE";
 //	std::string versionSuffix = "";
 #endif
 #endif 
 #endif 
-std::string version = std::to_string(versionMajor) + "." + std::to_string(versionMinor) + "." + std::to_string(versionRevision) + versionSuffix;
+std::wstring version = std::to_wstring(versionMajor) + L"." + std::to_wstring(versionMinor) + L"." + std::to_wstring(versionRevision) + versionSuffix;
+
+const wchar_t sepChar = 0x2022;
 
 extern bool lockWindowSize = true;
 double checkForUpdateInterval = 1;
@@ -28,10 +30,10 @@ bool exit_flag = false;
 
 HANDLE hHeap;
 
-char *coinNames[] =
+wchar_t *coinNames[] =
 {
-	(char *) "Burstcoin",
-	(char *) "Bitcoin HD"
+	(wchar_t *) L"Burstcoin",
+	(wchar_t *) L"Bitcoin HD"
 };
 
 unsigned long long getHeight(std::shared_ptr<t_coin_info> coin) {
@@ -139,58 +141,62 @@ void getLocalDateTime(const std::time_t &rawtime, char* local, const std::string
 	strftime(local, 80, format.c_str(), &timeinfo);
 }
 
-std::string toStr(int number, const unsigned short length) {
-	std::string s = std::to_string(number);
-	std::string prefix;
+std::wstring toStr(int number, const unsigned short length) {
+	std::wstring s = std::to_wstring(number);
+	std::wstring prefix;
 
 	if (length == 0) {
-		return "";
+		return L"";
 	}
 	else if (length == 1 && s.size() > 1) {
-		return ">";
+		return L">";
 	} else if (s.size() > length) {
-		s = std::to_string(static_cast<int>(pow(10, length - 1)) - 1);
-		prefix = ">";
+		s = std::to_wstring(static_cast<int>(pow(10, length - 1)) - 1);
+		prefix = L">";
 	}
 	else if (s.size() < length) {
-		prefix = std::string(length - s.size(), ' ');
+		prefix = std::wstring(length - s.size(), ' ');
 	}
 	
 	return prefix + s;
 }
 
-std::string toStr(unsigned long long number, const unsigned short length) {
-	std::string s = std::to_string(number);
-	std::string prefix;
+std::wstring toStr(unsigned long long number, const unsigned short length) {
+	std::wstring s = std::to_wstring(number);
+	std::wstring prefix;
 
 	if (length == 0) {
-		return "";
+		return L"";
 	}
 	else if (length == 1 && s.size() > 1) {
-		return ">";
+		return L">";
 	}
 	else if (s.size() > length) {
-		s = std::to_string(static_cast<unsigned long long>(pow(10, length - 1)) - 1);
-		prefix = ">";
+		s = std::to_wstring(static_cast<unsigned long long>(pow(10, length - 1)) - 1);
+		prefix = L">";
 	}
 	else if (s.size() < length) {
-		prefix = std::string(length - s.size(), ' ');
+		prefix = std::wstring(length - s.size(), ' ');
 	}
 
 	return prefix + s;
 }
 
-std::string toStr(std::string str, const unsigned short length) {
+std::wstring toStr(std::wstring str, const unsigned short length) {
 	if (str.size() > length) {
 		if (length > 3) {
-			str = "..." + std::string(str.end() - length + 3, str.end());
+			str = L"..." + std::wstring(str.end() - length + 3, str.end());
 		}
 		else {
-			str = std::string(length, '.');
+			str = std::wstring(length, '.');
 		}
 	}
 	else if (str.size() < length) {
-		str = str + std::string(length - str.size(), ' ');
+		str = str + std::wstring(length - str.size(), ' ');
 	}
 	return str;
+}
+
+std::wstring toStr(std::string str, const unsigned short length) {
+	return toStr(std::wstring(str.begin(), str.end()), length);
 }

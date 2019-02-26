@@ -13,7 +13,7 @@ void checkForUpdate() {
 	while (!exit_flag) {
 		bool error = false;
 		if (getDiffernceinDays(std::time(nullptr), lastChecked) > checkForUpdateInterval) {
-			Log("UPDATE CHECKER: Checking for new version.");
+			Log(L"UPDATE CHECKER: Checking for new version.");
 			LPSTR lpResult = NULL;
 			LPSTREAM lpStream;
 			if (SUCCEEDED(URLOpenBlockingStream(NULL, versionUrl, &lpStream, 0, NULL))) {
@@ -29,26 +29,26 @@ void checkForUpdate() {
 						lpStream->Read(lpResult, dwSize - 1, NULL);
 					}
 					else {
-						Log("UPDATE CHECKER: Error allocating memory.");
+						Log(L"UPDATE CHECKER: Error allocating memory.");
 						error = true;
 					}
 				}
 				else {
-					Log("UPDATE CHECKER: Error retrieving stream data.");
+					Log(L"UPDATE CHECKER: Error retrieving stream data.");
 					error = true;
 				}
 				lpStream->Release();
 
 			}
 			else {
-				Log("UPDATE CHECKER: Error opening stream.");
+				Log(L"UPDATE CHECKER: Error opening stream.");
 				error = true;
 			}
 
 			if (!error) {
 				Document document;	// Default template parameter uses UTF8 and MemoryPoolAllocator.
 				if (document.Parse<0>(lpResult).HasParseError()) {
-					Log("UPDATE CHECKER: Error (offset %u) parsing retrieved data: %s", (unsigned)document.GetErrorOffset(), GetParseError_En(document.GetParseError()));
+					Log(L"UPDATE CHECKER: Error (offset %u) parsing retrieved data: %S", (unsigned)document.GetErrorOffset(), GetParseError_En(document.GetParseError()));
 				}
 				else {
 					if (document.IsObject()) {
@@ -65,15 +65,15 @@ void checkForUpdate() {
 								(major >= versionMajor && minor >= versionMinor && revision > versionRevision)) {
 								std::string releaseVersion =
 									std::to_string(major) + "." + std::to_string(minor) + "." + std::to_string(revision);
-								Log("UPDATE CHECKER: New version availabe: %s", releaseVersion.c_str());
+								Log(L"UPDATE CHECKER: New version availabe: %S", releaseVersion.c_str());
 								showNewVersion(releaseVersion);
 							}
 							else {
-								Log("UPDATE CHECKER: The miner is up to date (%i.%i.%i)", versionMajor, versionMinor, versionRevision);
+								Log(L"UPDATE CHECKER: The miner is up to date (%i.%i.%i)", versionMajor, versionMinor, versionRevision);
 							}
 						}
 						else {
-							Log("UPDATE CHECKER: Error parsing release version number.");
+							Log(L"UPDATE CHECKER: Error parsing release version number.");
 						}
 					}
 				}

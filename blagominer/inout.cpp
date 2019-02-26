@@ -1,7 +1,5 @@
 ﻿#include "stdafx.h"
 #include "inout.h"
-#undef  MOUSE_MOVED
-#include "curses.h" //include pdcurses
 
 short win_size_x = 96;
 short win_size_y = 60;
@@ -17,7 +15,7 @@ std::mutex mConsoleQueue;
 std::mutex mProgressQueue;
 std::mutex mConsoleWindow;
 std::list<ConsoleOutput> consoleQueue;
-std::list<std::string> progressQueue;
+std::list<std::wstring> progressQueue;
 std::thread consoleWriter;
 std::thread progressWriter;
 bool interruptConsoleWriter = false;
@@ -26,7 +24,7 @@ void _progressWriter() {
 	while (!interruptConsoleWriter) {
 		if (!progressQueue.empty()) {
 
-			std::string message;
+			std::wstring message;
 
 			{
 				std::lock_guard<std::mutex> lockGuard(mProgressQueue);
@@ -38,7 +36,7 @@ void _progressWriter() {
 			wmove(win_progress, 1, 1);
 			box(win_progress, 0, 0);
 			wattron(win_progress, COLOR_PAIR(14));
-			waddstr(win_progress, message.c_str());
+			waddwstr(win_progress, message.c_str());
 			wattroff(win_progress, COLOR_PAIR(14));
 			wrefresh(win_progress);
 		}
@@ -57,7 +55,7 @@ void _consoleWriter() {
 			
 			{
 				std::lock_guard<std::mutex> lockGuard(mConsoleQueue);
-				if (consoleQueue.size() == 1 && consoleQueue.front().message == "\n") {
+				if (consoleQueue.size() == 1 && consoleQueue.front().message == L"\n") {
 					skip = true;
 				}
 			}
@@ -80,9 +78,9 @@ void _consoleWriter() {
 					wattron(win_main, COLOR_PAIR(consoleOutput.colorPair));
 				}
 				if (consoleOutput.leadingNewLine) {
-					waddstr(win_main, "\n");
+					waddwstr(win_main, L"\n");
 				}
-				waddstr(win_main, consoleOutput.message.c_str());
+				waddwstr(win_main, consoleOutput.message.c_str());
 				if (consoleOutput.fillLine) {
 					int y;
 					int x;
@@ -90,12 +88,12 @@ void _consoleWriter() {
 					const int remaining = COLS - x;
 
 					if (remaining > 0) {
-						waddstr(win_main, std::string(remaining, ' ').c_str());
+						waddwstr(win_main, std::wstring(remaining, ' ').c_str());
 						int newY;
 						int newX;
 						getyx(win_main, newY, newX);
 						if (newX != 0) {
-							waddstr(win_main, std::string("\n").c_str());
+							waddwstr(win_main, std::wstring(L"\n").c_str());
 						}
 					}
 				}
@@ -213,9 +211,9 @@ void showNewVersion(std::string version) {
 		if (currentlyDisplayingCorruptedPlotFiles()) {
 			int totalSpaceNeeded = new_version_lines + getRowsCorrupted() + progress_lines + minimumWinMainHeight + 3;
 			if (totalSpaceNeeded > LINES) {
-				Log("Terminal too small to output everything (%i).", totalSpaceNeeded);
+				Log(L"Terminal too small to output everything (%i).", totalSpaceNeeded);
 				int corruptedLineCount = LINES - new_version_lines - progress_lines - minimumWinMainHeight - 3 + 2;
-				Log("Setting corrupted linecount to %i", corruptedLineCount);
+				Log(L"Setting corrupted linecount to %i", corruptedLineCount);
 				resizeCorrupted(corruptedLineCount);
 			}
 			else {
@@ -258,9 +256,9 @@ void resizeCorrupted(int lineCount) {
 		
 		int totalSpaceNeeded = winVerRow + lineCount + minimumWinMainHeight + progress_lines;
 		if (totalSpaceNeeded > LINES) {
-			Log("Terminal too small to output everything (lineCount: %i).", lineCount);
+			Log(L"Terminal too small to output everything (lineCount: %i).", lineCount);
 			lineCount = LINES - winVerRow - minimumWinMainHeight - progress_lines;
-			Log("Setting linecount to %i", lineCount);
+			Log(L"Setting linecount to %i", lineCount);
 		}
 		
 		wresize(win_main, LINES - winVerRow - lineCount - progress_lines, COLS);

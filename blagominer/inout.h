@@ -7,6 +7,15 @@
 #include <time.h>
 #include "logger.h"
 
+#undef  MOUSE_MOVED
+#ifndef PDC_DLL_BUILD
+# define PDC_DLL_BUILD
+#endif
+#ifndef PDC_WIDE
+# define PDC_WIDE
+#endif
+#include <curses.h>
+
 extern short win_size_x;
 extern short win_size_y;
 
@@ -14,7 +23,7 @@ struct ConsoleOutput {
 	int colorPair;
 	bool leadingNewLine;
 	bool fillLine;
-	std::string message;
+	std::wstring message;
 };
 
 
@@ -22,34 +31,35 @@ extern std::mutex mConsoleQueue;
 extern std::mutex mProgressQueue;
 extern std::mutex mConsoleWindow;
 extern std::list<ConsoleOutput> consoleQueue;
-extern std::list<std::string> progressQueue;
+extern std::list<std::wstring> progressQueue;
 
 
 extern std::mutex mLog;
-extern std::list<std::string> loggingQueue;
+extern std::list<std::wstring> loggingQueue;
 
 
 template<typename ... Args>
 void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
-	bool trailingNewLine, bool fillLine, const char * format, Args ... args)
+	bool trailingNewLine, bool fillLine, const wchar_t * format, Args ... args)
 {
-	std::string message;
+	std::wstring message;
 	SYSTEMTIME cur_time;
 	GetLocalTime(&cur_time);
-	char timeBuff[9];
-	snprintf(timeBuff, sizeof(timeBuff), "%02d:%02d:%02d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond);
-	std::string time = timeBuff;
+	wchar_t timeBuff[9];
+	swprintf(timeBuff, sizeof(timeBuff), L"%02d:%02d:%02d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond);
+	std::wstring time = timeBuff;
+	std::wstring timeMil = timeBuffMil;
 
 	if (printTimestamp) {
 		
 		message = timeBuff;
-		message += " ";
+		message += L" ";
 	}
 
-	size_t size = snprintf(nullptr, 0, format, args ...) + 1; // Extra space for '\0'
-	std::unique_ptr<char[]> buf(new char[size]);
-	snprintf(buf.get(), size, format, args ...);
-	message += std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
+	int size = swprintf(nullptr, 0, format, args ...) + 1;
+	std::unique_ptr<wchar_t[]> buf(new wchar_t[size]);
+	swprintf(buf.get(), size, format, args ...);
+	message += std::wstring(buf.get(), buf.get() + size - 1);
 	{
 		std::lock_guard<std::mutex> lockGuard(mConsoleQueue);
 		consoleQueue.push_back({
@@ -62,24 +72,23 @@ void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
 			colorPair,
 			false,
 			false,
-			"\n" });
+			L"\n" });
 		}
 	}
 	{
 		std::lock_guard<std::mutex> lockGuard(mLog);
-		loggingQueue.push_back(time + " " + std::string(buf.get(), buf.get() + size - 1)); // We don't want the '\0' inside
 	}
 };
 
 template<typename ... Args>
-void printToProgress(const char * format, Args ... args)
+void printToProgress(const wchar_t * format, Args ... args)
 {
-	std::string message;
+	std::wstring message;
 	
-	size_t size = snprintf(nullptr, 0, format, args ...) + 1; // Extra space for '\0'
-	std::unique_ptr<char[]> buf(new char[size]);
-	snprintf(buf.get(), size, format, args ...);
-	message += std::string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
+	size_t size = swprintf(nullptr, 0, format, args ...) + 1;
+	std::unique_ptr<wchar_t[]> buf(new wchar_t[size]);
+	swprintf(buf.get(), size, format, args ...);
+	message += std::wstring(buf.get(), buf.get() + size - 1);
 	{
 		std::lock_guard<std::mutex> lockGuard(mProgressQueue);
 		progressQueue.push_back(message);

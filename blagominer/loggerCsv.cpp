@@ -1,9 +1,9 @@
 #include "loggerCsv.h"
 
-const std::string csvFailBurst = "fail-" + std::string(coinNames[BURST]) + ".csv";
-const std::string csvFailBhd = "fail-" + std::string(coinNames[BHD]) + ".csv";
-const std::string csvSubmittedBurst = "stat-" + std::string(coinNames[BURST]) + ".csv";
-const std::string csvSubmittedBhd = "stat-" + std::string(coinNames[BHD]) + ".csv";
+const std::string csvFailBurst = "fail-" + std::string((char*)coinNames[BURST]) + ".csv";
+const std::string csvFailBhd = "fail-" + std::string((char*)coinNames[BHD]) + ".csv";
+const std::string csvSubmittedBurst = "stat-" + std::string((char*)coinNames[BURST]) + ".csv";
+const std::string csvSubmittedBhd = "stat-" + std::string((char*)coinNames[BHD]) + ".csv";
 
 std::mutex mCsvFailBurst;
 std::mutex mCsvFailBhd;
@@ -20,13 +20,13 @@ void Csv_Init()
 	if (!loggingConfig.enableCsv) {
 		return;
 	}
-	Log("Initializing csv logging.");
+	Log(L"Initializing csv logging.");
 	const char* headersFail = "Timestamp epoch;Timestamp local;Height;File;baseTarget;Network difficulty;Nonce;Deadline sent;Deadline confirmed;Response\n";
 	const char* headersSubmitted = "Timestamp epoch;Timestamp local;Height;baseTarget;Network difficulty;Round time;Completed round; Deadline\n";
 	if ((burst->mining->enable || burst->network->enable_proxy) && !existsFile(csvFailBurst))
 	{
 		std::lock_guard<std::mutex> lockGuard(mCsvFailBurst);
-		Log("Writing headers to %s", csvFailBurst.c_str());
+		Log(L"Writing headers to %S", csvFailBurst.c_str());
 		FILE * pFile;
 		fopen_s(&pFile, csvFailBurst.c_str(), "a+t");
 		if (pFile != nullptr)
@@ -36,13 +36,13 @@ void Csv_Init()
 		}
 		else
 		{
-			Log("Failed to open %s", csvFailBurst.c_str());
+			Log(L"Failed to open %S", csvFailBurst.c_str());
 		}
 	}
 	if ((burst->mining->enable || burst->network->enable_proxy) && !existsFile(csvSubmittedBurst))
 	{
 		std::lock_guard<std::mutex> lockGuard(mCsvSubmittedBurst);
-		Log("Writing headers to %s", csvSubmittedBurst.c_str());
+		Log(L"Writing headers to %S", csvSubmittedBurst.c_str());
 		FILE * pFile;
 		fopen_s(&pFile, csvSubmittedBurst.c_str(), "a+t");
 		if (pFile != nullptr)
@@ -52,14 +52,14 @@ void Csv_Init()
 		}
 		else
 		{
-			Log("Failed to open %s", csvSubmittedBurst.c_str());
+			Log(L"Failed to open %S", csvSubmittedBurst.c_str());
 		}
 	}
 
 	if ((bhd->mining->enable || burst->network->enable_proxy) && !existsFile(csvFailBhd))
 	{
 		std::lock_guard<std::mutex> lockGuard(mCsvFailBhd);
-		Log("Writing headers to %s", csvFailBhd.c_str());
+		Log(L"Writing headers to %S", csvFailBhd.c_str());
 		FILE * pFile;
 		fopen_s(&pFile, csvFailBhd.c_str(), "a+t");
 		if (pFile != nullptr)
@@ -69,13 +69,13 @@ void Csv_Init()
 		}
 		else
 		{
-			Log("Failed to open %s", csvFailBhd.c_str());
+			Log(L"Failed to open %S", csvFailBhd.c_str());
 		}
 	}
 	if ((bhd->mining->enable || bhd->network->enable_proxy) && !existsFile(csvSubmittedBhd))
 	{
 		std::lock_guard<std::mutex> lockGuard(mCsvSubmittedBhd);
-		Log("Writing headers to %s", csvSubmittedBhd.c_str());
+		Log(L"Writing headers to %S", csvSubmittedBhd.c_str());
 		FILE * pFile;
 		fopen_s(&pFile, csvSubmittedBhd.c_str(), "a+t");
 		if (pFile != nullptr)
@@ -85,7 +85,7 @@ void Csv_Init()
 		}
 		else
 		{
-			Log("Failed to open %s", csvSubmittedBhd.c_str());
+			Log(L"Failed to open %S", csvSubmittedBhd.c_str());
 		}
 	}
 }
@@ -115,7 +115,7 @@ void Csv_Fail(Coins coin, const unsigned long long height, const std::string& fi
 		}
 		else
 		{
-			Log("Failed to open %s", csvFailBurst.c_str());
+			Log(L"Failed to open %S", csvFailBurst.c_str());
 			return;
 		}
 	}
@@ -132,7 +132,7 @@ void Csv_Fail(Coins coin, const unsigned long long height, const std::string& fi
 		}
 		else
 		{
-			Log("Failed to open %s", csvFailBhd.c_str());
+			Log(L"Failed to open %S", csvFailBhd.c_str());
 			return;
 		}
 	}
@@ -163,7 +163,7 @@ void Csv_Submitted(Coins coin, const unsigned long long height, const unsigned l
 		}
 		else
 		{
-			Log("Failed to open %s", csvSubmittedBurst.c_str());
+			Log(L"Failed to open %S", csvSubmittedBurst.c_str());
 			return;
 		}
 	}
@@ -180,7 +180,7 @@ void Csv_Submitted(Coins coin, const unsigned long long height, const unsigned l
 		}
 		else
 		{
-			Log("Failed to open %s", csvSubmittedBhd.c_str());
+			Log(L"Failed to open %S", csvSubmittedBhd.c_str());
 			return;
 		}
 	}

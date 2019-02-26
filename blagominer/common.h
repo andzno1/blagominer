@@ -11,7 +11,9 @@
 extern const unsigned int versionMajor;
 extern const unsigned int versionMinor;
 extern const unsigned int versionRevision;
-extern std::string version;
+extern std::wstring version;
+
+extern const wchar_t sepChar;
 
 extern bool lockWindowSize;
 extern double checkForUpdateInterval;
@@ -32,7 +34,7 @@ enum MiningState {
 	INTERRUPTED
 };
 
-extern char *coinNames[];
+extern wchar_t *coinNames[];
 
 struct t_shares {
 	std::string file_name;
@@ -176,6 +178,7 @@ int getNetworkQuality(std::shared_ptr<t_coin_info> coin);
 
 void getLocalDateTime(const std::time_t &rawtime, char* local, const std::string sepTime = ":");
 
-std::string toStr(int number, const unsigned short length);
-std::string toStr(unsigned long long number, const unsigned short length);
-std::string toStr(std::string str, const unsigned short length);
+std::wstring toStr(int number, const unsigned short length);
+std::wstring toStr(unsigned long long number, const unsigned short length);
+std::wstring toStr(std::wstring str, const unsigned short length);
+std::wstring toStr(std::string str, const unsigned short length);

@@ -27,7 +27,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 
 	unsigned long long files_size_per_thread = 0;
 
-	Log("Start thread: [%zu] %s", local_num, path_loc_str.c_str());
+	Log(L"Start thread: [%zu] %S", local_num, path_loc_str.c_str());
 
 	if (directory->files.empty()) {
 		GetFiles(path_loc_str, &directory->files);
@@ -45,7 +45,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 	for (auto iter = directory->files.rbegin(); iter != directory->files.rend(); ++iter)
 	{
 		if (iter->done) {
-			Log("Skipping file %s, since it has already been processed in the interrupted run.", iter->Name.c_str());
+			Log(L"Skipping file %S, since it has already been processed in the interrupted run.", iter->Name.c_str());
 			continue;
 		}
 		//Log("[%zu] Beginning main loop over files.", local_num);
@@ -65,8 +65,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if ((double)(nonces % stagger) > DBL_EPSILON && !bfs)
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-			Log("File %s (%s) wrong stagger?", iter->Name.c_str(), iter->Path.c_str());
-			printToConsole(12, true, false, true, false, "File %s wrong stagger?", iter->Name.c_str());
+			Log(L"File %S (%S) wrong stagger?", iter->Name.c_str(), iter->Path.c_str());
+			printToConsole(12, true, false, true, false, L"File %S wrong stagger?", iter->Name.c_str());
 		}
 
 		const unsigned int scoop = coinInfo->mining->scoop;
@@ -75,14 +75,14 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if (nonces != (iter->Size) / (4096 * 64))
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-			Log("File %s (%s) name/size mismatch.", iter->Name.c_str(), iter->Path.c_str());
-			printToConsole(12, true, false, true, false, "File \"%s\" name/size mismatch", iter->Name.c_str());
+			Log(L"File %S (%S) name/size mismatch.", iter->Name.c_str(), iter->Path.c_str());
+			printToConsole(12, true, false, true, false, L"File \"%S\" name/size mismatch", iter->Name.c_str());
 			if (nonces != stagger)
 				nonces = (((iter->Size) / (4096 * 64)) / stagger) * stagger; //обрезаем плот по размеру и стаггеру
 			else {
 				if (scoop > (iter->Size) / (stagger * 64)) //если номер скупа попадает в поврежденный смерженный плот, то пропускаем
 				{
-					printToConsole(12, true, false, true, false, "Skipped");
+					printToConsole(12, true, false, true, false, L"Skipped");
 					continue;
 				}
 			}
@@ -92,7 +92,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if (!bfs) {
 			if (!GetDiskFreeSpaceA((iter->Path).c_str(), &sectorsPerCluster, &bytesPerSector, &numberOfFreeClusters, &totalNumberOfClusters))
 			{
-				printToConsole(12, true, false, true, false, "GetDiskFreeSpace failed"); //BFS
+				printToConsole(12, true, false, true, false, L"GetDiskFreeSpace failed"); //BFS
 				continue;
 			}
 		}
@@ -105,8 +105,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if ((stagger * 64) < bytesPerSector)
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-			Log("File %s (%s): Stagger (%llu) must be >= %llu", iter->Name.c_str(), iter->Path.c_str(), stagger, bytesPerSector / 64);
-			printToConsole(12, true, false, true, false, "Stagger (%llu) must be >= %llu", stagger, bytesPerSector / 64);
+			Log(L"File %S (%S): Stagger (%llu) must be >= %llu", iter->Name.c_str(), iter->Path.c_str(), stagger, bytesPerSector / 64);
+			printToConsole(12, true, false, true, false, L"Stagger (%llu) must be >= %llu", stagger, bytesPerSector / 64);
 			continue;
 		}
 
@@ -114,8 +114,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if ((nonces * 64) < bytesPerSector)
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-			Log("File %s (%s): Nonces(%llu) must be >= %llu", iter->Name.c_str(), iter->Path.c_str(), nonces, bytesPerSector / 64);
-			printToConsole(12, true, false, true, false, "Nonces (%llu) must be >= %llu", nonces, bytesPerSector / 64);
+			Log(L"File %S (%S): Nonces(%llu) must be >= %llu", iter->Name.c_str(), iter->Path.c_str(), nonces, bytesPerSector / 64);
+			printToConsole(12, true, false, true, false, L"Nonces (%llu) must be >= %llu", nonces, bytesPerSector / 64);
 			continue;
 		}
 
@@ -123,8 +123,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if ((stagger % (bytesPerSector / 64)) != 0)
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-			Log("File %s (%s): Stagger (%llu) must be a multiple of %llu", iter->Name.c_str(), iter->Path.c_str(), stagger, bytesPerSector / 64);
-			printToConsole(12, true, false, true, false, "Stagger (%llu) must be a multiple of %llu", stagger, bytesPerSector / 64);
+			Log(L"File %S (%S): Stagger (%llu) must be a multiple of %llu", iter->Name.c_str(), iter->Path.c_str(), stagger, bytesPerSector / 64);
+			printToConsole(12, true, false, true, false, L"Stagger (%llu) must be a multiple of %llu", stagger, bytesPerSector / 64);
 			continue;
 		}
 
@@ -170,7 +170,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if (cache == nullptr) ShowMemErrorExit();
 		if (cache2 == nullptr) ShowMemErrorExit();
 
-		Log("[%zu] Read file : %s", local_num, iter->Name.c_str());
+		Log(L"[%zu] Read file : %S", local_num, iter->Name.c_str());
 
 		//wprintw(win_main, "%S \n", str2wstr(iter->Path + iter->Name).c_str());
 		HANDLE ifile = INVALID_HANDLE_VALUE;
@@ -183,8 +183,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if (ifile == INVALID_HANDLE_VALUE)
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-			Log("File %s (%s): Error opening. code = %llu", iter->Name.c_str(), iter->Path.c_str(), GetLastError());
-			printToConsole(12, true, false, true, false, "File \"%s\\%s\" error opening. code = %llu", iter->Path.c_str(), iter->Name.c_str(), GetLastError());
+			Log(L"File %S (%S): Error opening. code = %llu", iter->Name.c_str(), iter->Path.c_str(), GetLastError());
+			printToConsole(12, true, false, true, false, L"File \"%S\\%S\" error opening. code = %llu", iter->Path.c_str(), iter->Name.c_str(), GetLastError());
 			VirtualFree(cache, 0, MEM_RELEASE);
 			VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
 			if (p2 != POC2) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
@@ -235,8 +235,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				if (bytes != cache_size_local * 64)
 				{
 					std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-					Log("File %s (%s): Unexpected end of file.", iter->Name.c_str(), iter->Path.c_str());
-					printToConsole(12, true, false, true, false, "Unexpected end of file %s", iter->Name.c_str());
+					Log(L"File %S (%S): Unexpected end of file.", iter->Name.c_str(), iter->Path.c_str());
+					printToConsole(12, true, false, true, false, L"Unexpected end of file %S", iter->Name.c_str());
 					err = true;
 					break;
 				}
@@ -263,7 +263,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				if (stopThreads)
 				{
 					worker_progress[local_num].isAlive = false;
-					Log("[%zu] Reading file: %s interrupted", local_num, iter->Name.c_str());
+					Log(L"[%zu] Reading file: %S interrupted", local_num, iter->Name.c_str());
 					CloseHandle(ifile);
 					VirtualFree(cache, 0, MEM_RELEASE); //Cleanup Thread 1
 					VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
@@ -278,8 +278,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 				if (bytes != cache_size_local * 64)
 				{
 					std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-					Log("Unexpected end of file %s (%s)", iter->Name.c_str(), path_loc_str.c_str());
-					printToConsole(12, true, false, true, false, "Unexpected end of file %s", iter->Name.c_str());
+					Log(L"Unexpected end of file %S (%S)", iter->Name.c_str(), path_loc_str.c_str());
+					printToConsole(12, true, false, true, false, L"Unexpected end of file %S", iter->Name.c_str());
 					err = true;
 				}
 			}
@@ -302,12 +302,12 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			if (!SetFilePointerEx(ifile, liDistanceToMove, nullptr, FILE_BEGIN))
 			{
 				std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-				Log("BFS seek optimisation: error SetFilePointerEx. code = %llu. File: %s (%s)", GetLastError(), iter->Name.c_str(), path_loc_str.c_str());
-				printToConsole(12, true, false, true, false, "BFS seek optimisation: error SetFilePointerEx. code = %llu", GetLastError());
+				Log(L"BFS seek optimisation: error SetFilePointerEx. code = %llu. File: %S (%S)", GetLastError(), iter->Name.c_str(), path_loc_str.c_str());
+				printToConsole(12, true, false, true, false, L"BFS seek optimisation: error SetFilePointerEx. code = %llu", GetLastError());
 			}
 		}
 		iter->done = true;
-		Log("[%zu] Close file: %s (%s) [@ %llu ms]", local_num, iter->Name.c_str(), path_loc_str.c_str(), (long long unsigned)((double)(end_time_read - start_time_read) * 1000 / pcFreq));
+		Log(L"[%zu] Close file: %S (%S) [@ %llu ms]", local_num, iter->Name.c_str(), path_loc_str.c_str(), (long long unsigned)((double)(end_time_read - start_time_read) * 1000 / pcFreq));
 		CloseHandle(ifile);
 		//Log("[%zu] Freeing caches.", local_num);
 		VirtualFree(cache, 0, MEM_RELEASE);
@@ -324,26 +324,26 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 	if (use_debug)
 	{
 		if (isbfs) {
-			printToConsole(7, true, false, true, false, "Thread \"%s\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (BFS)",
+			printToConsole(7, true, false, true, false, L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (BFS)",
 				path_loc_str.c_str(), thread_time, (double)(files_size_per_thread) / thread_time / 1024 / 1024 / 4096,
 				sum_time_proc / pcFreq * 100 / thread_time);
 		}
 		else
 		{
 			if (converted) {
-				printToConsole(7, true, false, true, false, "Thread \"%s\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (POC1<>POC2)",
+				printToConsole(7, true, false, true, false, L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (POC1<>POC2)",
 					path_loc_str.c_str(), thread_time, (double)(files_size_per_thread) / thread_time / 1024 / 1024 / 4096,
 					sum_time_proc / pcFreq * 100 / thread_time);
 			}
 			else {
-				printToConsole(7, true, false, true, false, "Thread \"%s\" @ %.1f sec (%.1f MB/s) CPU %.2f%%",
+				printToConsole(7, true, false, true, false, L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%%",
 					path_loc_str.c_str(), thread_time, (double)(files_size_per_thread) / thread_time / 1024 / 1024 / 4096,
 					sum_time_proc / pcFreq * 100 / thread_time);
 			}
 		}
 	}
 	directory->done = true;
-	Log("[%zu] Finished directory %s.", local_num, path_loc_str.c_str());
+	Log(L"[%zu] Finished directory %S.", local_num, path_loc_str.c_str());
 	return;
 }
 
@@ -355,19 +355,19 @@ void th_read(HANDLE ifile, unsigned long long const start, unsigned long long co
 #ifdef __AVX512F__
 		if (*cache_size_local < 16)
 		{
-			printToConsole(12, false, false, true, false, "WARNING: %llu", *cache_size_local);
+			printToConsole(12, false, false, true, false, L"WARNING: %llu", *cache_size_local);
 		}
 #else
 #ifdef __AVX2__
 		if (*cache_size_local < 8)
 		{
-			printToConsole(12, false, false, true, false, "WARNING: %llu", *cache_size_local);
+			printToConsole(12, false, false, true, false, L"WARNING: %llu", *cache_size_local);
 		}
 #else
 #ifdef __AVX__
 		if (*cache_size_local < 4)
 		{
-			printToConsole(12, false, false, true, false, "WARNING: %llu", *cache_size_local);
+			printToConsole(12, false, false, true, false, L"WARNING: %llu", *cache_size_local);
 		}
 #endif
 #endif
@@ -390,14 +390,14 @@ poc1read:
 	liDistanceToMove.QuadPart = start + i * 64;
 	if (!SetFilePointerEx(ifile, liDistanceToMove, nullptr, FILE_BEGIN))
 	{
-		printToConsole(12, false, false, true, false, "Error SetFilePointerEx. code = %llu", GetLastError());
+		printToConsole(12, false, false, true, false, L"Error SetFilePointerEx. code = %llu", GetLastError());
 		*cont = true;
 		return;
 	}
 	do {
 		if (!ReadFile(ifile, &cache[*bytes], (DWORD)(min(readChunkSize, *cache_size_local - *bytes / 64) * 64), &b, NULL))
 		{
-			printToConsole(12, false, false, true, false, "Error P1 ReadFile. code = %llu", GetLastError());
+			printToConsole(12, false, false, true, false, L"Error P1 ReadFile. code = %llu", GetLastError());
 			break;
 		}
 		*bytes += b;
@@ -413,14 +413,14 @@ poc2read:
 		MirrorliDistanceToMove.QuadPart = MirrorStart + i * 64;
 		if (!SetFilePointerEx(ifile, MirrorliDistanceToMove, nullptr, FILE_BEGIN))
 		{
-			printToConsole(12, false, false, true, false, "Error SetFilePointerEx. code = %llu", GetLastError());
+			printToConsole(12, false, false, true, false, L"Error SetFilePointerEx. code = %llu", GetLastError());
 			*cont = true;
 			return;
 		}
 		do {
 			if (!ReadFile(ifile, &MirrorCache[*bytes], (DWORD)(min(readChunkSize, *cache_size_local - *bytes / 64) * 64), &Mirrorb, NULL))
 			{
-				printToConsole(12, false, false, true, false, "Error P2 ReadFile. code = %llu", GetLastError());
+				printToConsole(12, false, false, true, false, L"Error P2 ReadFile. code = %llu", GetLastError());
 				break;
 			}
 			*bytes += Mirrorb;

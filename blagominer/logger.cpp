@@ -3,7 +3,7 @@
 FILE * fp_Log = nullptr;
 
 std::mutex mLog;
-std::list<std::string> loggingQueue;
+std::list<std::wstring> loggingQueue;
 std::thread writer;
 bool interruptWriter = false;
 bool loggingInitialized = false;
@@ -12,13 +12,13 @@ void _writer()
 {
 	while (!interruptWriter || !loggingQueue.empty()) {
 		if (!loggingQueue.empty()) {
-			std::string str;
+			std::wstring str;
 			{
 				std::lock_guard<std::mutex> lockGuard(mLog);
 				str = loggingQueue.front();
 				loggingQueue.pop_front();
 			}
-			fprintf_s(fp_Log, "%s\n", str.c_str());
+			fwprintf_s(fp_Log, L"%s\n", str.c_str());
 			fflush(fp_Log);
 		}
 		else {
@@ -36,7 +36,7 @@ void Log_init(void)
 		std::stringstream ss;
 		if (CreateDirectory(L"Logs", nullptr) == ERROR_PATH_NOT_FOUND)
 		{
-			printToConsole(12, false, false, true, false, "CreateDirectory failed (%d)", GetLastError());
+			printToConsole(12, false, false, true, false, L"CreateDirectory failed (%d)", GetLastError());
 			loggingInitialized = false;
 			loggingConfig.enableLogging = false;
 			return;
@@ -49,7 +49,7 @@ void Log_init(void)
 		std::string filename = ss.str();
 		if ((fp_Log = _fsopen(filename.c_str(), "wt", _SH_DENYNO)) == NULL)
 		{
-			printToConsole(12, false, false, true, false, "LOG: file openinig error");
+			printToConsole(12, false, false, true, false, L"LOG: file openinig error");
 			loggingInitialized = false;
 			loggingConfig.enableLogging = false;
 		}
