@@ -183,8 +183,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 		if (ifile == INVALID_HANDLE_VALUE)
 		{
 			std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-			Log(L"File %S (%S): Error opening. code = %llu", iter->Name.c_str(), iter->Path.c_str(), GetLastError());
-			printToConsole(12, true, false, true, false, L"File \"%S\\%S\" error opening. code = %llu", iter->Path.c_str(), iter->Name.c_str(), GetLastError());
+			Log(L"File %S (%S): Error opening. code = %lu", iter->Name.c_str(), iter->Path.c_str(), GetLastError());
+			printToConsole(12, true, false, true, false, L"File \"%S\\%S\" error opening. code = %lu", iter->Path.c_str(), iter->Name.c_str(), GetLastError());
 			VirtualFree(cache, 0, MEM_RELEASE);
 			VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
 			if (p2 != POC2) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
@@ -265,6 +265,7 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 					worker_progress[local_num].isAlive = false;
 					Log(L"[%zu] Reading file: %S interrupted", local_num, iter->Name.c_str());
 					CloseHandle(ifile);
+					Log(L"[%zu] Freeing caches.", local_num);
 					VirtualFree(cache, 0, MEM_RELEASE); //Cleanup Thread 1
 					VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
 					if (p2 != POC2) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
@@ -302,8 +303,8 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			if (!SetFilePointerEx(ifile, liDistanceToMove, nullptr, FILE_BEGIN))
 			{
 				std::thread{ increaseReadError, iter->Name.c_str() }.detach();
-				Log(L"BFS seek optimisation: error SetFilePointerEx. code = %llu. File: %S (%S)", GetLastError(), iter->Name.c_str(), path_loc_str.c_str());
-				printToConsole(12, true, false, true, false, L"BFS seek optimisation: error SetFilePointerEx. code = %llu", GetLastError());
+				Log(L"BFS seek optimisation: error SetFilePointerEx. code = %lu. File: %S (%S)", GetLastError(), iter->Name.c_str(), path_loc_str.c_str());
+				printToConsole(12, true, false, true, false, L"BFS seek optimisation: error SetFilePointerEx. code = %lu", GetLastError());
 			}
 		}
 		iter->done = true;
@@ -390,14 +391,14 @@ poc1read:
 	liDistanceToMove.QuadPart = start + i * 64;
 	if (!SetFilePointerEx(ifile, liDistanceToMove, nullptr, FILE_BEGIN))
 	{
-		printToConsole(12, false, false, true, false, L"Error SetFilePointerEx. code = %llu", GetLastError());
+		printToConsole(12, false, false, true, false, L"Error SetFilePointerEx. code = %lu", GetLastError());
 		*cont = true;
 		return;
 	}
 	do {
 		if (!ReadFile(ifile, &cache[*bytes], (DWORD)(min(readChunkSize, *cache_size_local - *bytes / 64) * 64), &b, NULL))
 		{
-			printToConsole(12, false, false, true, false, L"Error P1 ReadFile. code = %llu", GetLastError());
+			printToConsole(12, false, false, true, false, L"Error P1 ReadFile. code = %lu", GetLastError());
 			break;
 		}
 		*bytes += b;
@@ -413,14 +414,14 @@ poc2read:
 		MirrorliDistanceToMove.QuadPart = MirrorStart + i * 64;
 		if (!SetFilePointerEx(ifile, MirrorliDistanceToMove, nullptr, FILE_BEGIN))
 		{
-			printToConsole(12, false, false, true, false, L"Error SetFilePointerEx. code = %llu", GetLastError());
+			printToConsole(12, false, false, true, false, L"Error SetFilePointerEx. code = %lu", GetLastError());
 			*cont = true;
 			return;
 		}
 		do {
 			if (!ReadFile(ifile, &MirrorCache[*bytes], (DWORD)(min(readChunkSize, *cache_size_local - *bytes / 64) * 64), &Mirrorb, NULL))
 			{
-				printToConsole(12, false, false, true, false, L"Error P2 ReadFile. code = %llu", GetLastError());
+				printToConsole(12, false, false, true, false, L"Error P2 ReadFile. code = %lu", GetLastError());
 				break;
 			}
 			*bytes += Mirrorb;

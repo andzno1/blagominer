@@ -858,7 +858,7 @@ unsigned long long getPlotFilesSize(std::vector<std::shared_ptr<t_directory_info
 
 void handleReturn(BOOL success) {
 	if (!success) {
-		Log(L"FAILED with error %i", GetLastError());
+		Log(L"FAILED with error %lu", GetLastError());
 	}
 }
 
@@ -1534,6 +1534,7 @@ int main(int argc, char **argv) {
 					it->second.join();
 				}
 			}
+			Log(L"All worker threads shut down.");
 
 			if (miningCoin->mining->state == MINING) {
 				// Checking if all directories are done for the rare case that workers finished mining

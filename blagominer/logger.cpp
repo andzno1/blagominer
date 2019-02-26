@@ -36,7 +36,7 @@ void Log_init(void)
 		std::stringstream ss;
 		if (CreateDirectory(L"Logs", nullptr) == ERROR_PATH_NOT_FOUND)
 		{
-			printToConsole(12, false, false, true, false, L"CreateDirectory failed (%d)", GetLastError());
+			printToConsole(12, false, false, true, false, L"CreateDirectory failed (%lu)", GetLastError());
 			loggingInitialized = false;
 			loggingConfig.enableLogging = false;
 			return;

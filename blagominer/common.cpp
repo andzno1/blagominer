@@ -21,7 +21,7 @@ std::wstring versionSuffix = L"_SSE";
 #endif 
 std::wstring version = std::to_wstring(versionMajor) + L"." + std::to_wstring(versionMinor) + L"." + std::to_wstring(versionRevision) + versionSuffix;
 
-const wchar_t sepChar = 0x2022;
+const wchar_t sepChar = 0x00B7;
 
 extern bool lockWindowSize = true;
 double checkForUpdateInterval = 1;
