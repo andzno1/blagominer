@@ -37,6 +37,8 @@ enum MiningState {
 extern wchar_t *coinNames[];
 
 struct t_shares {
+	t_shares(std::string file_name, unsigned long long account_id, unsigned long long best, unsigned long long nonce) :
+		file_name(file_name), account_id(account_id), best(best), nonce(nonce) {}
 	std::string file_name;
 	unsigned long long account_id;// = 0;
 	// This is the best Target, not Deadline.
@@ -122,7 +124,7 @@ struct t_mining_info {
 	unsigned long long currentHeight = 0;
 	unsigned long long currentBaseTarget = 0;
 	std::vector<t_best> bests;
-	std::vector<t_shares> shares;
+	std::vector<std::shared_ptr<t_shares>> shares;
 
 	// Values for new mining info check
 	char signature[33];						// signature of current block
