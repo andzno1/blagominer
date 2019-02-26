@@ -25,8 +25,8 @@ void Log(const wchar_t * format, Args ... args)
 	}
 	SYSTEMTIME cur_time;
 	GetLocalTime(&cur_time);
-	wchar_t timeBuff[9];
-	swprintf(timeBuff, sizeof(timeBuff), L"%02d:%02d:%02d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond);
+	wchar_t timeBuff[13];
+	swprintf(timeBuff, sizeof(timeBuff), L"%02d:%02d:%02d.%03d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond, cur_time.wMilliseconds);
 	std::wstring time = timeBuff;
 
 	int size = swprintf(nullptr, 0, format, args ...) + 1;

@@ -46,7 +46,9 @@ void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
 	SYSTEMTIME cur_time;
 	GetLocalTime(&cur_time);
 	wchar_t timeBuff[9];
+	wchar_t timeBuffMil[13];
 	swprintf(timeBuff, sizeof(timeBuff), L"%02d:%02d:%02d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond);
+	swprintf(timeBuffMil, sizeof(timeBuff), L"%02d:%02d:%02d.%03d", cur_time.wHour, cur_time.wMinute, cur_time.wSecond, cur_time.wMilliseconds);
 	std::wstring time = timeBuff;
 	std::wstring timeMil = timeBuffMil;
 
@@ -77,6 +79,7 @@ void printToConsole(int colorPair, bool printTimestamp, bool leadingNewLine,
 	}
 	{
 		std::lock_guard<std::mutex> lockGuard(mLog);
+		loggingQueue.push_back(timeMil + L" " + std::wstring(buf.get(), buf.get() + size - 1));
 	}
 };
 
