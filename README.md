@@ -37,7 +37,7 @@ Due to the new dual mining ability some fields in the configuration file have be
 ## Dependencies
 If you want to compile Blagominer yourself you have to install and include [PDCurses](https://pdcurses.org/). The simplest way to do so is to install [vcpkg](https://github.com/Microsoft/vcpkg) and hook up user-wide integration (`vcpkg integrate install`).
 
-Afterwards install PDCurses via this command:
+Make sure to have the english language pack for [Visual Studio](https://visualstudio.microsoft.com/vs/community/) installed. Afterwards install PDCurses via this command:
 
     PS> .\vcpkg install pdcurses:x64-windows
 
