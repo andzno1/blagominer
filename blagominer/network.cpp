@@ -196,7 +196,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 							LeaveCriticalSection(&coinInfo->locks->sharesLock);
 
 							printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL found     : %s {%S}", get_accountId, proxyName,
-								toStr(get_deadline / coinInfo->mining->currentBaseTarget, 11).c_str(), client_address_str);
+								toWStr(get_deadline / coinInfo->mining->currentBaseTarget, 11).c_str(), client_address_str);
 							Log(L"Proxy %s: received DL %llu from %S", proxyName, get_deadline / coinInfo->mining->currentBaseTarget, client_address_str);
 							
 							//Подтверждаем
@@ -334,13 +334,13 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 		if (share->deadline > coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline)
 		{
 			Log(L"[%20llu|%-10s|Sender] DL discarded : %s > %s",
-				share->account_id, senderName, toStr(share->deadline, 11).c_str(),
-				toStr(coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline, 11).c_str());
+				share->account_id, senderName, toWStr(share->deadline, 11).c_str(),
+				toWStr(coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline, 11).c_str());
 			if (use_debug)
 			{
 				printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Sender] DL discarded : %s > %s",
-					share->account_id, senderName, toStr(share->deadline, 11).c_str(),
-					toStr(coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline, 11).c_str());
+					share->account_id, senderName, toWStr(share->deadline, 11).c_str(),
+					toWStr(coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline, 11).c_str());
 			}
 			EnterCriticalSection(&coinInfo->locks->sharesLock);
 			if (!coinInfo->mining->shares.empty()) {
@@ -392,7 +392,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 			{
 				unsigned long long total = total_size / 1024 / 1024 / 1024;
 				for (auto It = satellite_size.begin(); It != satellite_size.end(); ++It) total = total + It->second;
-				bytes = sprintf_s(buffer, buffer_size, "POST /burst?requestType=submitNonce&accountId=%llu&nonce=%llu&deadline=%llu HTTP/1.0\r\nHost: %s:%s\r\nX-Miner: Blago %s\r\nX-Capacity: %llu\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", share->account_id, share->nonce, share->best, coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), (const char*)version.c_str(), total);
+				bytes = sprintf_s(buffer, buffer_size, "POST /burst?requestType=submitNonce&accountId=%llu&nonce=%llu&deadline=%llu HTTP/1.0\r\nHost: %s:%s\r\nX-Miner: Blago %S\r\nX-Capacity: %llu\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", share->account_id, share->nonce, share->best, coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), version.c_str(), total);
 			}
 
 			// Sending to server
@@ -410,8 +410,8 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 				printToConsole(9, true, false, true, false, L"[%20llu|%-10s|Sender] DL sent      : %s %sd %02llu:%02llu:%02llu",
 					share->account_id,
 					senderName,
-					toStr(share->deadline, 11).c_str(),
-					toStr(share->deadline / (24 * 60 * 60), 7).c_str(),
+					toWStr(share->deadline, 11).c_str(),
+					toWStr(share->deadline / (24 * 60 * 60), 7).c_str(),
 					(share->deadline % (24 * 60 * 60)) / (60 * 60),
 					(share->deadline % (60 * 60)) / 60, 
 					share->deadline % 60);
@@ -566,17 +566,17 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 								LeaveCriticalSection(&coinInfo->locks->bestsLock);
 
 								printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s %sd %02u:%02u:%02u",
-									naccountId, confirmerName, toStr(ndeadline, 11).c_str(), toStr(days, 7).c_str(), hours, min, sec);
+									naccountId, confirmerName, toWStr(ndeadline, 11).c_str(), toWStr(days, 7).c_str(), hours, min, sec);
 								Log(L"[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", naccountId, confirmerName, ndeadline, days, hours, min, sec);
 								Log(L"[%20llu] %s set targetDL: %10llu", naccountId, confirmerName, ntargetDeadline);
 								if (use_debug) {
 									printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] Set target DL: %s",
-										naccountId, toStr(ntargetDeadline, 11).c_str());
+										naccountId, toWStr(ntargetDeadline, 11).c_str());
 								}
 							}
 							else {
 								printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s %sd %02u:%02u:%02u",
-									session->body.account_id, confirmerName, toStr(ndeadline, 11).c_str(), toStr(days, 7).c_str(), hours, min, sec);
+									session->body.account_id, confirmerName, toWStr(ndeadline, 11).c_str(), toWStr(days, 7).c_str(), hours, min, sec);
 								Log(L"[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", session->body.account_id, confirmerName, ndeadline, days, hours, min, sec);
 							}
 							if (ndeadline < coinInfo->mining->deadline || coinInfo->mining->deadline == 0)  coinInfo->mining->deadline = ndeadline;
@@ -634,7 +634,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 																					// if(deadline > iter->deadline) deadline = iter->deadline;
 						std::thread{ increaseMatchingDeadline, session->body.file_name }.detach();
 						printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s",
-							session->body.account_id, confirmerName, toStr(session->deadline, 11).c_str());
+							session->body.account_id, confirmerName, toWStr(session->deadline, 11).c_str());
 					}
 					else //получили нераспознанный ответ
 					{

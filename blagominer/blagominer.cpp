@@ -637,7 +637,7 @@ size_t GetFiles(const std::string &str, std::vector <t_files> *p_files)
 }
 
 unsigned int calcScoop(std::shared_ptr<t_coin_info> coin) {
-	Log(L"Calculating scoop for %S", coinNames[coin->coin]);
+	Log(L"Calculating scoop for %s", coinNames[coin->coin]);
 	char scoopgen[40];
 	memmove(scoopgen, coin->mining->signature, 32);
 	const char *mov = (char*)&coin->mining->currentHeight;
@@ -688,7 +688,7 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, st
 			inserted = true;
 			if (coinCurrentlyMining && coinCurrentlyMining->mining->state == MINING) {
 				printToConsole(5, true, false, false, true, L"[#%s|%s|Info    ] New block has been added to the queue.",
-					toStr(newCoin->mining->height, 7).c_str(), toStr(coinNames[newCoin->coin], 10).c_str(), 0);
+					toWStr(newCoin->mining->height, 7).c_str(), toWStr(coinNames[newCoin->coin], 10).c_str(), 0);
 			}
 			break;
 		}
@@ -699,7 +699,7 @@ void insertIntoQueue(std::vector<std::shared_ptr<t_coin_info>>& currentQueue, st
 			newCoin->coin != coinCurrentlyMining->coin &&
 			newCoin->mining->priority >= coinCurrentlyMining->mining->priority) {
 			printToConsole(5, true, false, false, true, L"[#%s|%s|Info    ] New block has been added to the end of the queue.",
-				toStr(newCoin->mining->height, 7).c_str(), toStr(coinNames[newCoin->coin], 10).c_str(), 0);
+				toWStr(newCoin->mining->height, 7).c_str(), toWStr(coinNames[newCoin->coin], 10).c_str(), 0);
 		}
 		currentQueue.push_back(newCoin);
 	}
@@ -752,7 +752,7 @@ void handleProxyOnly(std::shared_ptr<t_coin_info> coin) {
 			Log(L"Won't add %s to the queue. Proxy only.", coinNames[coin->coin]);
 			updateOldSignature(coin);
 			printToConsole(5, true, true, false, true, L"[#%s|%s|Info    ] New block.",
-				toStr(coin->mining->height, 7).c_str(), toStr(coinNames[coin->coin], 10).c_str(), 0);
+				toWStr(coin->mining->height, 7).c_str(), toWStr(coinNames[coin->coin], 10).c_str(), 0);
 			
 			if (coin->mining->currentBaseTarget != 0) {
 				std::thread{ Csv_Submitted,  coin->coin, coin->mining->currentHeight,
@@ -1360,19 +1360,19 @@ int main(int argc, char **argv) {
 			if (miningCoin->mining->enable && miningCoin->mining->state == INTERRUPTED) {
 				Log(L"------------------------    Continuing %s block: %llu", coinNames[miningCoin->coin], miningCoin->mining->currentHeight);
 				printToConsole(5, true, true, false, true, L"[#%s|%s|Continue] Base Target %s %c Net Diff %s TiB %c PoC%i",
-					toStr(miningCoin->mining->currentHeight, 7).c_str(),
-					toStr(coinNames[miningCoin->coin], 10).c_str(),
-					toStr(miningCoin->mining->currentBaseTarget, 7).c_str(), sepChar,
-					toStr(4398046511104 / 240 / miningCoin->mining->currentBaseTarget, 8).c_str(), sepChar,
+					toWStr(miningCoin->mining->currentHeight, 7).c_str(),
+					toWStr(coinNames[miningCoin->coin], 10).c_str(),
+					toWStr(miningCoin->mining->currentBaseTarget, 7).c_str(), sepChar,
+					toWStr(4398046511104 / 240 / miningCoin->mining->currentBaseTarget, 8).c_str(), sepChar,
 					POC2 ? 2 : 1);
 			}
 			else if (miningCoin->mining->enable) {
 				Log(L"------------------------    New %s block: %llu", coinNames[miningCoin->coin], miningCoin->mining->currentHeight);
 				printToConsole(25, true, true, false, true, L"[#%s|%s|Start   ] Base Target %s %c Net Diff %s TiB %c PoC%i",
-					toStr(miningCoin->mining->currentHeight, 7).c_str(),
-					toStr(coinNames[miningCoin->coin], 10).c_str(),
-					toStr(miningCoin->mining->currentBaseTarget, 7).c_str(), sepChar,
-					toStr(4398046511104 / 240 / miningCoin->mining->currentBaseTarget, 8).c_str(), sepChar,
+					toWStr(miningCoin->mining->currentHeight, 7).c_str(),
+					toWStr(coinNames[miningCoin->coin], 10).c_str(),
+					toWStr(miningCoin->mining->currentBaseTarget, 7).c_str(), sepChar,
+					toWStr(4398046511104 / 240 / miningCoin->mining->currentBaseTarget, 8).c_str(), sepChar,
 					POC2 ? 2 : 1);
 			}
 
@@ -1493,7 +1493,7 @@ int main(int argc, char **argv) {
 							(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
 							thread_time, sepChar,
 							threads_speed, sepChar,
-							(miningCoin->mining->deadline == 0) ? L"          -" : toStr(miningCoin->mining->deadline, 11).c_str(), sepChar,
+							(miningCoin->mining->deadline == 0) ? L"          -" : toWStr(miningCoin->mining->deadline, 11).c_str(), sepChar,
 							getNetworkQuality(burst),
 							getNetworkQuality(bhd));
 					}
@@ -1503,7 +1503,7 @@ int main(int argc, char **argv) {
 							(((double)bytesRead) / (256 * 1024 * 1024)), sepChar,
 							thread_time, sepChar,
 							threads_speed, sepChar,
-							(miningCoin->mining->deadline == 0) ? L"          -" : toStr(miningCoin->mining->deadline, 11).c_str(), sepChar,
+							(miningCoin->mining->deadline == 0) ? L"          -" : toWStr(miningCoin->mining->deadline, 11).c_str(), sepChar,
 							getNetworkQuality(miningCoin));
 					}
 				}
@@ -1562,7 +1562,7 @@ int main(int argc, char **argv) {
 					miningCoin->mining->state = INTERRUPTED;
 					Log(L"Mining %s has been interrupted by a coin with higher priority.", coinNames[miningCoin->coin]);
 					printToConsole(8, true, false, false, true, L"[#%s|%s|Info    ] Mining has been interrupted by another coin.",
-						toStr(miningCoin->mining->currentHeight, 7).c_str(), toStr(coinNames[miningCoin->coin], 10).c_str());
+						toWStr(miningCoin->mining->currentHeight, 7).c_str(), toWStr(coinNames[miningCoin->coin], 10).c_str());
 					// Queuing the interrupted coin.
 					insertIntoQueue(queue, miningCoin, miningCoin);
 				}

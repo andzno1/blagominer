@@ -182,7 +182,10 @@ int getNetworkQuality(std::shared_ptr<t_coin_info> coin);
 
 void getLocalDateTime(const std::time_t &rawtime, char* local, const std::string sepTime = ":");
 
-std::wstring toStr(int number, const unsigned short length);
-std::wstring toStr(unsigned long long number, const unsigned short length);
-std::wstring toStr(std::wstring str, const unsigned short length);
-std::wstring toStr(std::string str, const unsigned short length);
+std::wstring toWStr(int number, const unsigned short length);
+std::wstring toWStr(unsigned long long number, const unsigned short length);
+std::wstring toWStr(std::wstring str, const unsigned short length);
+std::wstring toWStr(std::string str, const unsigned short length);
+
+std::string toStr(unsigned long long number, const unsigned short length);
+std::string toStr(std::string str, const unsigned short length);
