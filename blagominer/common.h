@@ -37,13 +37,15 @@ enum MiningState {
 extern wchar_t *coinNames[];
 
 struct t_shares {
-	t_shares(std::string file_name, unsigned long long account_id, unsigned long long best, unsigned long long nonce) :
-		file_name(file_name), account_id(account_id), best(best), nonce(nonce) {}
+	t_shares(std::string file_name, unsigned long long account_id, unsigned long long best,
+		unsigned long long nonce, unsigned long long deadline) :
+		file_name(file_name), account_id(account_id), best(best), nonce(nonce), deadline(deadline) {}
 	std::string file_name;
 	unsigned long long account_id;// = 0;
 	// This is the best Target, not Deadline.
 	unsigned long long best;// = 0;
 	unsigned long long nonce;// = 0;
+	unsigned long long deadline;
 };
 
 struct t_best {

@@ -192,7 +192,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 							}
 							EnterCriticalSection(&coinInfo->locks->sharesLock);
 							coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
-								client_address_str, get_accountId, get_deadline, get_nonce));
+								client_address_str, get_accountId, get_deadline, get_nonce, get_deadline));
 							LeaveCriticalSection(&coinInfo->locks->sharesLock);
 
 							printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL found     : %s {%S}", get_accountId, proxyName,
@@ -331,19 +331,21 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 
 		const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
 		//Гасим шару если она больше текущего targetDeadline, актуально для режима Proxy
-		if ((share->best / coinInfo->mining->currentBaseTarget) > coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline)
+		if (share->deadline > coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline)
 		{
 			Log(L"[%20llu|%-10s|Sender] DL discarded : %s > %s",
-				share->account_id, senderName, toStr(share->best / coinInfo->mining->currentBaseTarget, 11).c_str(),
+				share->account_id, senderName, toStr(share->deadline, 11).c_str(),
 				toStr(coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline, 11).c_str());
 			if (use_debug)
 			{
 				printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Sender] DL discarded : %s > %s",
-					share->account_id, senderName, toStr(share->best / coinInfo->mining->currentBaseTarget, 11).c_str(),
+					share->account_id, senderName, toStr(share->deadline, 11).c_str(),
 					toStr(coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline, 11).c_str());
 			}
 			EnterCriticalSection(&coinInfo->locks->sharesLock);
-			coinInfo->mining->shares.erase(coinInfo->mining->shares.begin());
+			if (!coinInfo->mining->shares.empty()) {
+				coinInfo->mining->shares.erase(coinInfo->mining->shares.begin());
+			}
 			LeaveCriticalSection(&coinInfo->locks->sharesLock);
 			continue;
 		}
@@ -404,19 +406,24 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 			}
 			else
 			{
-				unsigned long long dl = share->best / coinInfo->mining->currentBaseTarget;
 				increaseNetworkQuality(coinInfo);
-				Log(L"[%20llu] %s sent DL: %15llu %5llud %02llu:%02llu:%02llu", share->account_id, senderName, dl,
-					(dl) / (24 * 60 * 60), (dl % (24 * 60 * 60)) / (60 * 60), (dl % (60 * 60)) / 60, dl % 60, 0);
-				printToConsole(9, true, false, true, false, L"[%20llu|%-10s|Sender] DL sent      : %s %sd %02llu:%02llu:%02llu", share->account_id, senderName,
-					toStr(dl, 11).c_str(), toStr((dl) / (24 * 60 * 60), 7).c_str(), (dl % (24 * 60 * 60)) / (60 * 60), (dl % (60 * 60)) / 60, dl % 60);
+				printToConsole(9, true, false, true, false, L"[%20llu|%-10s|Sender] DL sent      : %s %sd %02llu:%02llu:%02llu",
+					share->account_id,
+					senderName,
+					toStr(share->deadline, 11).c_str(),
+					toStr(share->deadline / (24 * 60 * 60), 7).c_str(),
+					(share->deadline % (24 * 60 * 60)) / (60 * 60),
+					(share->deadline % (60 * 60)) / 60, 
+					share->deadline % 60);
 
-				tmpSessions.push_back(std::make_shared<t_session>(ConnectSocket, dl, *share));
+				tmpSessions.push_back(std::make_shared<t_session>(ConnectSocket, share->deadline, *share));
 
-				Log(L"[%20llu] Sender %s: Setting bests targetDL: %10llu", share->account_id, senderName, dl);
-				coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline = dl;
+				Log(L"[%20llu] Sender %s: Setting bests targetDL: %10llu", share->account_id, senderName, share->deadline);
+				coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline = share->deadline;
 				EnterCriticalSection(&coinInfo->locks->sharesLock);
-				coinInfo->mining->shares.erase(coinInfo->mining->shares.begin());
+				if (!coinInfo->mining->shares.empty()) {
+					coinInfo->mining->shares.erase(coinInfo->mining->shares.begin());
+				}
 				LeaveCriticalSection(&coinInfo->locks->sharesLock);
 			}
 		}
@@ -479,14 +486,17 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 				decreaseNetworkQuality(coinInfo);
 				Log(L"Confirmer %s: ! Error getting confirmation for DL: %llu  code: %i", confirmerName, session->deadline, WSAGetLastError());
 				EnterCriticalSection(&coinInfo->locks->sessionsLock);
-				coinInfo->network->sessions.erase(coinInfo->network->sessions.begin());
+				if (!coinInfo->network->sessions.empty()) {
+					coinInfo->network->sessions.erase(coinInfo->network->sessions.begin());
+				}
 				LeaveCriticalSection(&coinInfo->locks->sessionsLock);
 				EnterCriticalSection(&coinInfo->locks->sharesLock);
 				coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
 					session->body.file_name,
 					session->body.account_id, 
 					session->body.best, 
-					session->body.nonce));
+					session->body.nonce,
+					session->body.deadline));
 				LeaveCriticalSection(&coinInfo->locks->sharesLock);
 			}
 		}
@@ -503,7 +513,8 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 					session->body.file_name,
 					session->body.account_id, 
 					session->body.best, 
-					session->body.nonce));
+					session->body.nonce,
+					session->body.deadline));
 				LeaveCriticalSection(&coinInfo->locks->sharesLock);
 			}
 			else //получили ответ пула
@@ -645,7 +656,8 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 								session->body.file_name,
 								session->body.account_id,
 								session->body.best,
-								session->body.nonce));
+								session->body.nonce,
+								session->body.deadline));
 							LeaveCriticalSection(&coinInfo->locks->sharesLock);
 						}
 						else //получили непонятно что
@@ -658,7 +670,9 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 			iResult = closesocket(ConnectSocket);
 			Log(L"Confirmer %s: Close socket. Code = %i", confirmerName, WSAGetLastError());
 			EnterCriticalSection(&coinInfo->locks->sessionsLock);
-			coinInfo->network->sessions.erase(coinInfo->network->sessions.begin());
+			if (!coinInfo->network->sessions.empty()) {
+				coinInfo->network->sessions.erase(coinInfo->network->sessions.begin());
+			}
 			LeaveCriticalSection(&coinInfo->locks->sessionsLock);
 		}
 		std::this_thread::yield();

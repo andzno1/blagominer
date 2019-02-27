@@ -32,22 +32,24 @@ void procscoop_sph(std::shared_ptr<t_coin_info> coin, const unsigned long long n
 
 		unsigned long long *wertung = (unsigned long long*)res;
 		
-		if ((*wertung / coin->mining->currentBaseTarget) <= coin->mining->bests[acc].targetDeadline)
+		unsigned long long deadline = *wertung / coin->mining->currentBaseTarget;
+		if (deadline <= coin->mining->bests[acc].targetDeadline)
 		{
 			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log(L"found deadline=%llu nonce=%llu for account: %llu file: %S", *wertung / coin->mining->currentBaseTarget, nonce + v, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"found deadline=%llu nonce=%llu for account: %llu file: %S", deadline, nonce + v, coin->mining->bests[acc].account_id, file_name.c_str());
 				EnterCriticalSection(&coin->locks->bestsLock);
 				coin->mining->bests[acc].best = *wertung;
 				coin->mining->bests[acc].nonce = nonce + v;
-				coin->mining->bests[acc].DL = *wertung / coin->mining->currentBaseTarget;
+				coin->mining->bests[acc].DL = deadline;
 				LeaveCriticalSection(&coin->locks->bestsLock);
 				EnterCriticalSection(&coin->locks->sharesLock);
 				coin->mining->shares.push_back(std::make_shared<t_shares>(
 					file_name, 
 					coin->mining->bests[acc].account_id, 
 					coin->mining->bests[acc].best,
-					coin->mining->bests[acc].nonce));
+					coin->mining->bests[acc].nonce,
+					coin->mining->bests[acc].DL));
 				LeaveCriticalSection(&coin->locks->sharesLock);
 				printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Worker] DL found     : %s",
 					coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str());
@@ -136,22 +138,24 @@ void procscoop_sse_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 			posn = 3;
 		}
 
-		if ((*wertung / coin->mining->currentBaseTarget) <= coin->mining->bests[acc].targetDeadline)
+		unsigned long long deadline = *wertung / coin->mining->currentBaseTarget;
+		if (deadline <= coin->mining->bests[acc].targetDeadline)
 		{
 			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log(L"found deadline=%llu nonce=%llu for account: %llu file: %S", *wertung / coin->mining->currentBaseTarget, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"found deadline=%llu nonce=%llu for account: %llu file: %S", deadline, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
 				EnterCriticalSection(&coin->locks->bestsLock);
 				coin->mining->bests[acc].best = *wertung;
 				coin->mining->bests[acc].nonce = nonce + v + posn;
-				coin->mining->bests[acc].DL = *wertung / coin->mining->currentBaseTarget;
+				coin->mining->bests[acc].DL = deadline;
 				LeaveCriticalSection(&coin->locks->bestsLock);
 				EnterCriticalSection(&coin->locks->sharesLock);
 				coin->mining->shares.push_back(std::make_shared<t_shares>(
 					file_name,
 					coin->mining->bests[acc].account_id,
 					coin->mining->bests[acc].best,
-					coin->mining->bests[acc].nonce));
+					coin->mining->bests[acc].nonce,
+					coin->mining->bests[acc].DL));
 				LeaveCriticalSection(&coin->locks->sharesLock);
 				printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Worker] DL found     : %s",
 					coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str());
@@ -240,22 +244,24 @@ void procscoop_avx_fast(std::shared_ptr<t_coin_info> coin, unsigned long long co
 			posn = 3;
 		}
 
-		if ((*wertung / coin->mining->currentBaseTarget) <= coin->mining->bests[acc].targetDeadline)
+		unsigned long long deadline = *wertung / coin->mining->currentBaseTarget;
+		if (deadline <= coin->mining->bests[acc].targetDeadline)
 		{
 			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log(L"found deadline=%llu nonce=%llu for account: %llu file: %S", *wertung / coin->mining->currentBaseTarget, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"found deadline=%llu nonce=%llu for account: %llu file: %S", deadline, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
 				EnterCriticalSection(&coin->locks->bestsLock);
 				coin->mining->bests[acc].best = *wertung;
 				coin->mining->bests[acc].nonce = nonce + v + posn;
-				coin->mining->bests[acc].DL = *wertung / coin->mining->currentBaseTarget;
+				coin->mining->bests[acc].DL = deadline;
 				LeaveCriticalSection(&coin->locks->bestsLock);
 				EnterCriticalSection(&coin->locks->sharesLock);
 				coin->mining->shares.push_back(std::make_shared<t_shares>(
 					file_name,
 					coin->mining->bests[acc].account_id,
 					coin->mining->bests[acc].best, 
-					coin->mining->bests[acc].nonce));
+					coin->mining->bests[acc].nonce,
+					coin->mining->bests[acc].DL));
 				LeaveCriticalSection(&coin->locks->sharesLock);
 				printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Worker] DL found     : %s",
 					coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str());
@@ -389,24 +395,24 @@ void procscoop_avx2_fast(std::shared_ptr<t_coin_info> coin, unsigned long long c
 			posn = 7;
 		}
 
-		if ((*wertung / coin->mining->currentBaseTarget) <= coin->mining->bests[acc].targetDeadline)
+		unsigned long long deadline = *wertung / coin->mining->currentBaseTarget;
+		if (deadline <= coin->mining->bests[acc].targetDeadline)
 		{
-			Log(L"[Check] %llu <= %llu", (*wertung / coin->mining->currentBaseTarget), coin->mining->bests[acc].targetDeadline);
 			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log(L"[Check] %llu < %llu", *wertung, coin->mining->bests[acc].best);
-				Log(L"found deadline=%llu nonce=%llu for account: %llu file: %S", *wertung / coin->mining->currentBaseTarget, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"found deadline=%llu nonce=%llu for account: %llu file: %S", deadline, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
 				EnterCriticalSection(&coin->locks->bestsLock);
 				coin->mining->bests[acc].best = *wertung;
 				coin->mining->bests[acc].nonce = nonce + v + posn;
-				coin->mining->bests[acc].DL = *wertung / coin->mining->currentBaseTarget;
+				coin->mining->bests[acc].DL = deadline;
 				LeaveCriticalSection(&coin->locks->bestsLock);
 				EnterCriticalSection(&coin->locks->sharesLock);
 				coin->mining->shares.push_back(std::make_shared<t_shares>(
 					file_name,
 					coin->mining->bests[acc].account_id,
 					coin->mining->bests[acc].best,
-					coin->mining->bests[acc].nonce));
+					coin->mining->bests[acc].nonce,
+					coin->mining->bests[acc].DL));
 				LeaveCriticalSection(&coin->locks->sharesLock);
 				printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Worker] DL found     : %s",
 					coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str());
@@ -628,22 +634,24 @@ void procscoop_avx512_fast(std::shared_ptr<t_coin_info> coin, unsigned long long
 			posn = 15;
 		}
 
-		if ((*wertung / coin->mining->currentBaseTarget) <= coin->mining->bests[acc].targetDeadline)
+		unsigned long long deadline = *wertung / coin->mining->currentBaseTarget;
+		if (deadline <= coin->mining->bests[acc].targetDeadline)
 		{
 			if (*wertung < coin->mining->bests[acc].best)
 			{
-				Log(L"found deadline=%llu nonce=%llu for account: %llu file: %S", *wertung / coin->mining->currentBaseTarget, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
+				Log(L"found deadline=%llu nonce=%llu for account: %llu file: %S", deadline, nonce + v + posn, coin->mining->bests[acc].account_id, file_name.c_str());
 				EnterCriticalSection(&coin->locks->bestsLock);
 				coin->mining->bests[acc].best = *wertung;
 				coin->mining->bests[acc].nonce = nonce + v + posn;
-				coin->mining->bests[acc].DL = *wertung / coin->mining->currentBaseTarget;
+				coin->mining->bests[acc].DL = deadline;
 				LeaveCriticalSection(&coin->locks->bestsLock);
 				EnterCriticalSection(&coin->locks->sharesLock);
 				coin->mining->shares.push_back(std::make_shared<t_shares>(
 					file_name,
 					coin->mining->bests[acc].account_id, 
 					coin->mining->bests[acc].best,
-					coin->mining->bests[acc].nonce));
+					coin->mining->bests[acc].nonce,
+					coin->mining->bests[acc].DL));
 				LeaveCriticalSection(&coin->locks->sharesLock);
 				printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Worker] DL found     : %s",
 					coin->mining->bests[acc].account_id, coinNames[coin->coin], toStr(coin->mining->bests[acc].DL, 11).c_str());

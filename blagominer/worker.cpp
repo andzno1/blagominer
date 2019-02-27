@@ -308,9 +308,14 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 			}
 		}
 		iter->done = true;
-		Log(L"[%zu] Close file: %S (%S) [@ %llu ms]", local_num, iter->Name.c_str(), path_loc_str.c_str(), (long long unsigned)((double)(end_time_read - start_time_read) * 1000 / pcFreq));
+		if (pcFreq != 0) {
+			Log(L"[%zu] Close file: %S (%S) [@ %llu ms]", local_num, iter->Name.c_str(), path_loc_str.c_str(), (long long unsigned)((double)(end_time_read - start_time_read) * 1000 / pcFreq));
+		}
+		else {
+			Log(L"[%zu] Close file: %S (%S)", local_num, iter->Name.c_str(), path_loc_str.c_str());
+		}
 		CloseHandle(ifile);
-		//Log("[%zu] Freeing caches.", local_num);
+		Log(L"[%zu] Freeing caches.", local_num);
 		VirtualFree(cache, 0, MEM_RELEASE);
 		VirtualFree(cache2, 0, MEM_RELEASE); //Cleanup Thread 2
 		if (p2 != POC2) VirtualFree(MirrorCache, 0, MEM_RELEASE); //PoC2 Cleanup
@@ -321,25 +326,27 @@ void work_i(std::shared_ptr<t_coin_info> coinInfo, std::shared_ptr<t_directory_i
 
 	//if (use_boost) SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_NORMAL);
 
-	double thread_time = (double)(end_work_time - start_work_time) / pcFreq;
-	if (use_debug)
+	if (use_debug && pcFreq != 0)
 	{
-		if (isbfs) {
-			printToConsole(7, true, false, true, false, L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (BFS)",
-				path_loc_str.c_str(), thread_time, (double)(files_size_per_thread) / thread_time / 1024 / 1024 / 4096,
-				sum_time_proc / pcFreq * 100 / thread_time);
-		}
-		else
-		{
-			if (converted) {
-				printToConsole(7, true, false, true, false, L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (POC1<>POC2)",
+		double thread_time = (double)(end_work_time - start_work_time) / pcFreq;
+		if (thread_time != 0) {
+			if (isbfs) {
+				printToConsole(7, true, false, true, false, L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (BFS)",
 					path_loc_str.c_str(), thread_time, (double)(files_size_per_thread) / thread_time / 1024 / 1024 / 4096,
 					sum_time_proc / pcFreq * 100 / thread_time);
 			}
-			else {
-				printToConsole(7, true, false, true, false, L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%%",
-					path_loc_str.c_str(), thread_time, (double)(files_size_per_thread) / thread_time / 1024 / 1024 / 4096,
-					sum_time_proc / pcFreq * 100 / thread_time);
+			else
+			{
+				if (converted) {
+					printToConsole(7, true, false, true, false, L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%% (POC1<>POC2)",
+						path_loc_str.c_str(), thread_time, (double)(files_size_per_thread) / thread_time / 1024 / 1024 / 4096,
+						sum_time_proc / pcFreq * 100 / thread_time);
+				}
+				else {
+					printToConsole(7, true, false, true, false, L"Thread \"%S\" @ %.1f sec (%.1f MB/s) CPU %.2f%%",
+						path_loc_str.c_str(), thread_time, (double)(files_size_per_thread) / thread_time / 1024 / 1024 / 4096,
+						sum_time_proc / pcFreq * 100 / thread_time);
+				}
 			}
 		}
 	}
