@@ -26,7 +26,7 @@ const wchar_t sepChar = 0x00B7;
 extern bool lockWindowSize = true;
 double checkForUpdateInterval = 1;
 bool ignoreSuspectedFastBlocks = true;
-bool exit_flag = false;
+volatile bool exit_flag = false;
 
 HANDLE hHeap;
 

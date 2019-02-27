@@ -81,7 +81,7 @@ void checkForUpdate() {
 			lastChecked = std::time(nullptr);
 		}
 		std::this_thread::yield();
-		std::this_thread::sleep_for(std::chrono::milliseconds(300000));
+		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
 
 }

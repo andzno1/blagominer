@@ -2,8 +2,19 @@
 #include "stdafx.h"
 #include "blagominer.h"
 
+bool exitHandled = false;
+
 // Initialize static member data
 std::map<size_t, std::thread> worker;	        // worker threads
+
+std::thread proxyBurst;
+std::thread proxyBhd;
+std::thread updateChecker;
+std::thread proxyOnlyBurst;
+std::thread proxyOnlyBhd;
+std::thread updaterBurst;
+std::thread updaterBhd;
+
 const InstructionSet::InstructionSet_Internal InstructionSet::CPU_Rep;
 
 std::shared_ptr<t_coin_info> burst = std::make_shared<t_coin_info>();
@@ -980,9 +991,82 @@ static void resizeConsole(SHORT newColumns, SHORT newRows) {
 	return;
 }
 
+void closeMiner() {
+	if (exitHandled) {
+		return;
+	}
+	Log(L"Closing miner.");
+	exitHandled = true;
+	EnterCriticalSection(&burst->locks->sessionsLock);
+	for (auto it = burst->network->sessions.begin(); it != burst->network->sessions.end(); ++it) {
+		closesocket((*it)->Socket);
+	}
+	burst->network->sessions.clear();
+	LeaveCriticalSection(&burst->locks->sessionsLock);
+
+	EnterCriticalSection(&bhd->locks->sessionsLock);
+	for (auto it = bhd->network->sessions.begin(); it != bhd->network->sessions.end(); ++it) {
+		closesocket((*it)->Socket);
+	}
+	bhd->network->sessions.clear();
+	LeaveCriticalSection(&bhd->locks->sessionsLock);
+	if (pass != nullptr) HeapFree(hHeap, 0, pass);
+
+	if (updaterBurst.joinable()) updaterBurst.join();
+	if (updaterBhd.joinable()) updaterBhd.join();
+	if (proxyBurst.joinable()) proxyBurst.join();
+	if (proxyBhd.joinable()) proxyBhd.join();
+	if (proxyOnlyBurst.joinable()) proxyOnlyBurst.join();
+	if (proxyOnlyBhd.joinable()) proxyOnlyBhd.join();
+	if (updateChecker.joinable()) updateChecker.join();
+	if (burst->network->sender.joinable()) burst->network->sender.join();
+	if (bhd->network->sender.joinable()) bhd->network->sender.join();
+
+	if (burst->mining->enable || burst->network->enable_proxy) {
+		DeleteCriticalSection(&burst->locks->sessionsLock);
+		DeleteCriticalSection(&burst->locks->sharesLock);
+		DeleteCriticalSection(&burst->locks->bestsLock);
+	}
+	if (bhd->mining->enable || bhd->network->enable_proxy) {
+		DeleteCriticalSection(&bhd->locks->sessionsLock);
+		DeleteCriticalSection(&bhd->locks->sharesLock);
+		DeleteCriticalSection(&bhd->locks->bestsLock);
+	}
+	if (p_minerPath != nullptr) {
+		HeapFree(hHeap, 0, p_minerPath);
+	}
+
+	WSACleanup();
+	Log(L"exit");
+	Log_end();
+	bm_end();
+
+	worker.~map();
+	worker_progress.~map();
+	paths_dir.~vector();
+	burst->mining->bests.~vector();
+	burst->mining->shares.~vector();
+	burst->network->sessions.~vector();
+	bhd->mining->bests.~vector();
+	bhd->mining->shares.~vector();
+	bhd->network->sessions.~vector();
+}
+
+BOOL WINAPI OnConsoleClose(DWORD dwCtrlType)
+{
+	if (dwCtrlType == CTRL_CLOSE_EVENT) {
+		exit_flag = true;
+		closeMiner();
+		return TRUE;
+	}
+	return FALSE;
+}
+
+
 int main(int argc, char **argv) {
 	//init
-
+	SetConsoleCtrlHandler(OnConsoleClose, TRUE);
+	atexit(closeMiner);
 	hHeap = GetProcessHeap();
 	HeapSetInformation(NULL, HeapEnableTerminationOnCorruption, NULL, 0);
 
@@ -992,11 +1076,6 @@ int main(int argc, char **argv) {
 	QueryPerformanceFrequency(&li);
 	double pcFreq = double(li.QuadPart);
 
-	std::thread proxyBurst;
-	std::thread proxyBhd;
-	std::thread updateChecker;
-	std::thread proxyOnlyBurst;
-	std::thread proxyOnlyBhd;
 	std::vector<std::thread> generator;
 
 	unsigned long long bytesRead = 0;
@@ -1218,13 +1297,11 @@ int main(int argc, char **argv) {
 	}
 
 	// Run updater;
-	std::thread updaterBurst;
 	if (burst->mining->enable || burst->network->enable_proxy)
 	{
 		updaterBurst = std::thread(updater_i, burst);
 		Log(L"BURST updater thread started");
 	}
-	std::thread updaterBhd;
 	if (bhd->mining->enable || bhd->network->enable_proxy)
 	{
 		updaterBhd = std::thread(updater_i, bhd);
@@ -1420,6 +1497,11 @@ int main(int argc, char **argv) {
 				}
 				bytesRead = 0;
 
+				if (exit_flag) {
+					Log(L"Exitting miner.");
+					break;
+				}
+
 				int threads_running = 0;
 				for (auto it = worker_progress.begin(); it != worker_progress.end(); ++it)
 				{
@@ -1567,58 +1649,16 @@ int main(int argc, char **argv) {
 					insertIntoQueue(queue, miningCoin, miningCoin);
 				}
 			}
-			else {
+			else if (!exit_flag) {
 				Log(L"New block, no mining has been interrupted.");
 			}
 
 			std::thread{ Csv_Submitted,  miningCoin->coin, miningCoin->mining->currentHeight, miningCoin->mining->currentBaseTarget, 4398046511104 / 240 / miningCoin->mining->currentBaseTarget, thread_time, miningCoin->mining->state == DONE, miningCoin->mining->deadline }.detach();
 
 			//prepare for next round if not yet done
-			if (miningCoin->mining->state != DONE) memcpy(&local_32, &global_32, sizeof(global_32));
+			if (!exit_flag && miningCoin->mining->state != DONE) memcpy(&local_32, &global_32, sizeof(global_32));
 		}
 	}
-		
-
-	
-
-	if (pass != nullptr) HeapFree(hHeap, 0, pass);
-	if (updaterBurst.joinable()) updaterBurst.join();
-	if (updaterBhd.joinable()) updaterBhd.join();
-	Log(L"Updater stopped");
-	if (proxyBurst.joinable()) proxyBurst.join();
-	if (proxyBhd.joinable()) proxyBhd.join();
-	if (proxyOnlyBurst.joinable()) proxyOnlyBurst.join();
-	if (proxyOnlyBhd.joinable()) proxyOnlyBhd.join();
-	if (updateChecker.joinable()) updateChecker.join();
-	if (burst->network->sender.joinable()) burst->network->sender.join();
-	if (bhd->network->sender.joinable()) bhd->network->sender.join();
-	
-	worker.~map();
-	worker_progress.~map();
-	paths_dir.~vector();
-	burst->mining->bests.~vector();
-	burst->mining->shares.~vector();
-	burst->network->sessions.~vector();
-	bhd->mining->bests.~vector();
-	bhd->mining->shares.~vector();
-	bhd->network->sessions.~vector();
-	if (burst->mining->enable || burst->network->enable_proxy) {
-		DeleteCriticalSection(&burst->locks->sessionsLock);
-		DeleteCriticalSection(&burst->locks->sharesLock);
-		DeleteCriticalSection(&burst->locks->bestsLock);
-	}
-	if (bhd->mining->enable || bhd->network->enable_proxy) {
-		DeleteCriticalSection(&bhd->locks->sessionsLock);
-		DeleteCriticalSection(&bhd->locks->sharesLock);
-		DeleteCriticalSection(&bhd->locks->bestsLock);
-	}
-	if (p_minerPath != nullptr) {
-		HeapFree(hHeap, 0, p_minerPath);
-	}
-
-	WSACleanup();
-	Log(L"exit");
-	Log_end();
-	bm_end();
+	closeMiner();
 	return 0;
 }

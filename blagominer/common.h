@@ -18,7 +18,7 @@ extern const wchar_t sepChar;
 extern bool lockWindowSize;
 extern double checkForUpdateInterval;
 extern bool ignoreSuspectedFastBlocks;
-extern bool exit_flag;							// true if miner is to be exited
+extern volatile bool exit_flag;							// true if miner is to be exited
 
 extern HANDLE hHeap;							//heap
 

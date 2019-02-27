@@ -691,7 +691,7 @@ void updater_i(std::shared_ptr<t_coin_info> coinInfo)
 		Log(L"Updater %s: GMI: ERROR in UpdaterAddr", updaterName);
 		exit(2);
 	}
-	for (; !exit_flag;) {
+	while (!exit_flag) {
 		if (pollLocal(coinInfo) && coinInfo->mining->enable && !coinInfo->mining->newMiningInfoReceived) {
 			setnewMiningInfoReceived(coinInfo, true);
 		}
