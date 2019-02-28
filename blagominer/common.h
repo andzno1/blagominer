@@ -38,14 +38,18 @@ extern wchar_t *coinNames[];
 
 struct t_shares {
 	t_shares(std::string file_name, unsigned long long account_id, unsigned long long best,
-		unsigned long long nonce, unsigned long long deadline) :
-		file_name(file_name), account_id(account_id), best(best), nonce(nonce), deadline(deadline) {}
+		unsigned long long nonce, unsigned long long deadline, unsigned long long height,
+		unsigned long long baseTarget) :
+		file_name(file_name), account_id(account_id), best(best), nonce(nonce), deadline(deadline),
+		height(height), baseTarget(baseTarget) {}
 	std::string file_name;
 	unsigned long long account_id;// = 0;
 	// This is the best Target, not Deadline.
 	unsigned long long best;// = 0;
 	unsigned long long nonce;// = 0;
 	unsigned long long deadline;
+	unsigned long long height;
+	unsigned long long baseTarget;
 };
 
 struct t_best {

@@ -120,7 +120,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 	}
 	Log(L"Proxy %s thread started", proxyName);
 
-	for (; !exit_flag;)
+	while (!exit_flag)
 	{
 		struct sockaddr_in client_socket_address;
 		int iAddrSize = sizeof(struct sockaddr_in);
@@ -192,7 +192,7 @@ void proxy_i(std::shared_ptr<t_coin_info> coinInfo)
 							}
 							EnterCriticalSection(&coinInfo->locks->sharesLock);
 							coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
-								client_address_str, get_accountId, get_deadline, get_nonce, get_deadline));
+								client_address_str, get_accountId, get_deadline, get_nonce, get_deadline, coinInfo->mining->currentHeight, coinInfo->mining->currentBaseTarget));
 							LeaveCriticalSection(&coinInfo->locks->sharesLock);
 
 							printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Proxy ] DL found     : %s {%S}", get_accountId, proxyName,
@@ -333,15 +333,26 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 		//Гасим шару если она больше текущего targetDeadline, актуально для режима Proxy
 		if (share->deadline > coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline)
 		{
-			Log(L"[%20llu|%-10s|Sender] DL discarded : %s > %s",
-				share->account_id, senderName, toWStr(share->deadline, 11).c_str(),
-				toWStr(coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline, 11).c_str());
+			Log(L"[%20llu|%-10s|Sender] DL discarded : %llu > %llu",
+				share->account_id, senderName, share->deadline,
+				coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline);
 			if (use_debug)
 			{
 				printToConsole(2, true, false, true, false, L"[%20llu|%-10s|Sender] DL discarded : %s > %s",
 					share->account_id, senderName, toWStr(share->deadline, 11).c_str(),
 					toWStr(coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline, 11).c_str());
 			}
+			EnterCriticalSection(&coinInfo->locks->sharesLock);
+			if (!coinInfo->mining->shares.empty()) {
+				coinInfo->mining->shares.erase(coinInfo->mining->shares.begin());
+			}
+			LeaveCriticalSection(&coinInfo->locks->sharesLock);
+			continue;
+		}
+
+		if (share->height != coinInfo->mining->currentHeight) {
+			Log(L"Sender %s: DL %llu from block %llu discarded. New block %llu",
+				senderName, share->deadline, share->height, coinInfo->mining->currentHeight);
 			EnterCriticalSection(&coinInfo->locks->sharesLock);
 			if (!coinInfo->mining->shares.empty()) {
 				coinInfo->mining->shares.erase(coinInfo->mining->shares.begin());
@@ -462,6 +473,17 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 			continue;
 		}
 
+		if (session->body.height != coinInfo->mining->currentHeight) {
+			Log(L"Confirmer %s: DL %llu from block %llu discarded. New block %llu",
+				confirmerName, session->deadline, session->body.height, coinInfo->mining->currentHeight);
+			EnterCriticalSection(&coinInfo->locks->sessionsLock);
+			if (!coinInfo->network->sessions.empty()) {
+				coinInfo->network->sessions.erase(coinInfo->network->sessions.begin());
+			}
+			LeaveCriticalSection(&coinInfo->locks->sessionsLock);
+			continue;
+		}
+
 		const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
 		
 		ConnectSocket = session->Socket;
@@ -496,7 +518,9 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 					session->body.account_id, 
 					session->body.best, 
 					session->body.nonce,
-					session->body.deadline));
+					session->body.deadline,
+					session->body.height,
+					session->body.baseTarget));
 				LeaveCriticalSection(&coinInfo->locks->sharesLock);
 			}
 		}
@@ -514,7 +538,9 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 					session->body.account_id, 
 					session->body.best, 
 					session->body.nonce,
-					session->body.deadline));
+					session->body.deadline,
+					session->body.height,
+					session->body.baseTarget));
 				LeaveCriticalSection(&coinInfo->locks->sharesLock);
 			}
 			else //получили ответ пула
@@ -584,9 +610,9 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 							if (ndeadline != session->deadline)
 							{
 								Log(L"Confirmer %s: Calculated and confirmed deadlines don't match. Fast block or corrupted file? Response: %S", confirmerName, find);
-								std::thread{ Csv_Fail, coinInfo->coin, coinInfo->mining->currentHeight, session->body.file_name, coinInfo->mining->currentBaseTarget,
-									4398046511104 / 240 / coinInfo->mining->currentBaseTarget, session->body.nonce, session->deadline, ndeadline, find }.detach();
-								std::thread{ increaseConflictingDeadline, coinInfo, coinInfo->mining->currentHeight, session->body.file_name }.detach();
+								std::thread{ Csv_Fail, coinInfo->coin, session->body.height, session->body.file_name, session->body.baseTarget,
+									4398046511104 / 240 / session->body.baseTarget, session->body.nonce, session->deadline, ndeadline, find }.detach();
+								std::thread{ increaseConflictingDeadline, coinInfo, session->body.height, session->body.file_name }.detach();
 								printToConsole(6, false, false, true, false,
 									L"----Fast block or corrupted file?----\n%s sent deadline:\t%llu\nServer's deadline:\t%llu \n----",
 									confirmerName, session->deadline, ndeadline);
@@ -595,9 +621,9 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 						else {
 							if (answ.HasMember("errorDescription")) {
 								Log(L"Confirmer %s: Deadline %llu sent with error: %S", confirmerName, session->deadline, find);
-								std::thread{ Csv_Fail, coinInfo->coin, coinInfo->mining->currentHeight, session->body.file_name, coinInfo->mining->currentBaseTarget,
-										4398046511104 / 240 / coinInfo->mining->currentBaseTarget, session->body.nonce, session->deadline, 0, find }.detach();
-								std::thread{ increaseConflictingDeadline, coinInfo, coinInfo->mining->currentHeight, session->body.file_name }.detach();
+								std::thread{ Csv_Fail, coinInfo->coin, session->body.height, session->body.file_name, session->body.baseTarget,
+										4398046511104 / 240 / session->body.baseTarget, session->body.nonce, session->deadline, 0, find }.detach();
+								std::thread{ increaseConflictingDeadline, coinInfo, session->body.height, session->body.file_name }.detach();
 								if (session->deadline <= targetDeadlineInfo) {
 									Log(L"Confirmer %s: Deadline should have been accepted (%llu <= %llu). Fast block or corrupted file?", confirmerName, session->deadline, targetDeadlineInfo);
 									printToConsole(6, false, false, true, false,
@@ -657,7 +683,9 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 								session->body.account_id,
 								session->body.best,
 								session->body.nonce,
-								session->body.deadline));
+								session->body.deadline,
+								session->body.height,
+								session->body.baseTarget));
 							LeaveCriticalSection(&coinInfo->locks->sharesLock);
 						}
 						else //получили непонятно что
