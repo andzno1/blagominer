@@ -1112,6 +1112,8 @@ int main(int argc, char **argv) {
 	init_mining_info();
 	init_network_info();
 
+	init_logging_config();
+
 	//load config
 	load_config(conf_filename);
 	if (conf_filename != nullptr) {

@@ -1,9 +1,9 @@
 #include "loggerCsv.h"
 
-const std::string csvFailBurst;
-const std::string csvFailBhd;
-const std::string csvSubmittedBurst;
-const std::string csvSubmittedBhd;
+std::string csvFailBurst;
+std::string csvFailBhd;
+std::string csvSubmittedBurst;
+std::string csvSubmittedBhd;
 
 std::mutex mCsvFailBurst;
 std::mutex mCsvFailBhd;
@@ -27,10 +27,10 @@ void Csv_Init()
 	std::string burstName(burstNameW.begin(), burstNameW.end());
 	std::string bhdName(bhdNameW.begin(), bhdNameW.end());
 
-	const std::string csvFailBurst = "fail-" + burstName + ".csv";
-	const std::string csvFailBhd = "fail-" + bhdName + ".csv";
-	const std::string csvSubmittedBurst = "stat-" + burstName + ".csv";
-	const std::string csvSubmittedBhd = "stat-" + bhdName + ".csv";
+	csvFailBurst = "fail-" + burstName + ".csv";
+	csvFailBhd = "fail-" + bhdName + ".csv";
+	csvSubmittedBurst = "stat-" + burstName + ".csv";
+	csvSubmittedBhd = "stat-" + bhdName + ".csv";
 
 	Log(L"Initializing csv logging.");
 	const char* headersFail = "Timestamp epoch;Timestamp local;Height;File;baseTarget;Network difficulty;Nonce;Deadline sent;Deadline confirmed;Response\n";
