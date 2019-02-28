@@ -4,6 +4,8 @@ std::mutex mFileStats;
 
 std::map<std::string, t_file_stats> fileStats = std::map<std::string, t_file_stats>();
 bool showCorruptedPlotFiles = true;
+
+bool statsChanged = false;
 int oldLineCount = -1;
 const std::string header = "File name                                             +DLs      -DLs       I/O";
 
@@ -12,6 +14,7 @@ void increaseMatchingDeadline(std::string file) {
 		return;
 	}
 	std::lock_guard<std::mutex> lockGuard(mFileStats);
+	statsChanged = true;
 	++fileStats[file].matchingDeadlines;
 }
 
@@ -36,6 +39,7 @@ void increaseConflictingDeadline(std::shared_ptr<t_coin_info> coin, unsigned lon
 	}
 	if (log) {
 		std::lock_guard<std::mutex> lockGuard(mFileStats);
+		statsChanged = true;
 		++fileStats[file].conflictingDeadlines;
 	}
 }
@@ -45,6 +49,7 @@ void increaseReadError(std::string file) {
 		return;
 	}
 	std::lock_guard<std::mutex> lockGuard(mFileStats);
+	statsChanged = true;
 	++fileStats[file].readErrors;
 }
 
@@ -53,16 +58,17 @@ void resetFileStats() {
 		return;
 	}
 	std::lock_guard<std::mutex> lockGuard(mFileStats);
+	statsChanged = true;
 	fileStats.clear();
 }
 
 void printFileStats() {
-	if (!showCorruptedPlotFiles) {
+	if (!showCorruptedPlotFiles || !statsChanged) {
 		return;
 	}
 	std::lock_guard<std::mutex> lockGuardFileStats(mFileStats);
 	std::lock_guard<std::mutex> lockGuardConsoleWindow(mConsoleWindow);
-	
+	statsChanged = false;
 	int lineCount = 0;
 	for (auto& element : fileStats) {
 		if (element.second.conflictingDeadlines > 0 || element.second.readErrors > 0) {
@@ -116,20 +122,8 @@ void printFileStats() {
 	}
 	bm_wattroffC(14);
 	
-	int rowsCorrupted = getRowsCorrupted();
-	if (rowsCorrupted < lineCount + 2) {
-		bm_wmoveC(rowsCorrupted - 3, 1);
-		clearCorruptedLine();
-		bm_wprintwC("Not enough space to display all data.");
-		bm_wmoveC(rowsCorrupted - 2, 1);
-		clearCorruptedLine();
-		bm_wprintwC("Press 'f' to clear data.");
-	}
-	else {
-		
-		bm_wmoveC(lineCount, 1);
-		bm_wprintwC("Press 'f' to clear data.");
-	}   
-	boxCorrupted();
-	refreshCorrupted();
+	bm_wmoveC(lineCount, 1);
+	bm_wprintwC("Press 'f' to clear data.");
+
+	cropCorruptedIfNeeded(lineCount);
 }

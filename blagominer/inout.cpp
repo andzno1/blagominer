@@ -209,12 +209,13 @@ void showNewVersion(std::string version) {
 		winMainRow -= new_version_lines;
 
 		if (currentlyDisplayingCorruptedPlotFiles()) {
-			int totalSpaceNeeded = new_version_lines + getRowsCorrupted() + progress_lines + minimumWinMainHeight + 3;
+			int totalSpaceNeeded = new_version_lines + getRowsCorrupted() + progress_lines + minimumWinMainHeight;
 			if (totalSpaceNeeded > LINES) {
 				Log(L"Terminal too small to output everything (%i).", totalSpaceNeeded);
-				int corruptedLineCount = LINES - new_version_lines - progress_lines - minimumWinMainHeight - 3 + 2;
+				int corruptedLineCount = LINES - new_version_lines - progress_lines - minimumWinMainHeight;
 				Log(L"Setting corrupted linecount to %i", corruptedLineCount);
 				resizeCorrupted(corruptedLineCount);
+				cropCorruptedIfNeeded(corruptedLineCount+1);
 			}
 			else {
 				wresize(win_main, winMainRow, COLS);
@@ -237,13 +238,26 @@ void showNewVersion(std::string version) {
 	waddstr(win_new_version, version.c_str());
 	wattroff(win_new_version, COLOR_PAIR(14));
 
-	wrefresh(win_new_version);
-	refreshCorrupted();
 	wrefresh(win_main);
+	refreshCorrupted();
+	wrefresh(win_new_version);
+}
+
+void cropCorruptedIfNeeded(int lineCount) {
+	int rowsCorrupted = getRowsCorrupted();
+	if (rowsCorrupted < lineCount) {
+		bm_wmoveC(rowsCorrupted - 3, 1);
+		clearCorruptedLine();
+		bm_wprintwC("Not enough space to display all data.");
+		bm_wmoveC(rowsCorrupted - 2, 1);
+		clearCorruptedLine();
+		bm_wprintwC("Press 'f' to clear data.");
+	}
+	boxCorrupted();
+	refreshCorrupted();
 }
 
 void resizeCorrupted(int lineCount) {
-	
 	int winVerRow = 0;
 	if (currentlyDisplayingNewVersion()) {
 		winVerRow = getmaxy(win_new_version);

@@ -114,6 +114,7 @@ int bm_wprintwC(const char * output, ...);
 void refreshCorrupted();
 void showNewVersion(std::string version);
 
+void cropCorruptedIfNeeded(int lineCount);
 void resizeCorrupted(int lineCount);
 int getRowsCorrupted();
 
