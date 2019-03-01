@@ -997,6 +997,26 @@ void closeMiner() {
 	}
 	Log(L"Closing miner.");
 	exitHandled = true;
+	
+	Log(L"Waiting for worker threads to shut down.");
+	for (auto it = worker.begin(); it != worker.end(); ++it)
+	{
+		if (it->second.joinable()) {
+			it->second.join();
+		}
+	}
+	Log(L"All worker threads shut down.");
+	
+	if (updaterBurst.joinable()) updaterBurst.join();
+	if (updaterBhd.joinable()) updaterBhd.join();
+	if (proxyBurst.joinable()) proxyBurst.join();
+	if (proxyBhd.joinable()) proxyBhd.join();
+	if (proxyOnlyBurst.joinable()) proxyOnlyBurst.join();
+	if (proxyOnlyBhd.joinable()) proxyOnlyBhd.join();
+	if (updateChecker.joinable()) updateChecker.join();
+	if (burst->network->sender.joinable()) burst->network->sender.join();
+	if (bhd->network->sender.joinable()) bhd->network->sender.join();
+	
 	EnterCriticalSection(&burst->locks->sessionsLock);
 	for (auto it = burst->network->sessions.begin(); it != burst->network->sessions.end(); ++it) {
 		closesocket((*it)->Socket);
@@ -1011,17 +1031,7 @@ void closeMiner() {
 	bhd->network->sessions.clear();
 	LeaveCriticalSection(&bhd->locks->sessionsLock);
 	if (pass != nullptr) HeapFree(hHeap, 0, pass);
-
-	if (updaterBurst.joinable()) updaterBurst.join();
-	if (updaterBhd.joinable()) updaterBhd.join();
-	if (proxyBurst.joinable()) proxyBurst.join();
-	if (proxyBhd.joinable()) proxyBhd.join();
-	if (proxyOnlyBurst.joinable()) proxyOnlyBurst.join();
-	if (proxyOnlyBhd.joinable()) proxyOnlyBhd.join();
-	if (updateChecker.joinable()) updateChecker.join();
-	if (burst->network->sender.joinable()) burst->network->sender.join();
-	if (bhd->network->sender.joinable()) bhd->network->sender.join();
-
+		
 	if (burst->mining->enable || burst->network->enable_proxy) {
 		DeleteCriticalSection(&burst->locks->sessionsLock);
 		DeleteCriticalSection(&burst->locks->sharesLock);
