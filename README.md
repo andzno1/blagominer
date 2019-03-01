@@ -3,7 +3,7 @@
 | --- |
 
 ## Installation
-For a new installation extract the zip file (e.g. `BlagoMiner-v.1.190301.0.zip`) to a directory of your choice and run one of the exe files.
+For a new installation extract the zip file (e.g. `BlagoMiner-v.1.190301.0.zip`) to a directory of your choice, adapt the configuration file `miner.conf` to your needs and run one of the exe files.
 
 If you want to update your miner choose the exe file you want to use from new releases and copy it to your miner directory. Whenever you are updating check out the release's configuration file `miner.conf` for new settings you might not be aware of.
 
