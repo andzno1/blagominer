@@ -2,6 +2,13 @@
 | <img src="img/warning.png" width="36" align="left" alt="Warning"> There have been some major changes in the configuration file `miner.conf`. If coming from another Blagominer version, please make sure to download the new configuration file and change it according to your needs! |
 | --- |
 
+## Installation
+For a new installation extract the zip file (e.g. `BlagoMiner-v.1.190301.0.zip`) to a directory of your choice and run one of the exe files.
+
+If you want to update your miner choose the exe file you want to use from new releases and copy it to your miner directory. Whenever you are updating check out the release's configuration file `miner.conf` for new settings you might not be aware of.
+
+**Make sure to also copy the `pdcurses.dll` file to your miner directory.**
+
 ## Features
 This version of Blagominer adds the following features:
 
