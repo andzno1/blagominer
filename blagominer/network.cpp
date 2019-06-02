@@ -1,6 +1,8 @@
 ﻿#include "stdafx.h"
 #include "network.h"
 
+#include <curl/curl.h>
+
 std::map <u_long, unsigned long long> satellite_size; // Ñòðóêòóðà ñ îáúåìàìè ïëîòîâ ñàòåëëèòîâ
 
 void init_network_info() {
@@ -834,10 +836,128 @@ bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson
 	return failed;
 }
 
+// based on:
+// - https://curl.haxx.se/libcurl/c/https.html
+// - https://curl.haxx.se/libcurl/c/postinmemory.html
+struct MemoryStruct { char *memory; size_t size; };
+static size_t __impl__pollLocal__curl__readcallback(void *contents, size_t size, size_t nmemb, void *userp)
+{
+	size_t realsize = size * nmemb;
+	struct MemoryStruct *mem = (struct MemoryStruct *)userp;
+
+	char *ptr = !mem->memory ?
+		(char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, mem->size + realsize + 1)
+		: (char*)HeapReAlloc(hHeap, HEAP_ZERO_MEMORY, mem->memory, mem->size + realsize + 1);
+	if (!ptr) ShowMemErrorExit();
+
+	mem->memory = ptr;
+	memcpy(&(mem->memory[mem->size]), contents, realsize);
+	mem->size += realsize;
+	mem->memory[mem->size] = 0;
+
+	return realsize;
+}
+bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, std::string& rawResponse) {
+	bool failed = false;
+
+	const wchar_t* updaterName = coinNames[coinInfo->coin];
+	bool newBlock = false;
+	
+	size_t const buffer_size = 1000;
+	char *buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
+	if (buffer == nullptr) ShowMemErrorExit();
+
+	struct MemoryStruct chunk;
+	chunk.memory = 0;
+	chunk.size = 0;
+
+	CURL* curl = curl_easy_init();
+	if (!curl) {
+		failed = true;
+	}
+	else {
+		if (false) { // coinInfo->network->SKIP_PEER_VERIFICATION
+			/*
+			 * If you want to connect to a site who isn't using a certificate that is
+			 * signed by one of the certs in the CA bundle you have, you can skip the
+			 * verification of the server's certificate. This makes the connection
+			 * A LOT LESS SECURE.
+			 *
+			 * If you have a CA cert for the server stored someplace else than in the
+			 * default bundle, then the CURLOPT_CAPATH option might come handy for
+			 * you.
+			 */
+			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+		}
+
+		if (false) { // coinInfo->network->SKIP_HOSTNAME_VERIFICATION
+			/*
+			 * If the site you're connecting to uses a different host name that what
+			 * they have mentioned in their server certificate's commonName (or
+			 * subjectAltName) fields, libcurl will refuse to connect. You can skip
+			 * this check, but this will make the connection less secure.
+			 */
+			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+		}
+
+		// WHY DOES IT FAIL?!?!?!?!?!
+		int bytes = sprintf_s(buffer, buffer_size, "https://%s:%s/burst?requestType=getMiningInfo", coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str());
+		curl_easy_setopt(curl, CURLOPT_URL, buffer);
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, ""); // wee need to send a POST but body may be left empty
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, 0);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, __impl__pollLocal__curl__readcallback);
+
+		/* Perform the request, res will get the return code */
+		CURLcode res = curl_easy_perform(curl);
+
+		/* Check for errors */
+		if (res != CURLE_OK) {
+			decreaseNetworkQuality(coinInfo);
+			Log(L"*! GMI %s: get mining info failed:: %i", updaterName, curl_easy_strerror(res));
+			failed = true;
+		}
+		else {
+			increaseNetworkQuality(coinInfo);
+			if (loggingConfig.logAllGetMiningInfos) {
+				Log(L"* GMI %s: Received: %S", updaterName, Log_server(chunk.memory).c_str());
+			}
+
+			rawResponse.assign(chunk.memory, chunk.size); // TODO: not so 'raw', that's just the response BODY with no headers
+			rapidjson::Document& gmi = output;
+			if (loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(chunk.memory).HasParseError()) {
+				Log(L"*! GMI %s: error parsing JSON message from pool", updaterName);
+				failed = true;
+			}
+			else if (!loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(chunk.memory).HasParseError()) {
+				Log(L"*! GMI %s: error parsing JSON message from pool: %S", updaterName, Log_server(chunk.memory).c_str());
+				failed = true;
+			}
+		}
+
+		/* always cleanup */
+		curl_easy_cleanup(curl);
+	}
+
+	if (chunk.memory != nullptr) {
+		HeapFree(hHeap, 0, chunk.memory);
+	}
+	if (buffer != nullptr) {
+		HeapFree(hHeap, 0, buffer);
+	}
+	return failed;
+}
+
 bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 	std::string rawResponse;
 	rapidjson::Document gmi;
-	bool failed = __impl__pollLocal__sockets(coinInfo, gmi, rawResponse);
+	bool failed;
+
+	if (coinInfo->network->usehttps)
+		failed = __impl__pollLocal__curl(coinInfo, gmi, rawResponse);
+	else
+		failed = __impl__pollLocal__sockets(coinInfo, gmi, rawResponse);
+
 	if (failed) return false;
 	if (!gmi.IsObject()) return false;
 
