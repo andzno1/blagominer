@@ -768,6 +768,193 @@ bool __impl__confirm_i__sockets(char* buffer, size_t buffer_size, std::shared_pt
 	return failed;
 }
 
+bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, char*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session2>& session) {
+	bool failed = false;
+
+	const wchar_t* confirmerName = coinNames[coinInfo->coin];
+
+	size_t const buffer_size = 1000;
+	char *buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
+	if (buffer == nullptr) ShowMemErrorExit();
+
+	int iResult = 0;
+
+	EnterCriticalSection(&coinInfo->locks->sessions2Lock);
+	if (!coinInfo->network->sessions2.empty()) {
+		session = coinInfo->network->sessions2.front();
+	}
+	LeaveCriticalSection(&coinInfo->locks->sessions2Lock);
+
+	if (session == nullptr) {
+		// No more data for now
+
+		return true;
+	}
+
+	if (session->body.height != coinInfo->mining->currentHeight) {
+		Log(L"Confirmer %s: DL %llu from block %llu discarded. New block %llu",
+			confirmerName, session->deadline, session->body.height, coinInfo->mining->currentHeight);
+		EnterCriticalSection(&coinInfo->locks->sessions2Lock);
+		if (!coinInfo->network->sessions2.empty()) {
+			coinInfo->network->sessions2.erase(coinInfo->network->sessions2.begin());
+		}
+		LeaveCriticalSection(&coinInfo->locks->sessions2Lock);
+		return true;
+	}
+
+	const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
+
+	CURL* curl = session->curl;
+	curl_socket_t sockfd;
+	CURLcode res = curl_easy_getinfo(curl, CURLINFO_ACTIVESOCKET, &sockfd);
+
+	if (res == CURLE_OK) {
+		fd_set readfds;
+		FD_ZERO(&readfds);
+		FD_SET(sockfd, &readfds);
+
+		RtlSecureZeroMemory(buffer, buffer_size);
+
+		struct timeval tv;
+		tv.tv_sec = coinInfo->network->submitTimeout / 1000;
+		tv.tv_usec = (coinInfo->network->submitTimeout % 1000) * 1000;
+
+		size_t total_recvd = 0;
+		do {
+			size_t recvd = 0;
+			res = curl_easy_recv(curl, buffer + total_recvd, buffer_size - total_recvd, &recvd);
+			total_recvd += recvd;
+			if (recvd == 0)
+				break;
+			if (res == CURLE_AGAIN) {
+				int res2 = select(0, &readfds, NULL, &readfds, &tv);
+				if (res2 != 1) {
+					res = CURLE_OPERATION_TIMEDOUT;
+					break;
+				}
+				if (!FD_ISSET(sockfd, &readfds)) {
+					res = CURLE_OPERATION_TIMEDOUT;
+					break;
+				}
+			}
+		} while (res == CURLE_AGAIN);
+	}
+
+	/* Check for errors */
+	if (res != CURLE_OK) {
+		decreaseNetworkQuality(coinInfo);
+		Log(L"Confirmer %s: ! Error getting confirmation for DL: %llu  error: %S", confirmerName, session->deadline, curl_easy_strerror(res));
+		failed = true;
+
+		EnterCriticalSection(&coinInfo->locks->sessions2Lock);
+		if (!coinInfo->network->sessions2.empty()) {
+			coinInfo->network->sessions2.erase(coinInfo->network->sessions2.begin());
+		}
+		LeaveCriticalSection(&coinInfo->locks->sessions2Lock);
+		EnterCriticalSection(&coinInfo->locks->sharesLock);
+		coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
+			session->body.file_name,
+			session->body.account_id,
+			session->body.best,
+			session->body.nonce,
+			session->body.deadline,
+			session->body.height,
+			session->body.baseTarget));
+		LeaveCriticalSection(&coinInfo->locks->sharesLock);
+	}
+	else //что-то получили от сервера
+	{
+		increaseNetworkQuality(coinInfo);
+
+		//получили пустую строку, переотправляем дедлайн
+		if (buffer[0] == '\0')
+		{
+			Log(L"Confirmer %s: zero-length message for DL: %llu", confirmerName, session->deadline);
+			EnterCriticalSection(&coinInfo->locks->sharesLock);
+			coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
+				session->body.file_name,
+				session->body.account_id,
+				session->body.best,
+				session->body.nonce,
+				session->body.deadline,
+				session->body.height,
+				session->body.baseTarget));
+			LeaveCriticalSection(&coinInfo->locks->sharesLock);
+			failed = true;
+		}
+		else //получили ответ пула
+		{
+			find = strstr(buffer, "{");
+			if (find == nullptr)
+			{
+				find = strstr(buffer, "\r\n\r\n");
+				if (find != nullptr) find = find + 4;
+				else find = buffer;
+			}
+
+			unsigned long long ndeadline;
+			unsigned long long naccountId = 0;
+			unsigned long long ntargetDeadline = 0;
+
+			rapidjson::Document& answ = output;
+			if (answ.Parse<0>(find).HasParseError())
+			{
+				if (strstr(find, "Received share") != nullptr)
+				{
+					failed = false;
+					nonJsonSuccessDetected = true;
+				}
+				else //получили нераспознанный ответ
+				{
+					failed = true;
+
+					int minor_version;
+					int status = 0;
+					const char *msg;
+					size_t msg_len;
+					struct phr_header headers[12];
+					size_t num_headers = sizeof(headers) / sizeof(headers[0]);
+					phr_parse_response(buffer, strlen(buffer), &minor_version, &status, &msg, &msg_len, headers, &num_headers, 0);
+
+					if (status != 0)
+					{
+						std::string error_str(msg, msg_len);
+						printToConsole(6, true, false, true, false, L"%s: Server error: %d %S", confirmerName, status, error_str.c_str());
+						Log(L"Confirmer %s: server error for DL: %llu", confirmerName, session->deadline);
+						EnterCriticalSection(&coinInfo->locks->sharesLock);
+						coinInfo->mining->shares.push_back(std::make_shared<t_shares>(
+							session->body.file_name,
+							session->body.account_id,
+							session->body.best,
+							session->body.nonce,
+							session->body.deadline,
+							session->body.height,
+							session->body.baseTarget));
+						LeaveCriticalSection(&coinInfo->locks->sharesLock);
+					}
+					else //получили непонятно что
+					{
+						printToConsole(7, true, false, true, false, L"%s: %S", confirmerName, buffer);
+					}
+				}
+			}
+			else
+			{
+				failed = false;
+				nonJsonSuccessDetected = false;
+			}
+		}
+		curl_easy_cleanup(curl);
+		Log(L"Confirmer %s: Close socket.", confirmerName);
+		EnterCriticalSection(&coinInfo->locks->sessions2Lock);
+		if (!coinInfo->network->sessions2.empty()) {
+			coinInfo->network->sessions2.erase(coinInfo->network->sessions2.begin());
+		}
+		LeaveCriticalSection(&coinInfo->locks->sessions2Lock);
+	}
+	return failed;
+}
+
 void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 	const wchar_t* confirmerName = coinNames[coinInfo->coin];
 	Log(L"Confirmer %s: started thread", confirmerName);
@@ -781,6 +968,7 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 	while (!exit_flag) {
 
 		std::shared_ptr<t_session> session;
+		std::shared_ptr<t_session2> session2;
 
 		const unsigned long long targetDeadlineInfo = getTargetDeadlineInfo(coinInfo);
 		
@@ -791,7 +979,24 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 		char* find;
 		bool nonJsonSuccessDetected;
 		rapidjson::Document answ;
-		bool failedOrNoData = __impl__confirm_i__sockets(buffer, buffer_size, coinInfo, answ, find, nonJsonSuccessDetected, session);
+		bool failedOrNoData;
+
+		if (coinInfo->network->usehttps)
+			failedOrNoData = __impl__confirm_i__curl(coinInfo, answ, find, nonJsonSuccessDetected, session2);
+		else
+			failedOrNoData = __impl__confirm_i__sockets(buffer, buffer_size, coinInfo, answ, find, nonJsonSuccessDetected, session);
+
+		t_session sessionX_(NULL, -1, t_shares("", 0, 0, 0, 0, 0, 0));
+		t_session* sessionX = &sessionX_;
+		if (!failedOrNoData)
+			if (coinInfo->network->usehttps) {
+				sessionX_.body = session2->body;
+				sessionX_.deadline = session2->deadline;
+			}
+			else {
+				sessionX_.body = session->body;
+				sessionX_.deadline = session->deadline;
+			}
 
 		// burst.ninja        {"requestProcessingTime":0,"result":"success","block":216280,"deadline":304917,"deadlineString":"3 days, 12 hours, 41 mins, 57 secs","targetDeadline":304917}
 		// pool.burst-team.us {"requestProcessingTime":0,"result":"success","block":227289,"deadline":867302,"deadlineString":"10 days, 55 mins, 2 secs","targetDeadline":867302}
@@ -838,33 +1043,33 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 					}
 					else {
 						printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s %sd %02u:%02u:%02u",
-							session->body.account_id, confirmerName, toWStr(ndeadline, 11).c_str(), toWStr(days, 7).c_str(), hours, min, sec);
-						Log(L"[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", session->body.account_id, confirmerName, ndeadline, days, hours, min, sec);
+							sessionX->body.account_id, confirmerName, toWStr(ndeadline, 11).c_str(), toWStr(days, 7).c_str(), hours, min, sec);
+						Log(L"[%20llu] %s confirmed DL: %10llu %5llud %02u:%02u:%02u", sessionX->body.account_id, confirmerName, ndeadline, days, hours, min, sec);
 					}
 					if (ndeadline < coinInfo->mining->deadline || coinInfo->mining->deadline == 0)  coinInfo->mining->deadline = ndeadline;
 
-					if (ndeadline != session->deadline)
+					if (ndeadline != sessionX->deadline)
 					{
 						Log(L"Confirmer %s: Calculated and confirmed deadlines don't match. Fast block or corrupted file? Response: %S", confirmerName, find);
-						std::thread{ Csv_Fail, coinInfo->coin, session->body.height, session->body.file_name, session->body.baseTarget,
-							4398046511104 / 240 / session->body.baseTarget, session->body.nonce, session->deadline, ndeadline, find }.detach();
-						std::thread{ increaseConflictingDeadline, coinInfo, session->body.height, session->body.file_name }.detach();
+						std::thread{ Csv_Fail, coinInfo->coin, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
+							4398046511104 / 240 / sessionX->body.baseTarget, sessionX->body.nonce, sessionX->deadline, ndeadline, find }.detach();
+						std::thread{ increaseConflictingDeadline, coinInfo, sessionX->body.height, sessionX->body.file_name }.detach();
 						printToConsole(6, false, false, true, false,
 							L"----Fast block or corrupted file?----\n%s sent deadline:\t%llu\nServer's deadline:\t%llu \n----",
-							confirmerName, session->deadline, ndeadline);
+							confirmerName, sessionX->deadline, ndeadline);
 					}
 				}
 				else {
 					if (answ.HasMember("errorDescription")) {
-						Log(L"Confirmer %s: Deadline %llu sent with error: %S", confirmerName, session->deadline, find);
-						std::thread{ Csv_Fail, coinInfo->coin, session->body.height, session->body.file_name, session->body.baseTarget,
-								4398046511104 / 240 / session->body.baseTarget, session->body.nonce, session->deadline, 0, find }.detach();
-						std::thread{ increaseConflictingDeadline, coinInfo, session->body.height, session->body.file_name }.detach();
-						if (session->deadline <= targetDeadlineInfo) {
-							Log(L"Confirmer %s: Deadline should have been accepted (%llu <= %llu). Fast block or corrupted file?", confirmerName, session->deadline, targetDeadlineInfo);
+						Log(L"Confirmer %s: Deadline %llu sent with error: %S", confirmerName, sessionX->deadline, find);
+						std::thread{ Csv_Fail, coinInfo->coin, sessionX->body.height, sessionX->body.file_name, sessionX->body.baseTarget,
+								4398046511104 / 240 / sessionX->body.baseTarget, sessionX->body.nonce, sessionX->deadline, 0, find }.detach();
+						std::thread{ increaseConflictingDeadline, coinInfo, sessionX->body.height, sessionX->body.file_name }.detach();
+						if (sessionX->deadline <= targetDeadlineInfo) {
+							Log(L"Confirmer %s: Deadline should have been accepted (%llu <= %llu). Fast block or corrupted file?", confirmerName, sessionX->deadline, targetDeadlineInfo);
 							printToConsole(6, false, false, true, false,
 								L"----Fast block or corrupted file?----\n%s sent deadline:\t%llu\nTarget deadline:\t%llu \n----",
-								confirmerName, session->deadline, targetDeadlineInfo);
+								confirmerName, sessionX->deadline, targetDeadlineInfo);
 						}
 						if (answ["errorCode"].IsInt()) {
 							printToConsole(15, true, false, true, false, L"[ERROR %i] %s: %S", answ["errorCode"].GetInt(), confirmerName, answ["errorDescription"].GetString());
@@ -890,11 +1095,11 @@ void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 		}
 		else if (!failedOrNoData && nonJsonSuccessDetected)
 		{
-				coinInfo->mining->deadline = coinInfo->mining->bests[Get_index_acc(session->body.account_id, coinInfo, targetDeadlineInfo)].DL; //может лучше iter->deadline ?
+				coinInfo->mining->deadline = coinInfo->mining->bests[Get_index_acc(sessionX->body.account_id, coinInfo, targetDeadlineInfo)].DL; //может лучше iter->deadline ?
 																			// if(deadline > iter->deadline) deadline = iter->deadline;
-				std::thread{ increaseMatchingDeadline, session->body.file_name }.detach();
+				std::thread{ increaseMatchingDeadline, sessionX->body.file_name }.detach();
 				printToConsole(10, true, false, true, false, L"[%20llu|%-10s|Sender] DL confirmed : %s",
-					session->body.account_id, confirmerName, toWStr(session->deadline, 11).c_str());
+					sessionX->body.account_id, confirmerName, toWStr(sessionX->deadline, 11).c_str());
 		}
 
 		std::this_thread::yield();
