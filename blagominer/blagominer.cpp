@@ -294,9 +294,8 @@ int load_config(char const *const filename)
 								Log(L"Ignoring 'ExtraHeader/%S': not a string value", item->name.GetString());
 								continue;
 							}
-							burst->network->sendextraheader += "&";
 							burst->network->sendextraheader += item->name.GetString();
-							burst->network->sendextraheader += "=";
+							burst->network->sendextraheader += ": ";
 							burst->network->sendextraheader += item->value.GetString();
 							burst->network->sendextraheader += "\r\n";
 							Log(L"ExtraHeader/%S = %S", item->name.GetString(), item->value.GetString());
@@ -429,9 +428,8 @@ int load_config(char const *const filename)
 								Log(L"Ignoring 'ExtraHeader/%S': not a string value", item->name.GetString());
 								continue;
 							}
-							bhd->network->sendextraheader += "&";
 							bhd->network->sendextraheader += item->name.GetString();
-							bhd->network->sendextraheader += "=";
+							bhd->network->sendextraheader += ": ";
 							bhd->network->sendextraheader += item->value.GetString();
 							bhd->network->sendextraheader += "\r\n";
 							Log(L"ExtraHeader/%S = %S", item->name.GetString(), item->value.GetString());
