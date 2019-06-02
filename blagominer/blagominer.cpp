@@ -254,6 +254,46 @@ int load_config(char const *const filename)
 
 				if (settingsBurst.HasMember("POC2StartBlock") && (settingsBurst["POC2StartBlock"].IsUint64())) burst->mining->POC2StartBlock = settingsBurst["POC2StartBlock"].GetUint64();
 				Log(L"POC2StartBlock: %llu", burst->mining->POC2StartBlock);
+
+				// TODO: refactor as 's = read-extras(s nodename)'
+				burst->network->sendextraquery = "";
+				if (settingsBurst.HasMember("ExtraQuery"))
+					if (!settingsBurst["ExtraQuery"].IsObject())
+						Log(L"Ignoring 'ExtraQuery': not a json-object");
+					else {
+						auto const& tmp = settingsBurst["ExtraQuery"].GetObjectW();
+						for (auto item = tmp.MemberBegin(); item != tmp.MemberEnd(); ++item) {
+							if (!item->value.IsString()) {
+								Log(L"Ignoring 'ExtraQuery/%S': not a string value", item->name.GetString());
+								continue;
+							}
+							burst->network->sendextraquery += "&";
+							burst->network->sendextraquery += item->name.GetString();
+							burst->network->sendextraquery += "=";
+							burst->network->sendextraquery += item->value.GetString();
+							Log(L"ExtraQuery/%S = %S", item->name.GetString(), item->value.GetString());
+						}
+					}
+
+				burst->network->sendextraheader = "";
+				if (settingsBurst.HasMember("ExtraHeader"))
+					if (!settingsBurst["ExtraHeader"].IsObject())
+						Log(L"Ignoring 'ExtraHeader': not a json-object");
+					else {
+						auto const& tmp = settingsBurst["ExtraHeader"].GetObjectW();
+						for (auto item = tmp.MemberBegin(); item != tmp.MemberEnd(); ++item) {
+							if (!item->value.IsString()) {
+								Log(L"Ignoring 'ExtraHeader/%S': not a string value", item->name.GetString());
+								continue;
+							}
+							burst->network->sendextraheader += "&";
+							burst->network->sendextraheader += item->name.GetString();
+							burst->network->sendextraheader += "=";
+							burst->network->sendextraheader += item->value.GetString();
+							burst->network->sendextraheader += "\r\n";
+							Log(L"ExtraHeader/%S = %S", item->name.GetString(), item->value.GetString());
+						}
+					}
 			}
 		}
 
@@ -343,6 +383,46 @@ int load_config(char const *const filename)
 					system("pause > nul");
 					exit(-1);
 				}
+
+				// TODO: refactor as 's = read-extras(s nodename)'
+				bhd->network->sendextraquery = "";
+				if (settingsBhd.HasMember("ExtraQuery"))
+					if (!settingsBhd["ExtraQuery"].IsObject())
+						Log(L"Ignoring 'ExtraQuery': not a json-object");
+					else {
+						auto const& tmp = settingsBhd["ExtraQuery"].GetObjectW();
+						for (auto item = tmp.MemberBegin(); item != tmp.MemberEnd(); ++item) {
+							if (!item->value.IsString()) {
+								Log(L"Ignoring 'ExtraQuery/%S': not a string value", item->name.GetString());
+								continue;
+							}
+							bhd->network->sendextraquery += "&";
+							bhd->network->sendextraquery += item->name.GetString();
+							bhd->network->sendextraquery += "=";
+							bhd->network->sendextraquery += item->value.GetString();
+							Log(L"ExtraQuery/%S = %S", item->name.GetString(), item->value.GetString());
+						}
+					}
+
+				bhd->network->sendextraheader = "";
+				if (settingsBhd.HasMember("ExtraHeader"))
+					if (!settingsBhd["ExtraHeader"].IsObject())
+						Log(L"Ignoring 'ExtraHeader': not a json-object");
+					else {
+						auto const& tmp = settingsBhd["ExtraHeader"].GetObjectW();
+						for (auto item = tmp.MemberBegin(); item != tmp.MemberEnd(); ++item) {
+							if (!item->value.IsString()) {
+								Log(L"Ignoring 'ExtraHeader/%S': not a string value", item->name.GetString());
+								continue;
+							}
+							bhd->network->sendextraheader += "&";
+							bhd->network->sendextraheader += item->name.GetString();
+							bhd->network->sendextraheader += "=";
+							bhd->network->sendextraheader += item->value.GetString();
+							bhd->network->sendextraheader += "\r\n";
+							Log(L"ExtraHeader/%S = %S", item->name.GetString(), item->value.GetString());
+						}
+					}
 			}
 		}
 				

@@ -150,6 +150,8 @@ struct t_network_info {
 	size_t update_interval;
 	size_t proxy_update_interval;
 	int network_quality;
+	std::string sendextraquery;
+	std::string sendextraheader;
 	std::vector<std::shared_ptr<t_session>> sessions;
 	std::thread sender;
 	std::thread confirmer;
