@@ -2,6 +2,8 @@
 #include "stdafx.h"
 #include "blagominer.h"
 
+#include <curl/curl.h>
+
 bool exitHandled = false;
 
 // Initialize static member data
@@ -1138,6 +1140,7 @@ void closeMiner() {
 		HeapFree(hHeap, 0, p_minerPath);
 	}
 
+	curl_global_cleanup();
 	WSACleanup();
 	Log(L"exit");
 	Log_end();
@@ -1210,6 +1213,9 @@ int main(int argc, char **argv) {
 	}
 	else sprintf_s(conf_filename, MAX_PATH, "%s%s", p_minerPath, "miner.conf");
 	
+	// init 3rd party libs
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+
 	// Initialize configuration.
 	init_mining_info();
 	init_network_info();
