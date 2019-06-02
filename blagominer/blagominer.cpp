@@ -255,6 +255,12 @@ int load_config(char const *const filename)
 				if (settingsBurst.HasMember("POC2StartBlock") && (settingsBurst["POC2StartBlock"].IsUint64())) burst->mining->POC2StartBlock = settingsBurst["POC2StartBlock"].GetUint64();
 				Log(L"POC2StartBlock: %llu", burst->mining->POC2StartBlock);
 
+				if (settingsBurst.HasMember("UseHTTPS"))
+					if (!settingsBurst["UseHTTPS"].IsBool())
+						Log(L"Ignoring 'UseHTTPS': not a boolean");
+					else
+						burst->network->usehttps = settingsBurst["UseHTTPS"].GetBool();
+
 				// TODO: refactor as 's = read-extras(s nodename)'
 				burst->network->sendextraquery = "";
 				if (settingsBurst.HasMember("ExtraQuery"))
@@ -383,6 +389,12 @@ int load_config(char const *const filename)
 					system("pause > nul");
 					exit(-1);
 				}
+
+				if (settingsBhd.HasMember("UseHTTPS"))
+					if (!settingsBhd["UseHTTPS"].IsBool())
+						Log(L"Ignoring 'UseHTTPS': not a boolean");
+					else
+						bhd->network->usehttps = settingsBhd["UseHTTPS"].GetBool();
 
 				// TODO: refactor as 's = read-extras(s nodename)'
 				bhd->network->sendextraquery = "";

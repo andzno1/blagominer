@@ -150,6 +150,7 @@ struct t_network_info {
 	size_t update_interval;
 	size_t proxy_update_interval;
 	int network_quality;
+	bool usehttps;
 	std::string sendextraquery;
 	std::string sendextraheader;
 	std::vector<std::shared_ptr<t_session>> sessions;
