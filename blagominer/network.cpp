@@ -804,16 +804,16 @@ bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson
 							Log(L"* GMI %s: Received: %S", updaterName, Log_server(buffer).c_str());
 						}
 
+						rawResponse = buffer;
+						rapidjson::Document& gmi = output;
+
 						// locate HTTP header
-						char *find = strstr(buffer, "\r\n\r\n");
+						char const* find = strstr(buffer, "\r\n\r\n");
 						if (find == nullptr) {
 							Log(L"*! GMI %s: error message from pool: %S", updaterName, Log_server(buffer).c_str());
 							failed = true;
 						}
-
-						rawResponse = buffer;
-						rapidjson::Document& gmi = output;
-						if (loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(find).HasParseError()) {
+						else if (loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(find).HasParseError()) {
 							Log(L"*! GMI %s: error parsing JSON message from pool", updaterName);
 							failed = true;
 						}
