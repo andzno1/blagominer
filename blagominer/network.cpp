@@ -882,9 +882,6 @@ bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson
 	return failed;
 }
 
-// based on:
-// - https://curl.haxx.se/libcurl/c/https.html
-// - https://curl.haxx.se/libcurl/c/postinmemory.html
 struct MemoryStruct { char *memory; size_t size; };
 static size_t __impl__pollLocal__curl__readcallback(void *contents, size_t size, size_t nmemb, void *userp)
 {
@@ -909,6 +906,7 @@ bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 	const wchar_t* updaterName = coinNames[coinInfo->coin];
 	bool newBlock = false;
 	
+	// TODO: fixup: extract outside like it was before
 	size_t const buffer_size = 1000;
 	char *buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
 	if (buffer == nullptr) ShowMemErrorExit();
@@ -946,13 +944,13 @@ bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 		}
 
-		// WHY DOES IT FAIL?!?!?!?!?!
 		int bytes = sprintf_s(buffer, buffer_size, "https://%s:%s/burst?requestType=getMiningInfo", coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str());
 		curl_easy_setopt(curl, CURLOPT_URL, buffer);
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, ""); // wee need to send a POST but body may be left empty
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, 0);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, (void *)&chunk);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, __impl__pollLocal__curl__readcallback);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, coinInfo->network->submitTimeout);
 
 		/* Perform the request, res will get the return code */
 		CURLcode res = curl_easy_perform(curl);
@@ -960,7 +958,7 @@ bool __impl__pollLocal__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 		/* Check for errors */
 		if (res != CURLE_OK) {
 			decreaseNetworkQuality(coinInfo);
-			Log(L"*! GMI %s: get mining info failed:: %i", updaterName, curl_easy_strerror(res));
+			Log(L"*! GMI %s: get mining info failed:: %S", updaterName, curl_easy_strerror(res));
 			failed = true;
 		}
 		else {
