@@ -289,19 +289,106 @@ void increaseNetworkQuality(std::shared_ptr<t_coin_info> coin) {
 	}
 }
 
+void __impl__send_i__sockets(char* buffer, size_t buffer_size, std::shared_ptr<t_coin_info> coinInfo, std::vector<std::shared_ptr<t_session>>& tmpSessions, unsigned long long targetDeadlineInfo, std::shared_ptr<t_shares> share)
+{
+	const wchar_t* senderName = coinNames[coinInfo->coin];
+
+	SOCKET ConnectSocket;
+
+	int iResult = 0;
+
+	struct addrinfo *result = nullptr;
+	struct addrinfo hints;
+
+		RtlSecureZeroMemory(&hints, sizeof(hints));
+		hints.ai_family = AF_INET;
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_protocol = IPPROTO_TCP;
+
+		iResult = getaddrinfo(coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), &hints, &result);
+		if (iResult != 0) {
+			decreaseNetworkQuality(coinInfo);
+			printToConsole(12, true, false, true, false, L"[%20llu|%-10s|Sender] getaddrinfo failed with error: %i", share->account_id, senderName, iResult);
+			return;
+		}
+		ConnectSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+		if (ConnectSocket == INVALID_SOCKET) {
+			decreaseNetworkQuality(coinInfo);
+			printToConsole(12, true, false, true, false, L"SENDER %s: socket failed with error: %i", senderName, WSAGetLastError());
+			freeaddrinfo(result);
+			return;
+		}
+		setsockopt(ConnectSocket, SOL_SOCKET, SO_RCVTIMEO, (char *)&coinInfo->network->submitTimeout, sizeof(unsigned));
+		iResult = connect(ConnectSocket, result->ai_addr, (int)result->ai_addrlen);
+		if (iResult == SOCKET_ERROR)
+		{
+			decreaseNetworkQuality(coinInfo);
+			Log(L"Sender %s:! Error Sender's connect: %i", senderName, WSAGetLastError());
+			printToConsole(12, true, false, true, false, L"SENDER %s: can't connect. Error: %i", senderName, WSAGetLastError());
+			freeaddrinfo(result);
+			return;
+		}
+		else
+		{
+			freeaddrinfo(result);
+
+			int bytes = 0;
+			RtlSecureZeroMemory(buffer, buffer_size);
+			if (coinInfo->mining->miner_mode == 0)
+			{
+				bytes = sprintf_s(buffer, buffer_size, "POST /burst?requestType=submitNonce&secretPhrase=%s&nonce=%llu HTTP/1.0\r\nConnection: close\r\n\r\n", pass, share->nonce);
+			}
+			if (coinInfo->mining->miner_mode == 1)
+			{
+				unsigned long long total = total_size / 1024 / 1024 / 1024;
+				for (auto It = satellite_size.begin(); It != satellite_size.end(); ++It) total = total + It->second;
+
+				char const* format = "POST /burst?requestType=submitNonce&accountId=%llu&nonce=%llu&deadline=%llu%s HTTP/1.0\r\nHost: %s:%s\r\nX-Miner: Blago %S\r\nX-Capacity: %llu\r\n%sContent-Length: 0\r\nConnection: close\r\n\r\n";
+				bytes = sprintf_s(buffer, buffer_size, format, share->account_id, share->nonce, share->best, coinInfo->network->sendextraquery.c_str(), coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), version.c_str(), total, coinInfo->network->sendextraheader.c_str());
+			}
+
+			// Sending to server
+			iResult = send(ConnectSocket, buffer, bytes, 0);
+			if (iResult == SOCKET_ERROR)
+			{
+				decreaseNetworkQuality(coinInfo);
+				Log(L"Sender %s: ! Error deadline's sending: %i", senderName, WSAGetLastError());
+				printToConsole(12, true, false, true, false, L"SENDER %s: send failed: %i", senderName, WSAGetLastError());
+				return;
+			}
+			else
+			{
+				increaseNetworkQuality(coinInfo);
+				printToConsole(9, true, false, true, false, L"[%20llu|%-10s|Sender] DL sent      : %s %sd %02llu:%02llu:%02llu",
+					share->account_id,
+					senderName,
+					toWStr(share->deadline, 11).c_str(),
+					toWStr(share->deadline / (24 * 60 * 60), 7).c_str(),
+					(share->deadline % (24 * 60 * 60)) / (60 * 60),
+					(share->deadline % (60 * 60)) / 60, 
+					share->deadline % 60);
+
+				tmpSessions.push_back(std::make_shared<t_session>(ConnectSocket, share->deadline, *share));
+
+				Log(L"[%20llu] Sender %s: Setting bests targetDL: %10llu", share->account_id, senderName, share->deadline);
+				coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline = share->deadline;
+				EnterCriticalSection(&coinInfo->locks->sharesLock);
+				if (!coinInfo->mining->shares.empty()) {
+					coinInfo->mining->shares.erase(coinInfo->mining->shares.begin());
+				}
+				LeaveCriticalSection(&coinInfo->locks->sharesLock);
+			}
+		}
+}
+
 void send_i(std::shared_ptr<t_coin_info> coinInfo)
 {
 	const wchar_t* senderName = coinNames[coinInfo->coin];
 	Log(L"Sender %s: started thread", senderName);
-	SOCKET ConnectSocket;
 
-	int iResult = 0;
 	size_t const buffer_size = 1000;
 	char* buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
 	if (buffer == nullptr) ShowMemErrorExit();
-
-	struct addrinfo *result = nullptr;
-	struct addrinfo hints;
 
 	std::vector<std::shared_ptr<t_session>> tmpSessions;
 
@@ -363,91 +450,14 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 			continue;
 		}
 
-		RtlSecureZeroMemory(&hints, sizeof(hints));
-		hints.ai_family = AF_INET;
-		hints.ai_socktype = SOCK_STREAM;
-		hints.ai_protocol = IPPROTO_TCP;
-
-		iResult = getaddrinfo(coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), &hints, &result);
-		if (iResult != 0) {
-			decreaseNetworkQuality(coinInfo);
-			printToConsole(12, true, false, true, false, L"[%20llu|%-10s|Sender] getaddrinfo failed with error: %i", share->account_id, senderName, iResult);
-			continue;
-		}
-		ConnectSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-		if (ConnectSocket == INVALID_SOCKET) {
-			decreaseNetworkQuality(coinInfo);
-			printToConsole(12, true, false, true, false, L"SENDER %s: socket failed with error: %i", senderName, WSAGetLastError());
-			freeaddrinfo(result);
-			continue;
-		}
-		setsockopt(ConnectSocket, SOL_SOCKET, SO_RCVTIMEO, (char *)&coinInfo->network->submitTimeout, sizeof(unsigned));
-		iResult = connect(ConnectSocket, result->ai_addr, (int)result->ai_addrlen);
-		if (iResult == SOCKET_ERROR)
-		{
-			decreaseNetworkQuality(coinInfo);
-			Log(L"Sender %s:! Error Sender's connect: %i", senderName, WSAGetLastError());
-			printToConsole(12, true, false, true, false, L"SENDER %s: can't connect. Error: %i", senderName, WSAGetLastError());
-			freeaddrinfo(result);
-			continue;
-		}
-		else
-		{
-			freeaddrinfo(result);
-
-			int bytes = 0;
-			RtlSecureZeroMemory(buffer, buffer_size);
-			if (coinInfo->mining->miner_mode == 0)
-			{
-				bytes = sprintf_s(buffer, buffer_size, "POST /burst?requestType=submitNonce&secretPhrase=%s&nonce=%llu HTTP/1.0\r\nConnection: close\r\n\r\n", pass, share->nonce);
-			}
-			if (coinInfo->mining->miner_mode == 1)
-			{
-				unsigned long long total = total_size / 1024 / 1024 / 1024;
-				for (auto It = satellite_size.begin(); It != satellite_size.end(); ++It) total = total + It->second;
-
-				char const* format = "POST /burst?requestType=submitNonce&accountId=%llu&nonce=%llu&deadline=%llu%S HTTP/1.0\r\nHost: %s:%s\r\nX-Miner: Blago %S\r\nX-Capacity: %llu\r\n%SContent-Length: 0\r\nConnection: close\r\n\r\n";
-				bytes = sprintf_s(buffer, buffer_size, format, share->account_id, share->nonce, share->best, coinInfo->network->sendextraquery.c_str(), coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), version.c_str(), total, coinInfo->network->sendextraheader.c_str());
-			}
-
-			// Sending to server
-			iResult = send(ConnectSocket, buffer, bytes, 0);
-			if (iResult == SOCKET_ERROR)
-			{
-				decreaseNetworkQuality(coinInfo);
-				Log(L"Sender %s: ! Error deadline's sending: %i", senderName, WSAGetLastError());
-				printToConsole(12, true, false, true, false, L"SENDER %s: send failed: %i", senderName, WSAGetLastError());
-				continue;
-			}
-			else
-			{
-				increaseNetworkQuality(coinInfo);
-				printToConsole(9, true, false, true, false, L"[%20llu|%-10s|Sender] DL sent      : %s %sd %02llu:%02llu:%02llu",
-					share->account_id,
-					senderName,
-					toWStr(share->deadline, 11).c_str(),
-					toWStr(share->deadline / (24 * 60 * 60), 7).c_str(),
-					(share->deadline % (24 * 60 * 60)) / (60 * 60),
-					(share->deadline % (60 * 60)) / 60, 
-					share->deadline % 60);
-
-				tmpSessions.push_back(std::make_shared<t_session>(ConnectSocket, share->deadline, *share));
-
-				Log(L"[%20llu] Sender %s: Setting bests targetDL: %10llu", share->account_id, senderName, share->deadline);
-				coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline = share->deadline;
-				EnterCriticalSection(&coinInfo->locks->sharesLock);
-				if (!coinInfo->mining->shares.empty()) {
-					coinInfo->mining->shares.erase(coinInfo->mining->shares.begin());
-				}
-				LeaveCriticalSection(&coinInfo->locks->sharesLock);
-			}
-		}
+		__impl__send_i__sockets(buffer, buffer_size, coinInfo, tmpSessions, targetDeadlineInfo, share);
 	}
 	if (buffer != nullptr) {
 		HeapFree(hHeap, 0, buffer);
 	}
 	Log(L"Sender %s: All work done, shutting down.", senderName);
 }
+
 
 void confirm_i(std::shared_ptr<t_coin_info> coinInfo) {
 	const wchar_t* confirmerName = coinNames[coinInfo->coin];
