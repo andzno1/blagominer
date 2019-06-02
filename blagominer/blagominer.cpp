@@ -1126,11 +1126,13 @@ void closeMiner() {
 		
 	if (burst->mining->enable || burst->network->enable_proxy) {
 		DeleteCriticalSection(&burst->locks->sessionsLock);
+		DeleteCriticalSection(&burst->locks->sessions2Lock);
 		DeleteCriticalSection(&burst->locks->sharesLock);
 		DeleteCriticalSection(&burst->locks->bestsLock);
 	}
 	if (bhd->mining->enable || bhd->network->enable_proxy) {
 		DeleteCriticalSection(&bhd->locks->sessionsLock);
+		DeleteCriticalSection(&bhd->locks->sessions2Lock);
 		DeleteCriticalSection(&bhd->locks->sharesLock);
 		DeleteCriticalSection(&bhd->locks->bestsLock);
 	}
@@ -1268,6 +1270,7 @@ int main(int argc, char **argv) {
 	if (burst->mining->enable || burst->network->enable_proxy) {
 
 		InitializeCriticalSection(&burst->locks->sessionsLock);
+		InitializeCriticalSection(&burst->locks->sessions2Lock);
 		InitializeCriticalSection(&burst->locks->bestsLock);
 		InitializeCriticalSection(&burst->locks->sharesLock);
 		burst->mining->shares.reserve(20);
@@ -1303,6 +1306,7 @@ int main(int argc, char **argv) {
 
 	if (bhd->mining->enable || bhd->network->enable_proxy) {
 		InitializeCriticalSection(&bhd->locks->sessionsLock);
+		InitializeCriticalSection(&bhd->locks->sessions2Lock);
 		InitializeCriticalSection(&bhd->locks->bestsLock);
 		InitializeCriticalSection(&bhd->locks->sharesLock);
 		bhd->mining->shares.reserve(20);

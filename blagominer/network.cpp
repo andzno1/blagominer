@@ -391,6 +391,7 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 	if (buffer == nullptr) ShowMemErrorExit();
 
 	std::vector<std::shared_ptr<t_session>> tmpSessions;
+	std::vector<std::shared_ptr<t_session2>> tmpSessions2;
 
 	while (!exit_flag) {
 		std::shared_ptr<t_shares> share;
@@ -411,6 +412,14 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 				}
 				LeaveCriticalSection(&coinInfo->locks->sessionsLock);
 				tmpSessions.clear();
+			}
+			if (!tmpSessions2.empty()) {
+				EnterCriticalSection(&coinInfo->locks->sessions2Lock);
+				for (auto& session : tmpSessions2) {
+					coinInfo->network->sessions2.push_back(session);
+				}
+				LeaveCriticalSection(&coinInfo->locks->sessions2Lock);
+				tmpSessions2.clear();
 			}
 
 			std::this_thread::yield();
