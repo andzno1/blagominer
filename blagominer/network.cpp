@@ -732,7 +732,9 @@ void updater_i(std::shared_ptr<t_coin_info> coinInfo)
 }
 
 
-bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
+bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, std::string& rawResponse) {
+	bool failed = false;
+
 	const wchar_t* updaterName = coinNames[coinInfo->coin];
 	bool newBlock = false;
 	size_t const buffer_size = 1000;
@@ -753,6 +755,7 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 	if (iResult != 0) {
 		decreaseNetworkQuality(coinInfo);
 		Log(L"*! GMI %s: getaddrinfo failed with error: %i", updaterName, WSAGetLastError());
+		failed = true;
 	}
 	else {
 		UpdaterSocket = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
@@ -760,6 +763,7 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 		{
 			decreaseNetworkQuality(coinInfo);
 			Log(L"*! GMI %s: socket function failed with error: %i", updaterName, WSAGetLastError());
+			failed = true;
 		}
 		else {
 			const unsigned t = 1000;
@@ -769,6 +773,7 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 			if (iResult == SOCKET_ERROR) {
 				decreaseNetworkQuality(coinInfo);
 				Log(L"*! GMI %s: connect function failed with error: %i", updaterName, WSAGetLastError());
+				failed = true;
 			}
 			else {
 				int bytes = sprintf_s(buffer, buffer_size, "POST /burst?requestType=getMiningInfo HTTP/1.0\r\nHost: %s:%s\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str());
@@ -777,6 +782,7 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 				{
 					decreaseNetworkQuality(coinInfo);
 					Log(L"*! GMI %s: send request failed: %i", updaterName, WSAGetLastError());
+					failed = true;
 				}
 				else {
 					RtlSecureZeroMemory(buffer, buffer_size);
@@ -790,6 +796,7 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 					{
 						decreaseNetworkQuality(coinInfo);
 						Log(L"*! GMI %s: get mining info failed:: %i", updaterName, WSAGetLastError());
+						failed = true;
 					}
 					else {
 						increaseNetworkQuality(coinInfo);
@@ -799,15 +806,49 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 
 						// locate HTTP header
 						char *find = strstr(buffer, "\r\n\r\n");
-						if (find == nullptr)
+						if (find == nullptr) {
 							Log(L"*! GMI %s: error message from pool: %S", updaterName, Log_server(buffer).c_str());
-						else {
+							failed = true;
+						}
+
+						rawResponse = buffer;
+						rapidjson::Document& gmi = output;
+						if (loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(find).HasParseError()) {
+							Log(L"*! GMI %s: error parsing JSON message from pool", updaterName);
+							failed = true;
+						}
+						else if (!loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(find).HasParseError()) {
+							Log(L"*! GMI %s: error parsing JSON message from pool: %S", updaterName, Log_server(buffer).c_str());
+							failed = true;
+						}
+					}
+				}
+			}
+			iResult = closesocket(UpdaterSocket);
+		}
+		freeaddrinfo(result);
+	}
+	if (buffer != nullptr) {
+		HeapFree(hHeap, 0, buffer);
+	}
+	return failed;
+}
+
+bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
+	const wchar_t* updaterName = coinNames[coinInfo->coin];
+	bool newBlock = false;
+
+	{
+		{
+			{
+				{
+					{
+						{
+							std::string rawResponse;
 							rapidjson::Document gmi;
-							if (loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(find).HasParseError())
-								Log(L"*! GMI %s: error parsing JSON message from pool", updaterName);
-							else if (!loggingConfig.logAllGetMiningInfos && gmi.Parse<0>(find).HasParseError())
-								Log(L"*! GMI %s: error parsing JSON message from pool: %S", updaterName, Log_server(buffer).c_str());
-							else {
+							bool failed = __impl__pollLocal__sockets(coinInfo, gmi, rawResponse);
+
+							if (!failed) {
 								if (gmi.IsObject())
 								{
 									if (gmi.HasMember("baseTarget")) {
@@ -834,13 +875,13 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 										bool sigDiffer = signaturesDiffer(coinInfo, sig);
 										
 										if (sigLen <= 1) {
-											Log(L"*! GMI %s: Node response: Error decoding generationsignature: %S", updaterName, Log_server(buffer).c_str());
+											Log(L"*! GMI %s: Node response: Error decoding generationsignature: %S", updaterName, Log_server(rawResponse.c_str()).c_str());
 										}
 										else if (sigDiffer) {
 											newBlock = true;
 											setSignature(coinInfo, sig);
 											if (!loggingConfig.logAllGetMiningInfos) {
-												Log(L"*! GMI %s: Received new mining info: %S", updaterName, Log_server(buffer).c_str());
+												Log(L"*! GMI %s: Received new mining info: %S", updaterName, Log_server(rawResponse.c_str()).c_str());
 											}
 										}
 									}
@@ -879,12 +920,7 @@ bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
 					}
 				}
 			}
-			iResult = closesocket(UpdaterSocket);
 		}
-		freeaddrinfo(result);
-	}
-	if (buffer != nullptr) {
-		HeapFree(hHeap, 0, buffer);
 	}
 	return newBlock;
 }
