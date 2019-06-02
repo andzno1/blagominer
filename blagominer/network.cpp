@@ -381,6 +381,138 @@ void __impl__send_i__sockets(char* buffer, size_t buffer_size, std::shared_ptr<t
 	}
 }
 
+void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std::shared_ptr<t_session2>>& tmpSessions, unsigned long long targetDeadlineInfo, std::shared_ptr<t_shares> share)
+{
+	bool failed = false;
+
+	const wchar_t* senderName = coinNames[coinInfo->coin];
+	bool newBlock = false;
+
+	size_t const buffer_size = 1000;
+	char *buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
+	if (buffer == nullptr) ShowMemErrorExit();
+
+	CURL* curl = curl_easy_init();
+	if (!curl) {
+		failed = true;
+	}
+	else {
+		if (false) { // coinInfo->network->SKIP_PEER_VERIFICATION
+			/*
+			 * If you want to connect to a site who isn't using a certificate that is
+			 * signed by one of the certs in the CA bundle you have, you can skip the
+			 * verification of the server's certificate. This makes the connection
+			 * A LOT LESS SECURE.
+			 *
+			 * If you have a CA cert for the server stored someplace else than in the
+			 * default bundle, then the CURLOPT_CAPATH option might come handy for
+			 * you.
+			 */
+			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+		}
+
+		if (false) { // coinInfo->network->SKIP_HOSTNAME_VERIFICATION
+			/*
+			 * If the site you're connecting to uses a different host name that what
+			 * they have mentioned in their server certificate's commonName (or
+			 * subjectAltName) fields, libcurl will refuse to connect. You can skip
+			 * this check, but this will make the connection less secure.
+			 */
+			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+		}
+
+		std::string root = "https://";
+		root += coinInfo->network->nodeaddr;
+		root += ":";
+		root += coinInfo->network->nodeport;
+
+		curl_easy_setopt(curl, CURLOPT_URL, root.c_str());
+		curl_easy_setopt(curl, CURLOPT_CONNECT_ONLY, 1L);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, coinInfo->network->submitTimeout);
+
+		CURLcode res = curl_easy_perform(curl);
+
+		curl_socket_t sockfd;
+		if (res == CURLE_OK) {
+			res = curl_easy_getinfo(curl, CURLINFO_ACTIVESOCKET, &sockfd);
+		}
+
+		if (res == CURLE_OK) {
+			fd_set writefds;
+			FD_ZERO(&writefds);
+			FD_SET(sockfd, &writefds);
+
+			RtlSecureZeroMemory(buffer, buffer_size);
+			int bytes = 0;
+			if (coinInfo->mining->miner_mode == 0)
+			{
+				bytes = sprintf_s(buffer, buffer_size, "POST /burst?requestType=submitNonce&secretPhrase=%s&nonce=%llu HTTP/1.0\r\nConnection: close\r\n\r\n", pass, share->nonce);
+			}
+			if (coinInfo->mining->miner_mode == 1)
+			{
+				unsigned long long total = total_size / 1024 / 1024 / 1024;
+				for (auto It = satellite_size.begin(); It != satellite_size.end(); ++It) total = total + It->second;
+
+				char const* format = "POST /burst?requestType=submitNonce&accountId=%llu&nonce=%llu&deadline=%llu%s HTTP/1.0\r\nHost: %s:%s\r\nX-Miner: Blago %S\r\nX-Capacity: %llu\r\n%sContent-Length: 0\r\nConnection: close\r\n\r\n";
+				bytes = sprintf_s(buffer, buffer_size, format, share->account_id, share->nonce, share->best, coinInfo->network->sendextraquery.c_str(), coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), version.c_str(), total, coinInfo->network->sendextraheader.c_str());
+			}
+
+			struct timeval tv;
+			tv.tv_sec = coinInfo->network->submitTimeout / 1000;
+			tv.tv_usec = (coinInfo->network->submitTimeout % 1000) * 1000;
+
+			size_t total_sent = 0;
+			do {
+				size_t sent = 0;
+				res = curl_easy_send(curl, buffer + total_sent, bytes - total_sent, &sent);
+				total_sent += sent;
+				if (total_sent >= bytes)
+					break;
+				if (res == CURLE_AGAIN) {
+					int res2 = select(0, NULL, &writefds, &writefds, &tv);
+					if (res2 != 1) {
+						res = CURLE_OPERATION_TIMEDOUT;
+						break;
+					}
+					if (!FD_ISSET(sockfd, &writefds)) {
+						res = CURLE_OPERATION_TIMEDOUT;
+						break;
+					}
+				}
+			} while (res == CURLE_AGAIN);
+		}
+
+		/* Check for errors */
+		if (res != CURLE_OK) {
+			decreaseNetworkQuality(coinInfo);
+			Log(L"Sender %s: ! Error deadline's sending: %S", senderName, curl_easy_strerror(res));
+			printToConsole(12, true, false, true, false, L"SENDER %s: send failed: %S", senderName, curl_easy_strerror(res));
+			failed = true;
+		}
+		else {
+			increaseNetworkQuality(coinInfo);
+			printToConsole(9, true, false, true, false, L"[%20llu|%-10s|Sender] DL sent      : %s %sd %02llu:%02llu:%02llu",
+				share->account_id,
+				senderName,
+				toWStr(share->deadline, 11).c_str(),
+				toWStr(share->deadline / (24 * 60 * 60), 7).c_str(),
+				(share->deadline % (24 * 60 * 60)) / (60 * 60),
+				(share->deadline % (60 * 60)) / 60,
+				share->deadline % 60);
+
+			tmpSessions.push_back(std::make_shared<t_session2>(curl, share->deadline, *share));
+
+			Log(L"[%20llu] Sender %s: Setting bests targetDL: %10llu", share->account_id, senderName, share->deadline);
+			coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline = share->deadline;
+			EnterCriticalSection(&coinInfo->locks->sharesLock);
+			if (!coinInfo->mining->shares.empty()) {
+				coinInfo->mining->shares.erase(coinInfo->mining->shares.begin());
+			}
+			LeaveCriticalSection(&coinInfo->locks->sharesLock);
+		}
+	}
+}
+
 void send_i(std::shared_ptr<t_coin_info> coinInfo)
 {
 	const wchar_t* senderName = coinNames[coinInfo->coin];
@@ -459,7 +591,10 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 			continue;
 		}
 
-		__impl__send_i__sockets(buffer, buffer_size, coinInfo, tmpSessions, targetDeadlineInfo, share);
+		if (coinInfo->network->usehttps)
+			__impl__send_i__curl(coinInfo, tmpSessions2, targetDeadlineInfo, share);
+		else
+			__impl__send_i__sockets(buffer, buffer_size, coinInfo, tmpSessions, targetDeadlineInfo, share);
 	}
 	if (buffer != nullptr) {
 		HeapFree(hHeap, 0, buffer);
