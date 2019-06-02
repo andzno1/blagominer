@@ -835,93 +835,79 @@ bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson
 }
 
 bool pollLocal(std::shared_ptr<t_coin_info> coinInfo) {
+	std::string rawResponse;
+	rapidjson::Document gmi;
+	bool failed = __impl__pollLocal__sockets(coinInfo, gmi, rawResponse);
+	if (failed) return false;
+	if (!gmi.IsObject()) return false;
+
 	const wchar_t* updaterName = coinNames[coinInfo->coin];
 	bool newBlock = false;
 
-	{
-		{
-			{
-				{
-					{
-						{
-							std::string rawResponse;
-							rapidjson::Document gmi;
-							bool failed = __impl__pollLocal__sockets(coinInfo, gmi, rawResponse);
+	if (gmi.HasMember("baseTarget")) {
+		if (gmi["baseTarget"].IsString())	coinInfo->mining->baseTarget = _strtoui64(gmi["baseTarget"].GetString(), 0, 10);
+		else
+			if (gmi["baseTarget"].IsInt64())coinInfo->mining->baseTarget = gmi["baseTarget"].GetInt64();
+	}
 
-							if (!failed) {
-								if (gmi.IsObject())
-								{
-									if (gmi.HasMember("baseTarget")) {
-										if (gmi["baseTarget"].IsString())	coinInfo->mining->baseTarget = _strtoui64(gmi["baseTarget"].GetString(), 0, 10);
-										else
-											if (gmi["baseTarget"].IsInt64())coinInfo->mining->baseTarget = gmi["baseTarget"].GetInt64();
-									}
+	if (gmi.HasMember("height")) {
+		if (gmi["height"].IsString())	setHeight(coinInfo, _strtoui64(gmi["height"].GetString(), 0, 10));
+		else
+			if (gmi["height"].IsInt64()) setHeight(coinInfo, gmi["height"].GetInt64());
+	}
 
-									if (gmi.HasMember("height")) {
-										if (gmi["height"].IsString())	setHeight(coinInfo, _strtoui64(gmi["height"].GetString(), 0, 10));
-										else
-											if (gmi["height"].IsInt64()) setHeight(coinInfo, gmi["height"].GetInt64());
-									}
+	//POC2 determination
+	if (getHeight(coinInfo) >= coinInfo->mining->POC2StartBlock) {
+		POC2 = true;
+	}
 
-									//POC2 determination
-									if (getHeight(coinInfo) >= coinInfo->mining->POC2StartBlock) {
-										POC2 = true;
-									}
-
-									if (gmi.HasMember("generationSignature")) {
-										setStrSignature(coinInfo, gmi["generationSignature"].GetString());
-										char sig[33];
-										size_t sigLen = xstr2strr(sig, 33, gmi["generationSignature"].GetString());
-										bool sigDiffer = signaturesDiffer(coinInfo, sig);
+	if (gmi.HasMember("generationSignature")) {
+		setStrSignature(coinInfo, gmi["generationSignature"].GetString());
+		char sig[33];
+		size_t sigLen = xstr2strr(sig, 33, gmi["generationSignature"].GetString());
+		bool sigDiffer = signaturesDiffer(coinInfo, sig);
 										
-										if (sigLen <= 1) {
-											Log(L"*! GMI %s: Node response: Error decoding generationsignature: %S", updaterName, Log_server(rawResponse.c_str()).c_str());
-										}
-										else if (sigDiffer) {
-											newBlock = true;
-											setSignature(coinInfo, sig);
-											if (!loggingConfig.logAllGetMiningInfos) {
-												Log(L"*! GMI %s: Received new mining info: %S", updaterName, Log_server(rawResponse.c_str()).c_str());
-											}
-										}
-									}
-									if (gmi.HasMember("targetDeadline")) {
-										unsigned long long newTargetDeadlineInfo = 0;
-										if (gmi["targetDeadline"].IsString()) {
-											newTargetDeadlineInfo = _strtoui64(gmi["targetDeadline"].GetString(), 0, 10);
-										}
-										else {
-											newTargetDeadlineInfo = gmi["targetDeadline"].GetInt64();
-										}
-										if (loggingConfig.logAllGetMiningInfos || newBlock) {
-											Log(L"*! GMI %s: newTargetDeadlineInfo: %llu", updaterName, newTargetDeadlineInfo);
-											Log(L"*! GMI %s: my_target_deadline: %llu", updaterName, coinInfo->mining->my_target_deadline);
-										}
-										if ((newTargetDeadlineInfo > 0) && (newTargetDeadlineInfo < coinInfo->mining->my_target_deadline)) {
-											setTargetDeadlineInfo(coinInfo, newTargetDeadlineInfo);
-											if (loggingConfig.logAllGetMiningInfos || newBlock) {
-												Log(L"*! GMI %s: Target deadline from pool is lower than deadline set in the configuration. Updating targetDeadline: %llu", updaterName, newTargetDeadlineInfo);
-											}
-										}
-										else {
-											setTargetDeadlineInfo(coinInfo, coinInfo->mining->my_target_deadline);
-											if (loggingConfig.logAllGetMiningInfos || newBlock) {
-												Log(L"*! GMI %s: Using target deadline from configuration: %llu", updaterName, coinInfo->mining->my_target_deadline);
-											}
-										}
-									}
-									else {
-										setTargetDeadlineInfo(coinInfo, coinInfo->mining->my_target_deadline);
-										Log(L"*! GMI %s: No target deadline information provided. Using target deadline from configuration: %llu", updaterName, coinInfo->mining->my_target_deadline);
-									}
-								}
-							}
-						}
-					}
-				}
+		if (sigLen <= 1) {
+			Log(L"*! GMI %s: Node response: Error decoding generationsignature: %S", updaterName, Log_server(rawResponse.c_str()).c_str());
+		}
+		else if (sigDiffer) {
+			newBlock = true;
+			setSignature(coinInfo, sig);
+			if (!loggingConfig.logAllGetMiningInfos) {
+				Log(L"*! GMI %s: Received new mining info: %S", updaterName, Log_server(rawResponse.c_str()).c_str());
 			}
 		}
 	}
+	if (gmi.HasMember("targetDeadline")) {
+		unsigned long long newTargetDeadlineInfo = 0;
+		if (gmi["targetDeadline"].IsString()) {
+			newTargetDeadlineInfo = _strtoui64(gmi["targetDeadline"].GetString(), 0, 10);
+		}
+		else {
+			newTargetDeadlineInfo = gmi["targetDeadline"].GetInt64();
+		}
+		if (loggingConfig.logAllGetMiningInfos || newBlock) {
+			Log(L"*! GMI %s: newTargetDeadlineInfo: %llu", updaterName, newTargetDeadlineInfo);
+			Log(L"*! GMI %s: my_target_deadline: %llu", updaterName, coinInfo->mining->my_target_deadline);
+		}
+		if ((newTargetDeadlineInfo > 0) && (newTargetDeadlineInfo < coinInfo->mining->my_target_deadline)) {
+			setTargetDeadlineInfo(coinInfo, newTargetDeadlineInfo);
+			if (loggingConfig.logAllGetMiningInfos || newBlock) {
+				Log(L"*! GMI %s: Target deadline from pool is lower than deadline set in the configuration. Updating targetDeadline: %llu", updaterName, newTargetDeadlineInfo);
+			}
+		}
+		else {
+			setTargetDeadlineInfo(coinInfo, coinInfo->mining->my_target_deadline);
+			if (loggingConfig.logAllGetMiningInfos || newBlock) {
+				Log(L"*! GMI %s: Using target deadline from configuration: %llu", updaterName, coinInfo->mining->my_target_deadline);
+			}
+		}
+	}
+	else {
+		setTargetDeadlineInfo(coinInfo, coinInfo->mining->my_target_deadline);
+		Log(L"*! GMI %s: No target deadline information provided. Using target deadline from configuration: %llu", updaterName, coinInfo->mining->my_target_deadline);
+	}
+
 	return newBlock;
 }
 
