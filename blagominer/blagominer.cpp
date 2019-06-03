@@ -2,6 +2,8 @@
 #include "stdafx.h"
 #include "blagominer.h"
 
+#include <curl/curl.h>
+
 bool exitHandled = false;
 
 // Initialize static member data
@@ -255,6 +257,12 @@ int load_config(char const *const filename)
 				if (settingsBurst.HasMember("POC2StartBlock") && (settingsBurst["POC2StartBlock"].IsUint64())) burst->mining->POC2StartBlock = settingsBurst["POC2StartBlock"].GetUint64();
 				Log(L"POC2StartBlock: %llu", burst->mining->POC2StartBlock);
 
+				if (settingsBurst.HasMember("UseHTTPS"))
+					if (!settingsBurst["UseHTTPS"].IsBool())
+						Log(L"Ignoring 'UseHTTPS': not a boolean");
+					else
+						burst->network->usehttps = settingsBurst["UseHTTPS"].GetBool();
+
 				// TODO: refactor as 's = read-extras(s nodename)'
 				burst->network->sendextraquery = "";
 				if (settingsBurst.HasMember("ExtraQuery"))
@@ -286,9 +294,8 @@ int load_config(char const *const filename)
 								Log(L"Ignoring 'ExtraHeader/%S': not a string value", item->name.GetString());
 								continue;
 							}
-							burst->network->sendextraheader += "&";
 							burst->network->sendextraheader += item->name.GetString();
-							burst->network->sendextraheader += "=";
+							burst->network->sendextraheader += ": ";
 							burst->network->sendextraheader += item->value.GetString();
 							burst->network->sendextraheader += "\r\n";
 							Log(L"ExtraHeader/%S = %S", item->name.GetString(), item->value.GetString());
@@ -384,6 +391,12 @@ int load_config(char const *const filename)
 					exit(-1);
 				}
 
+				if (settingsBhd.HasMember("UseHTTPS"))
+					if (!settingsBhd["UseHTTPS"].IsBool())
+						Log(L"Ignoring 'UseHTTPS': not a boolean");
+					else
+						bhd->network->usehttps = settingsBhd["UseHTTPS"].GetBool();
+
 				// TODO: refactor as 's = read-extras(s nodename)'
 				bhd->network->sendextraquery = "";
 				if (settingsBhd.HasMember("ExtraQuery"))
@@ -415,9 +428,8 @@ int load_config(char const *const filename)
 								Log(L"Ignoring 'ExtraHeader/%S': not a string value", item->name.GetString());
 								continue;
 							}
-							bhd->network->sendextraheader += "&";
 							bhd->network->sendextraheader += item->name.GetString();
-							bhd->network->sendextraheader += "=";
+							bhd->network->sendextraheader += ": ";
 							bhd->network->sendextraheader += item->value.GetString();
 							bhd->network->sendextraheader += "\r\n";
 							Log(L"ExtraHeader/%S = %S", item->name.GetString(), item->value.GetString());
@@ -1114,11 +1126,13 @@ void closeMiner() {
 		
 	if (burst->mining->enable || burst->network->enable_proxy) {
 		DeleteCriticalSection(&burst->locks->sessionsLock);
+		DeleteCriticalSection(&burst->locks->sessions2Lock);
 		DeleteCriticalSection(&burst->locks->sharesLock);
 		DeleteCriticalSection(&burst->locks->bestsLock);
 	}
 	if (bhd->mining->enable || bhd->network->enable_proxy) {
 		DeleteCriticalSection(&bhd->locks->sessionsLock);
+		DeleteCriticalSection(&bhd->locks->sessions2Lock);
 		DeleteCriticalSection(&bhd->locks->sharesLock);
 		DeleteCriticalSection(&bhd->locks->bestsLock);
 	}
@@ -1126,6 +1140,7 @@ void closeMiner() {
 		HeapFree(hHeap, 0, p_minerPath);
 	}
 
+	curl_global_cleanup();
 	WSACleanup();
 	Log(L"exit");
 	Log_end();
@@ -1198,6 +1213,9 @@ int main(int argc, char **argv) {
 	}
 	else sprintf_s(conf_filename, MAX_PATH, "%s%s", p_minerPath, "miner.conf");
 	
+	// init 3rd party libs
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+
 	// Initialize configuration.
 	init_mining_info();
 	init_network_info();
@@ -1252,6 +1270,7 @@ int main(int argc, char **argv) {
 	if (burst->mining->enable || burst->network->enable_proxy) {
 
 		InitializeCriticalSection(&burst->locks->sessionsLock);
+		InitializeCriticalSection(&burst->locks->sessions2Lock);
 		InitializeCriticalSection(&burst->locks->bestsLock);
 		InitializeCriticalSection(&burst->locks->sharesLock);
 		burst->mining->shares.reserve(20);
@@ -1287,6 +1306,7 @@ int main(int argc, char **argv) {
 
 	if (bhd->mining->enable || bhd->network->enable_proxy) {
 		InitializeCriticalSection(&bhd->locks->sessionsLock);
+		InitializeCriticalSection(&bhd->locks->sessions2Lock);
 		InitializeCriticalSection(&bhd->locks->bestsLock);
 		InitializeCriticalSection(&bhd->locks->sharesLock);
 		bhd->mining->shares.reserve(20);
