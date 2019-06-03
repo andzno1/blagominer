@@ -403,7 +403,9 @@ void send_i(std::shared_ptr<t_coin_info> coinInfo)
 			{
 				unsigned long long total = total_size / 1024 / 1024 / 1024;
 				for (auto It = satellite_size.begin(); It != satellite_size.end(); ++It) total = total + It->second;
-				bytes = sprintf_s(buffer, buffer_size, "POST /burst?requestType=submitNonce&accountId=%llu&nonce=%llu&deadline=%llu HTTP/1.0\r\nHost: %s:%s\r\nX-Miner: Blago %S\r\nX-Capacity: %llu\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", share->account_id, share->nonce, share->best, coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), version.c_str(), total);
+
+				char const* format = "POST /burst?requestType=submitNonce&accountId=%llu&nonce=%llu&deadline=%llu%S HTTP/1.0\r\nHost: %s:%s\r\nX-Miner: Blago %S\r\nX-Capacity: %llu\r\n%SContent-Length: 0\r\nConnection: close\r\n\r\n";
+				bytes = sprintf_s(buffer, buffer_size, format, share->account_id, share->nonce, share->best, coinInfo->network->sendextraquery.c_str(), coinInfo->network->nodeaddr.c_str(), coinInfo->network->nodeport.c_str(), version.c_str(), total, coinInfo->network->sendextraheader.c_str());
 			}
 
 			// Sending to server
