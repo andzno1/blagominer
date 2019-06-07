@@ -629,6 +629,8 @@ bool __impl__confirm_i__sockets(char* buffer, size_t buffer_size, std::shared_pt
 			confirmerName, session->deadline, session->body.height, coinInfo->mining->currentHeight);
 		EnterCriticalSection(&coinInfo->locks->sessionsLock);
 		if (!coinInfo->network->sessions.empty()) {
+			iResult = closesocket(coinInfo->network->sessions.front()->Socket);
+			Log(L"Confirmer %s: Close socket. Code = %i", confirmerName, WSAGetLastError());
 			coinInfo->network->sessions.erase(coinInfo->network->sessions.begin());
 		}
 		LeaveCriticalSection(&coinInfo->locks->sessionsLock);
@@ -660,6 +662,8 @@ bool __impl__confirm_i__sockets(char* buffer, size_t buffer_size, std::shared_pt
 			Log(L"Confirmer %s: ! Error getting confirmation for DL: %llu  code: %i", confirmerName, session->deadline, WSAGetLastError());
 			EnterCriticalSection(&coinInfo->locks->sessionsLock);
 			if (!coinInfo->network->sessions.empty()) {
+				iResult = closesocket(coinInfo->network->sessions.front()->Socket);
+				Log(L"Confirmer %s: Close socket. Code = %i", confirmerName, WSAGetLastError());
 				coinInfo->network->sessions.erase(coinInfo->network->sessions.begin());
 			}
 			LeaveCriticalSection(&coinInfo->locks->sessionsLock);
@@ -758,10 +762,10 @@ bool __impl__confirm_i__sockets(char* buffer, size_t buffer_size, std::shared_pt
 				nonJsonSuccessDetected = false;
 			}
 		}
-		iResult = closesocket(ConnectSocket);
-		Log(L"Confirmer %s: Close socket. Code = %i", confirmerName, WSAGetLastError());
 		EnterCriticalSection(&coinInfo->locks->sessionsLock);
 		if (!coinInfo->network->sessions.empty()) {
+			iResult = closesocket(coinInfo->network->sessions.front()->Socket);
+			Log(L"Confirmer %s: Close socket. Code = %i", confirmerName, WSAGetLastError());
 			coinInfo->network->sessions.erase(coinInfo->network->sessions.begin());
 		}
 		LeaveCriticalSection(&coinInfo->locks->sessionsLock);
