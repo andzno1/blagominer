@@ -797,6 +797,8 @@ bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 			confirmerName, session->deadline, session->body.height, coinInfo->mining->currentHeight);
 		EnterCriticalSection(&coinInfo->locks->sessions2Lock);
 		if (!coinInfo->network->sessions2.empty()) {
+			curl_easy_cleanup(coinInfo->network->sessions2.front()->curl);
+			Log(L"Confirmer %s: Close socket.", confirmerName);
 			coinInfo->network->sessions2.erase(coinInfo->network->sessions2.begin());
 		}
 		LeaveCriticalSection(&coinInfo->locks->sessions2Lock);
@@ -849,6 +851,8 @@ bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 
 		EnterCriticalSection(&coinInfo->locks->sessions2Lock);
 		if (!coinInfo->network->sessions2.empty()) {
+			curl_easy_cleanup(coinInfo->network->sessions2.front()->curl);
+			Log(L"Confirmer %s: Close socket.", confirmerName);
 			coinInfo->network->sessions2.erase(coinInfo->network->sessions2.begin());
 		}
 		LeaveCriticalSection(&coinInfo->locks->sessions2Lock);
@@ -945,10 +949,10 @@ bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 				nonJsonSuccessDetected = false;
 			}
 		}
-		curl_easy_cleanup(curl);
-		Log(L"Confirmer %s: Close socket.", confirmerName);
 		EnterCriticalSection(&coinInfo->locks->sessions2Lock);
 		if (!coinInfo->network->sessions2.empty()) {
+			curl_easy_cleanup(coinInfo->network->sessions2.front()->curl);
+			Log(L"Confirmer %s: Close socket.", confirmerName);
 			coinInfo->network->sessions2.erase(coinInfo->network->sessions2.begin());
 		}
 		LeaveCriticalSection(&coinInfo->locks->sessions2Lock);
