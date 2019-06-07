@@ -1226,8 +1226,8 @@ bool __impl__pollLocal__sockets(std::shared_ptr<t_coin_info> coinInfo, rapidjson
 					}
 				}
 			}
-			iResult = closesocket(UpdaterSocket);
 		}
+		iResult = closesocket(UpdaterSocket);
 		freeaddrinfo(result);
 	}
 	if (buffer != nullptr) {
