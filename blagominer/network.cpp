@@ -392,7 +392,7 @@ void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std
 	char *buffer = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, buffer_size);
 	if (buffer == nullptr) ShowMemErrorExit();
 
-	CURL* curl = curl_easy_init();
+	std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> curl(curl_easy_init(), &curl_easy_cleanup);
 	if (!curl) {
 		failed = true;
 	}
@@ -408,7 +408,7 @@ void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std
 			 * default bundle, then the CURLOPT_CAPATH option might come handy for
 			 * you.
 			 */
-			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+			curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYPEER, 0L);
 		}
 
 		if (false) { // coinInfo->network->SKIP_HOSTNAME_VERIFICATION
@@ -418,7 +418,7 @@ void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std
 			 * subjectAltName) fields, libcurl will refuse to connect. You can skip
 			 * this check, but this will make the connection less secure.
 			 */
-			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+			curl_easy_setopt(curl.get(), CURLOPT_SSL_VERIFYHOST, 0L);
 		}
 
 		std::string root = "https://";
@@ -426,15 +426,15 @@ void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std
 		root += ":";
 		root += coinInfo->network->nodeport;
 
-		curl_easy_setopt(curl, CURLOPT_URL, root.c_str());
-		curl_easy_setopt(curl, CURLOPT_CONNECT_ONLY, 1L);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, coinInfo->network->submitTimeout);
+		curl_easy_setopt(curl.get(), CURLOPT_URL, root.c_str());
+		curl_easy_setopt(curl.get(), CURLOPT_CONNECT_ONLY, 1L);
+		curl_easy_setopt(curl.get(), CURLOPT_TIMEOUT_MS, coinInfo->network->submitTimeout);
 
-		CURLcode res = curl_easy_perform(curl);
+		CURLcode res = curl_easy_perform(curl.get());
 
 		curl_socket_t sockfd;
 		if (res == CURLE_OK) {
-			res = curl_easy_getinfo(curl, CURLINFO_ACTIVESOCKET, &sockfd);
+			res = curl_easy_getinfo(curl.get(), CURLINFO_ACTIVESOCKET, &sockfd);
 		}
 
 		if (res == CURLE_OK) {
@@ -464,7 +464,7 @@ void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std
 			size_t total_sent = 0;
 			do {
 				size_t sent = 0;
-				res = curl_easy_send(curl, buffer + total_sent, bytes - total_sent, &sent);
+				res = curl_easy_send(curl.get(), buffer + total_sent, bytes - total_sent, &sent);
 				total_sent += sent;
 				if (total_sent >= bytes)
 					break;
@@ -500,7 +500,8 @@ void __impl__send_i__curl(std::shared_ptr<t_coin_info> coinInfo, std::vector<std
 				(share->deadline % (60 * 60)) / 60,
 				share->deadline % 60);
 
-			tmpSessions.push_back(std::make_shared<t_session2>(curl, share->deadline, *share));
+			tmpSessions.push_back(std::make_shared<t_session2>(curl.get(), share->deadline, *share));
+			curl.release();
 
 			Log(L"[%20llu] Sender %s: Setting bests targetDL: %10llu", share->account_id, senderName, share->deadline);
 			coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline = share->deadline;
