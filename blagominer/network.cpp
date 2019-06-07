@@ -293,7 +293,8 @@ void __impl__send_i__sockets(char* buffer, size_t buffer_size, std::shared_ptr<t
 {
 	const wchar_t* senderName = coinNames[coinInfo->coin];
 
-	SOCKET ConnectSocket;
+	SOCKET ConnectSocket = INVALID_SOCKET;
+	std::unique_ptr<SOCKET, void(*)(SOCKET*)> guardConnectSocket(&ConnectSocket, [](SOCKET* s) {closesocket(*s); });
 
 	int iResult = 0;
 
@@ -369,6 +370,7 @@ void __impl__send_i__sockets(char* buffer, size_t buffer_size, std::shared_ptr<t
 				share->deadline % 60);
 
 			tmpSessions.push_back(std::make_shared<t_session>(ConnectSocket, share->deadline, *share));
+			guardConnectSocket.release();
 
 			Log(L"[%20llu] Sender %s: Setting bests targetDL: %10llu", share->account_id, senderName, share->deadline);
 			coinInfo->mining->bests[Get_index_acc(share->account_id, coinInfo, targetDeadlineInfo)].targetDeadline = share->deadline;
