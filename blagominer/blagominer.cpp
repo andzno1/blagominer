@@ -820,6 +820,10 @@ void newRound(std::shared_ptr<t_coin_info > coinCurrentlyMining) {
 		closesocket((*it)->Socket);
 	}
 	coinCurrentlyMining->network->sessions.clear();
+	for (auto it = coinCurrentlyMining->network->sessions2.begin(); it != coinCurrentlyMining->network->sessions2.end(); ++it) {
+		curl_easy_cleanup((*it)->curl);
+	}
+	coinCurrentlyMining->network->sessions2.clear();
 	LeaveCriticalSection(&coinCurrentlyMining->locks->sessionsLock);
 
 	EnterCriticalSection(&coinCurrentlyMining->locks->sharesLock);
