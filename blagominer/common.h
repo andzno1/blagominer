@@ -7,6 +7,8 @@
 #include <math.h>
 #include "logger.h"
 
+#include <curl/curl.h>
+
 // blago version
 extern const unsigned int versionMajor;
 extern const unsigned int versionMinor;
@@ -66,6 +68,12 @@ struct t_session {
 	unsigned long long deadline;
 	t_shares body;
 };
+struct t_session2 {
+	t_session2(CURL* curl, unsigned long long deadline, t_shares body) : curl(curl), deadline(deadline), body(body) {}
+	CURL* curl;
+	unsigned long long deadline;
+	t_shares body;
+};
 
 struct t_files {
 	bool done;
@@ -105,6 +113,7 @@ struct t_locks {
 	std::mutex mNewMiningInfoReceived;
 
 	CRITICAL_SECTION sessionsLock;			// session lock
+	CRITICAL_SECTION sessions2Lock;			// session2 lock
 	CRITICAL_SECTION bestsLock;				// best lock
 	CRITICAL_SECTION sharesLock;			// shares lock
 };
@@ -150,7 +159,11 @@ struct t_network_info {
 	size_t update_interval;
 	size_t proxy_update_interval;
 	int network_quality;
+	bool usehttps;
+	std::string sendextraquery;
+	std::string sendextraheader;
 	std::vector<std::shared_ptr<t_session>> sessions;
+	std::vector<std::shared_ptr<t_session2>> sessions2;
 	std::thread sender;
 	std::thread confirmer;
 };

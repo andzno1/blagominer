@@ -2,6 +2,8 @@
 #include "stdafx.h"
 #include "blagominer.h"
 
+#include <curl/curl.h>
+
 bool exitHandled = false;
 
 // Initialize static member data
@@ -254,6 +256,51 @@ int load_config(char const *const filename)
 
 				if (settingsBurst.HasMember("POC2StartBlock") && (settingsBurst["POC2StartBlock"].IsUint64())) burst->mining->POC2StartBlock = settingsBurst["POC2StartBlock"].GetUint64();
 				Log(L"POC2StartBlock: %llu", burst->mining->POC2StartBlock);
+
+				if (settingsBurst.HasMember("UseHTTPS"))
+					if (!settingsBurst["UseHTTPS"].IsBool())
+						Log(L"Ignoring 'UseHTTPS': not a boolean");
+					else
+						burst->network->usehttps = settingsBurst["UseHTTPS"].GetBool();
+
+				// TODO: refactor as 's = read-extras(s nodename)'
+				burst->network->sendextraquery = "";
+				if (settingsBurst.HasMember("ExtraQuery"))
+					if (!settingsBurst["ExtraQuery"].IsObject())
+						Log(L"Ignoring 'ExtraQuery': not a json-object");
+					else {
+						auto const& tmp = settingsBurst["ExtraQuery"].GetObjectW();
+						for (auto item = tmp.MemberBegin(); item != tmp.MemberEnd(); ++item) {
+							if (!item->value.IsString()) {
+								Log(L"Ignoring 'ExtraQuery/%S': not a string value", item->name.GetString());
+								continue;
+							}
+							burst->network->sendextraquery += "&";
+							burst->network->sendextraquery += item->name.GetString();
+							burst->network->sendextraquery += "=";
+							burst->network->sendextraquery += item->value.GetString();
+							Log(L"ExtraQuery/%S = %S", item->name.GetString(), item->value.GetString());
+						}
+					}
+
+				burst->network->sendextraheader = "";
+				if (settingsBurst.HasMember("ExtraHeader"))
+					if (!settingsBurst["ExtraHeader"].IsObject())
+						Log(L"Ignoring 'ExtraHeader': not a json-object");
+					else {
+						auto const& tmp = settingsBurst["ExtraHeader"].GetObjectW();
+						for (auto item = tmp.MemberBegin(); item != tmp.MemberEnd(); ++item) {
+							if (!item->value.IsString()) {
+								Log(L"Ignoring 'ExtraHeader/%S': not a string value", item->name.GetString());
+								continue;
+							}
+							burst->network->sendextraheader += item->name.GetString();
+							burst->network->sendextraheader += ": ";
+							burst->network->sendextraheader += item->value.GetString();
+							burst->network->sendextraheader += "\r\n";
+							Log(L"ExtraHeader/%S = %S", item->name.GetString(), item->value.GetString());
+						}
+					}
 			}
 		}
 
@@ -343,6 +390,51 @@ int load_config(char const *const filename)
 					system("pause > nul");
 					exit(-1);
 				}
+
+				if (settingsBhd.HasMember("UseHTTPS"))
+					if (!settingsBhd["UseHTTPS"].IsBool())
+						Log(L"Ignoring 'UseHTTPS': not a boolean");
+					else
+						bhd->network->usehttps = settingsBhd["UseHTTPS"].GetBool();
+
+				// TODO: refactor as 's = read-extras(s nodename)'
+				bhd->network->sendextraquery = "";
+				if (settingsBhd.HasMember("ExtraQuery"))
+					if (!settingsBhd["ExtraQuery"].IsObject())
+						Log(L"Ignoring 'ExtraQuery': not a json-object");
+					else {
+						auto const& tmp = settingsBhd["ExtraQuery"].GetObjectW();
+						for (auto item = tmp.MemberBegin(); item != tmp.MemberEnd(); ++item) {
+							if (!item->value.IsString()) {
+								Log(L"Ignoring 'ExtraQuery/%S': not a string value", item->name.GetString());
+								continue;
+							}
+							bhd->network->sendextraquery += "&";
+							bhd->network->sendextraquery += item->name.GetString();
+							bhd->network->sendextraquery += "=";
+							bhd->network->sendextraquery += item->value.GetString();
+							Log(L"ExtraQuery/%S = %S", item->name.GetString(), item->value.GetString());
+						}
+					}
+
+				bhd->network->sendextraheader = "";
+				if (settingsBhd.HasMember("ExtraHeader"))
+					if (!settingsBhd["ExtraHeader"].IsObject())
+						Log(L"Ignoring 'ExtraHeader': not a json-object");
+					else {
+						auto const& tmp = settingsBhd["ExtraHeader"].GetObjectW();
+						for (auto item = tmp.MemberBegin(); item != tmp.MemberEnd(); ++item) {
+							if (!item->value.IsString()) {
+								Log(L"Ignoring 'ExtraHeader/%S': not a string value", item->name.GetString());
+								continue;
+							}
+							bhd->network->sendextraheader += item->name.GetString();
+							bhd->network->sendextraheader += ": ";
+							bhd->network->sendextraheader += item->value.GetString();
+							bhd->network->sendextraheader += "\r\n";
+							Log(L"ExtraHeader/%S = %S", item->name.GetString(), item->value.GetString());
+						}
+					}
 			}
 		}
 				
@@ -728,6 +820,10 @@ void newRound(std::shared_ptr<t_coin_info > coinCurrentlyMining) {
 		closesocket((*it)->Socket);
 	}
 	coinCurrentlyMining->network->sessions.clear();
+	for (auto it = coinCurrentlyMining->network->sessions2.begin(); it != coinCurrentlyMining->network->sessions2.end(); ++it) {
+		curl_easy_cleanup((*it)->curl);
+	}
+	coinCurrentlyMining->network->sessions2.clear();
 	LeaveCriticalSection(&coinCurrentlyMining->locks->sessionsLock);
 
 	EnterCriticalSection(&coinCurrentlyMining->locks->sharesLock);
@@ -1022,6 +1118,10 @@ void closeMiner() {
 		closesocket((*it)->Socket);
 	}
 	burst->network->sessions.clear();
+	for (auto it = burst->network->sessions2.begin(); it != burst->network->sessions2.end(); ++it) {
+		curl_easy_cleanup((*it)->curl);
+	}
+	burst->network->sessions2.clear();
 	LeaveCriticalSection(&burst->locks->sessionsLock);
 
 	EnterCriticalSection(&bhd->locks->sessionsLock);
@@ -1029,16 +1129,22 @@ void closeMiner() {
 		closesocket((*it)->Socket);
 	}
 	bhd->network->sessions.clear();
+	for (auto it = bhd->network->sessions2.begin(); it != bhd->network->sessions2.end(); ++it) {
+		curl_easy_cleanup((*it)->curl);
+	}
+	bhd->network->sessions2.clear();
 	LeaveCriticalSection(&bhd->locks->sessionsLock);
 	if (pass != nullptr) HeapFree(hHeap, 0, pass);
 		
 	if (burst->mining->enable || burst->network->enable_proxy) {
 		DeleteCriticalSection(&burst->locks->sessionsLock);
+		DeleteCriticalSection(&burst->locks->sessions2Lock);
 		DeleteCriticalSection(&burst->locks->sharesLock);
 		DeleteCriticalSection(&burst->locks->bestsLock);
 	}
 	if (bhd->mining->enable || bhd->network->enable_proxy) {
 		DeleteCriticalSection(&bhd->locks->sessionsLock);
+		DeleteCriticalSection(&bhd->locks->sessions2Lock);
 		DeleteCriticalSection(&bhd->locks->sharesLock);
 		DeleteCriticalSection(&bhd->locks->bestsLock);
 	}
@@ -1046,6 +1152,7 @@ void closeMiner() {
 		HeapFree(hHeap, 0, p_minerPath);
 	}
 
+	curl_global_cleanup();
 	WSACleanup();
 	Log(L"exit");
 	Log_end();
@@ -1057,9 +1164,11 @@ void closeMiner() {
 	burst->mining->bests.~vector();
 	burst->mining->shares.~vector();
 	burst->network->sessions.~vector();
+	burst->network->sessions2.~vector();
 	bhd->mining->bests.~vector();
 	bhd->mining->shares.~vector();
 	bhd->network->sessions.~vector();
+	bhd->network->sessions2.~vector();
 }
 
 BOOL WINAPI OnConsoleClose(DWORD dwCtrlType)
@@ -1118,6 +1227,9 @@ int main(int argc, char **argv) {
 	}
 	else sprintf_s(conf_filename, MAX_PATH, "%s%s", p_minerPath, "miner.conf");
 	
+	// init 3rd party libs
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+
 	// Initialize configuration.
 	init_mining_info();
 	init_network_info();
@@ -1172,11 +1284,13 @@ int main(int argc, char **argv) {
 	if (burst->mining->enable || burst->network->enable_proxy) {
 
 		InitializeCriticalSection(&burst->locks->sessionsLock);
+		InitializeCriticalSection(&burst->locks->sessions2Lock);
 		InitializeCriticalSection(&burst->locks->bestsLock);
 		InitializeCriticalSection(&burst->locks->sharesLock);
 		burst->mining->shares.reserve(20);
 		burst->mining->bests.reserve(4);
 		burst->network->sessions.reserve(20);
+		burst->network->sessions2.reserve(20);
 
 		char* updateripBurst = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
 		if (updateripBurst == nullptr) ShowMemErrorExit();
@@ -1207,11 +1321,13 @@ int main(int argc, char **argv) {
 
 	if (bhd->mining->enable || bhd->network->enable_proxy) {
 		InitializeCriticalSection(&bhd->locks->sessionsLock);
+		InitializeCriticalSection(&bhd->locks->sessions2Lock);
 		InitializeCriticalSection(&bhd->locks->bestsLock);
 		InitializeCriticalSection(&bhd->locks->sharesLock);
 		bhd->mining->shares.reserve(20);
 		bhd->mining->bests.reserve(4);
 		bhd->network->sessions.reserve(20);
+		bhd->network->sessions2.reserve(20);
 
 		char* updateripBhd = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
 		if (updateripBhd == nullptr) ShowMemErrorExit();
