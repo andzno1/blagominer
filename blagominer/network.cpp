@@ -768,6 +768,34 @@ bool __impl__confirm_i__sockets(char* buffer, size_t buffer_size, std::shared_pt
 	return failed;
 }
 
+// https://curl.haxx.se/libcurl/c/sendrecv.html
+static int wait_on_socket(curl_socket_t sockfd, int for_recv, long timeout_ms)
+{
+	struct timeval tv;
+	fd_set infd, outfd, errfd;
+	int res;
+
+	tv.tv_sec = timeout_ms / 1000;
+	tv.tv_usec = (timeout_ms % 1000) * 1000;
+
+	FD_ZERO(&infd);
+	FD_ZERO(&outfd);
+	FD_ZERO(&errfd);
+
+	FD_SET(sockfd, &errfd); /* always check for error */
+
+	if (for_recv) {
+		FD_SET(sockfd, &infd);
+	}
+	else {
+		FD_SET(sockfd, &outfd);
+	}
+
+	/* select() returns the number of signalled sockets or -1 */
+	res = select((int)sockfd + 1, &infd, &outfd, &errfd, &tv);
+	return res;
+}
+
 bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::Document& output, char*& find, bool& nonJsonSuccessDetected, std::shared_ptr<t_session2>& session) {
 	bool failed = false;
 
@@ -815,28 +843,25 @@ bool __impl__confirm_i__curl(std::shared_ptr<t_coin_info> coinInfo, rapidjson::D
 
 		RtlSecureZeroMemory(buffer, buffer_size);
 
-		struct timeval tv;
-		tv.tv_sec = coinInfo->network->submitTimeout / 1000;
-		tv.tv_usec = (coinInfo->network->submitTimeout % 1000) * 1000;
-
 		size_t total_recvd = 0;
 		do {
 			size_t recvd = 0;
 			res = curl_easy_recv(curl, buffer + total_recvd, buffer_size - total_recvd, &recvd);
-			total_recvd += recvd;
+
+			if (res == CURLE_AGAIN)
+				if (wait_on_socket(sockfd, 1, coinInfo->network->submitTimeout))
+					continue;
+				else
+					res = CURLE_OPERATION_TIMEDOUT;
+
+			if (res != CURLE_OK)
+				break;
+
 			if (recvd == 0)
 				break;
-			if (res == CURLE_AGAIN) {
-				int res2 = select(0, &readfds, NULL, &readfds, &tv);
-				if (res2 != 1) {
-					res = CURLE_OPERATION_TIMEDOUT;
-					break;
-				}
-				if (!FD_ISSET(sockfd, &readfds)) {
-					res = CURLE_OPERATION_TIMEDOUT;
-					break;
-				}
-			}
+
+			total_recvd += recvd;
+
 		} while (res == CURLE_AGAIN);
 	}
 
