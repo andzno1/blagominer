@@ -1114,6 +1114,10 @@ void closeMiner() {
 		closesocket((*it)->Socket);
 	}
 	burst->network->sessions.clear();
+	for (auto it = burst->network->sessions2.begin(); it != burst->network->sessions2.end(); ++it) {
+		curl_easy_cleanup((*it)->curl);
+	}
+	burst->network->sessions2.clear();
 	LeaveCriticalSection(&burst->locks->sessionsLock);
 
 	EnterCriticalSection(&bhd->locks->sessionsLock);
@@ -1121,6 +1125,10 @@ void closeMiner() {
 		closesocket((*it)->Socket);
 	}
 	bhd->network->sessions.clear();
+	for (auto it = bhd->network->sessions2.begin(); it != bhd->network->sessions2.end(); ++it) {
+		curl_easy_cleanup((*it)->curl);
+	}
+	bhd->network->sessions2.clear();
 	LeaveCriticalSection(&bhd->locks->sessionsLock);
 	if (pass != nullptr) HeapFree(hHeap, 0, pass);
 		
@@ -1152,9 +1160,11 @@ void closeMiner() {
 	burst->mining->bests.~vector();
 	burst->mining->shares.~vector();
 	burst->network->sessions.~vector();
+	burst->network->sessions2.~vector();
 	bhd->mining->bests.~vector();
 	bhd->mining->shares.~vector();
 	bhd->network->sessions.~vector();
+	bhd->network->sessions2.~vector();
 }
 
 BOOL WINAPI OnConsoleClose(DWORD dwCtrlType)
@@ -1276,6 +1286,7 @@ int main(int argc, char **argv) {
 		burst->mining->shares.reserve(20);
 		burst->mining->bests.reserve(4);
 		burst->network->sessions.reserve(20);
+		burst->network->sessions2.reserve(20);
 
 		char* updateripBurst = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
 		if (updateripBurst == nullptr) ShowMemErrorExit();
@@ -1312,6 +1323,7 @@ int main(int argc, char **argv) {
 		bhd->mining->shares.reserve(20);
 		bhd->mining->bests.reserve(4);
 		bhd->network->sessions.reserve(20);
+		bhd->network->sessions2.reserve(20);
 
 		char* updateripBhd = (char*)HeapAlloc(hHeap, HEAP_ZERO_MEMORY, 50);
 		if (updateripBhd == nullptr) ShowMemErrorExit();
